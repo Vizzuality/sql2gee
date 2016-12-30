@@ -1,0 +1,11 @@
+/sql2gee.egg-info
+/dist
+privatekey.pem
+config.py
+ra.py
+/env
+/.cache
+.coverage
+/.tox
+**/*.pyc
+/htmlcov
