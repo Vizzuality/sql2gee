@@ -1,7 +1,7 @@
-
 import unittest
 from sql2gee.sql2gee import SQL2GEE
 from ee import apitestcase, Filter, FeatureCollection, Feature
+
 
 class TestSQL2GEE(apitestcase.ApiTestCase):
     def test_table_name(self):
@@ -42,7 +42,7 @@ class TestSQL2GEE(apitestcase.ApiTestCase):
     def test_where_simple(self):
         sql2gee = SQL2GEE('select * from mytable where a > 2')
         where = sql2gee.get_where()
-        correct = Filter().gt('a', 2);
+        correct = Filter().gt('a', 2)
         self.assertEqual(where, correct)
 
     def test_where_with_and(self):

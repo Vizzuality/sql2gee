@@ -4,7 +4,6 @@ from sqlparse.tokens import Keyword, Comparison
 from sqlparse.sql import Identifier, IdentifierList, Function, Parenthesis, Comparison
 
 
-
 class SQL2GEE:
     def __init__(self, sql):
         """Intialize the object and parse sql. Return SQL2GEE object to do the process"""
@@ -81,11 +80,10 @@ class SQL2GEE:
         return list
 
     def remove_quotes(self, str):
-        if (str[0] == '"' or str[0] == "'") and (str[len(str) -1] == '"' or str[len(str) -1] == "'"):
-            return str[1:len(str) -1]
+        if (str[0] == '"' or str[0] == "'") and (str[len(str) - 1] == '"' or str[len(str) - 1] == "'"):
+            return str[1:len(str) - 1]
 
         return str
-
 
     def parse_comparison(self, comparison):
         values = []
@@ -109,11 +107,11 @@ class SQL2GEE:
         if comp.value.upper() == 'LIKE':
             filter = None
             if right.strip().startswith('%') and right.strip().endswith('%'):
-                filter = self.filters['%' + comp.value.upper() + '%'](left, right[1:len(right) -1])
+                filter = self.filters['%' + comp.value.upper() + '%'](left, right[1:len(right) - 1])
             elif right.strip().startswith('%'):
                 filter = self.filters['%' + comp.value.upper()](left, right[1:len(right)])
             elif right.strip().endswith('%'):
-                filter = self.filters[comp.value.upper() + '%'](left, right[0:len(right) -1])
+                filter = self.filters[comp.value.upper() + '%'](left, right[0:len(right) - 1])
             else:
                 filter = self.filters[comp.value.upper()](left, right)
 
@@ -128,7 +126,6 @@ class SQL2GEE:
         if exist_not:
             return filter.Not()
         return filter
-
 
     def generate_is(self, left, comp, right, ):
         if right.upper() == 'NULL':
@@ -164,10 +161,8 @@ class SQL2GEE:
                 if exist_not:
                     filter = filter.Not()
                 filters.append(filter)
-
             elif item.ttype is Keyword and (item.value.upper() == 'AND' or item.value.upper() == 'OR'):
                 comparison = self.comparisons[item.value.upper()]
-
             elif isinstance(item, Parenthesis):
                 filter = self.parse_conditions(item.tokens)
                 if isinstance(filter, ee.Filter):
@@ -177,17 +172,13 @@ class SQL2GEE:
                     leftValue = None
                     sub_comparison = None
                     exist_not = False
-
-            elif item.ttype is Keyword and ( item.value.upper() == 'LIKE' or item.value.upper() == 'IN' or item.value.upper() == 'IS' ):
+            elif item.ttype is Keyword and (item.value.upper() == 'LIKE' or item.value.upper() == 'IN' or item.value.upper() == 'IS'):
                 sub_comparison = item
-
             elif item.ttype is Keyword and item.value.upper() == 'NOT':
                 exist_not = True
-
             elif isinstance(item, IdentifierList):
                 return self.parse_list(item.tokens)
-
-            elif item.ttype is None or (item.ttype is Keyword and ( item.value.upper() == 'NULL' or item.value.upper().startswith('NOT') )):
+            elif item.ttype is None or (item.ttype is Keyword and (item.value.upper() == 'NULL' or item.value.upper().startswith('NOT'))):
                 if leftValue is None:
                     leftValue = item.value
                 else:
@@ -198,7 +189,6 @@ class SQL2GEE:
                     sub_comparison = None
                     leftValue = None
                     exist_not = False
-
             if comparison and len(filters) == 2:
                 statement = comparison(filters[0], filters[1])
                 if exist_not:
@@ -210,10 +200,9 @@ class SQL2GEE:
 
     def get_where(self):
         """Returns filter object obtained from where of the query in GEE format"""
-        val, where =  self.parsed.token_next_by(i=sqlparse.sql.Where)
+        val, where = self.parsed.token_next_by(i=sqlparse.sql.Where)
         if where:
             return self.parse_conditions(where.tokens)
-
         return None
 
     def apply_group(self, fc, group):
@@ -232,24 +221,19 @@ class SQL2GEE:
         elif group['function'] == 'LAST':
             return fc.aggregate_last(group['value'])
 
-
     def generate_query(self):
         """Return the GEE object with all filter, groups, functions, etc specified in the query"""
         fc = ee.FeatureCollection(self.get_table_name())
         filters = self.get_where()
         if filters:
             fc = fc.filter(filters)
-
         groups = self.get_group_functions()
         if groups:
             for group in groups:
                 fc = self.apply_group(fc, group)
-
         select = self.get_select_list()
-
         if select and len(select) > 0 and not select[0] == '*':
             fc = fc.select(select)
-
         self.fc = fc
         return fc
 
@@ -257,6 +241,4 @@ class SQL2GEE:
         """Execute the GEE object in GEE Server"""
         if self.fc:
             return self.fc.getInfo()
-
         return None
-
