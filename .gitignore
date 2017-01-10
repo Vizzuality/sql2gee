@@ -9,3 +9,4 @@ ra.py
 /.tox
 **/*.pyc
 /htmlcov
+/.idea

@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/benlaken/sql2gee.svg?branch=master)](https://travis-ci.org/benlaken/sql2gee)
+
 # sql2gee
 > Library to do sql queries to Google Earth Engine
 
@@ -10,7 +12,7 @@
   * AND, OR
   * IN
   * IS
-  
+
 * FUNCTIONS
   * COUNT
   * SUM
@@ -19,10 +21,10 @@
   * MIN
   * FIRST
   * LAST
-  
+
 ##GEE Supported:
 * FeatureCollection
-  
+
 ##Usage
 
 Important: To use this library, the first is that you initialize the GEE library.
@@ -44,7 +46,7 @@ from sql2gee.sql2gee import SQL2GEE
 ```python
 sql2gee = SQL2GEE('select count(width) from "ft:1qpKIcYQMBsXLA9RLWCaV9D0Hus2cMQHhI-ViKHo" where width > 100 ')
 ```
-  
+
 3 - Generate the GEE object
 ```python
 sql2gee.generate_query()
