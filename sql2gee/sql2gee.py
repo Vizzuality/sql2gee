@@ -108,7 +108,6 @@ class SQL2GEE:
         to see if they are quotation marks [' or "], if so
         the function will strip them and return the string.
         :type input_str: str"""
-        #assert isinstance(input_str, str), "Input not of str() type"
         starts_with_quotation = input_str[0] in ['"', "'"]
         ends_with_quotation = input_str[-1] in ['"', "'"]
         if starts_with_quotation and ends_with_quotation:
