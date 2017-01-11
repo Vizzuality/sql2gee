@@ -13,15 +13,19 @@ class TestSQL2GEE(apitestcase.ApiTestCase):
         self.assertEqual(table_name, 'mytable')
         return
 
-    def test_fields(self):
+    def test_fields_property(self):
         sql2gee = SQL2GEE('select juan from mytable')
-        fields = sql2gee.get_select_list()
+        fields = sql2gee.fields
+        print("Fields property:", fields)
         self.assertEqual(fields, ['juan'])
+        return
 
-    def test_multiple_fields(self):
-        sql2gee = SQL2GEE('select pepe, juan from mytable')
-        fields = sql2gee.get_select_list()
-        self.assertEqual(fields, ['pepe', 'juan'])
+    def test_multiple_fields_property(self):
+        sql2gee = SQL2GEE('select pepe, juan, bob from mytable')
+        fields = sql2gee.fields
+        print("Multi property", fields)
+        self.assertEqual(fields, ['pepe', 'juan', 'bob'])
+        return
 
     def test_group_select(self):
         sql2gee = SQL2GEE('select count(pepe) from mytable')

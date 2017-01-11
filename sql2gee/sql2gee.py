@@ -5,6 +5,13 @@ from sqlparse.sql import Identifier, IdentifierList, Function, Parenthesis, Comp
 
 
 class SQL2GEE:
+    """
+    Converts SQL into calls to Google's Earth Engine via their python (2.7) API.
+
+    :Example:
+    >>> from sql2gee import SQL2GEE
+    >>> sql2gee = SQL2GEE('select thing from mytable')
+    """
     def __init__(self, sql):
         """Intialize the object and parse sql. Return SQL2GEE object to do the process"""
         self.parsed = sqlparse.parse(sql)[0]
@@ -42,19 +49,24 @@ class SQL2GEE:
                 from_seen = True
         raise exception_1
 
-    def get_select_list(self):
-        """Return list with the columns specified in the query"""
-        list = []
-        for item in self.parsed.tokens:
-            if item.ttype is Keyword and item.value.upper() == 'FROM':
-                return list
-            elif isinstance(item, Identifier):
-                list.append(item.value)
-            elif isinstance(item, IdentifierList):
-                for ident in item.tokens:
-                    if isinstance(ident, Identifier):
-                        list.append(ident.value)
-        return list
+    @property
+    def fields(self):
+        """A list of all fields in SQL query. If the FROM keyword is
+        encountered the list is immediately returned.
+        """
+        field_list = []
+        for t in self.parsed.tokens:
+            is_keyword = t.ttype is Keyword
+            is_from = str(t).upper() == 'FROM'
+            if is_keyword and is_from:
+                return field_list
+            elif isinstance(t, Identifier):
+                field_list.append(str(t))
+            elif isinstance(t, IdentifierList):
+                for identity in t.tokens:
+                    if isinstance(identity, Identifier):
+                        field_list.append(str(identity))
+        return field_list
 
     def parse_group(self, token_list):
         token = {}
@@ -243,7 +255,7 @@ class SQL2GEE:
         if groups:
             for group in groups:
                 fc = self.apply_group(fc, group)
-        select = self.get_select_list()
+        select = self.fields
         if select and len(select) > 0 and not select[0] == '*':
             fc = fc.select(select)
         self.fc = fc
