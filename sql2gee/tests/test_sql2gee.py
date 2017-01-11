@@ -1,5 +1,5 @@
 import unittest
-from sql2gee.sql2gee import SQL2GEE
+from sql2gee import SQL2GEE
 from ee import apitestcase, Filter, FeatureCollection, Feature
 
 
