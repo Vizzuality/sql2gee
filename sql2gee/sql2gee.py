@@ -68,32 +68,39 @@ class SQL2GEE:
                         field_list.append(str(identity))
         return field_list
 
-    def parse_group(self, token_list):
-        token = {}
-        for item in token_list:
-            if isinstance(item, Identifier):
-                token['function'] = item.value.upper()
-            elif isinstance(item, Parenthesis):
-                value = item.value.replace('(', '').replace(')', '').strip()
+    @property
+    def group_functions(self):
+        """Returns the group function with column names specified in the query:
+        e.g. from sql input of 'select count(pepe) from mytable', a dictionary of
+        {'function': 'COUNT', 'value': 'pepe'} should be returned by self.group_functions"""
+        group_list = []
+        for t in self.parsed.tokens:
+            if t.ttype is Keyword and t.value.upper() == 'FROM':
+                return group_list
+            elif isinstance(t, Function):
+                group_list.append(self.token_to_dictionary(t))
+            elif isinstance(t, IdentifierList):
+                for identity in t.tokens:
+                    if isinstance(identity, Function):
+                        group_list.append(self.token_to_dictionary(identity))
+        return group_list
+
+    @staticmethod
+    def token_to_dictionary(token_list):
+        """Recieve a token e.g.('count(pepe)') and converts it into a dictionary
+        with key:values for function and value."""
+        assert isinstance(token_list, sqlparse.sql.Function),'unexpected datatype'
+        d = {}
+        for t in token_list:
+            if isinstance(t, Identifier):
+                d['function'] = str(t).upper()
+            elif isinstance(t, Parenthesis):
+                value = t.value.replace('(', '').replace(')', '').strip()
                 if value != '*':
-                    token['value'] = value
+                    d['value'] = value
                 else:
                     raise Exception('* not allowed')
-        return token
-
-    def get_group_functions(self):
-        """Returns the group function with column names specified in the query"""
-        list = []
-        for item in self.parsed.tokens:
-            if item.ttype is Keyword and item.value.upper() == 'FROM':
-                return list
-            elif isinstance(item, Function):
-                list.append(self.parse_group(item))
-            elif isinstance(item, IdentifierList):
-                for ident in item.tokens:
-                    if isinstance(ident, Function):
-                        list.append(self.parse_group(ident))
-        return list
+        return d
 
     @staticmethod
     def remove_quotes(input_str):
@@ -251,7 +258,7 @@ class SQL2GEE:
         filters = self.get_where()
         if filters:
             fc = fc.filter(filters)
-        groups = self.get_group_functions()
+        groups = self.group_functions
         if groups:
             for group in groups:
                 fc = self.apply_group(fc, group)

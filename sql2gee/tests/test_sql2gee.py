@@ -16,35 +16,41 @@ class TestSQL2GEE(apitestcase.ApiTestCase):
     def test_fields_property(self):
         sql2gee = SQL2GEE('select juan from mytable')
         fields = sql2gee.fields
-        print("Fields property:", fields)
         self.assertEqual(fields, ['juan'])
         return
 
     def test_multiple_fields_property(self):
         sql2gee = SQL2GEE('select pepe, juan, bob from mytable')
         fields = sql2gee.fields
-        print("Multi property", fields)
         self.assertEqual(fields, ['pepe', 'juan', 'bob'])
         return
 
-    def test_group_select(self):
+    def test_group_select_property(self):
         sql2gee = SQL2GEE('select count(pepe) from mytable')
-        groups = sql2gee.get_group_functions()
+        groups = sql2gee.group_functions
         self.assertEqual(groups, [{'function': 'COUNT', 'value': 'pepe'}])
 
-    def test_several_group_select(self):
+    def test_several_group_select_property(self):
         sql2gee = SQL2GEE('select count(pepe), sum(pepe) from mytable')
-        groups = sql2gee.get_group_functions()
-        self.assertEqual(groups, [{'function': 'COUNT', 'value': 'pepe'}, {'function': 'SUM', 'value': 'pepe'}])
+        groups = sql2gee.group_functions
+        self.assertEqual(groups, [{'function': 'COUNT', 'value': 'pepe'},
+                                  {'function': 'SUM', 'value': 'pepe'}])
 
-    def test_several_group_select_several(self):
-        sql2gee = SQL2GEE('select count(pepe), sum(pepe), avg(pepe), first(pepe), last(pepe), max(pepe), min(pepe) from mytable')
-        groups = sql2gee.get_group_functions()
-        self.assertEqual(groups, [{'function': 'COUNT', 'value': 'pepe'}, {'function': 'SUM', 'value': 'pepe'}, {'function': 'AVG', 'value': 'pepe'}, {'function': 'FIRST', 'value': 'pepe'}, {'function': 'LAST', 'value': 'pepe'}, {'function': 'MAX', 'value': 'pepe'}, {'function': 'MIN', 'value': 'pepe'}])
+    def test_long_group_select(self):
+        sql = 'select count(pepe), sum(pepe), avg(pepe), first(pepe), last(pepe), max(pepe), min(pepe) from mytable'
+        sql2gee = SQL2GEE(sql)
+        groups = sql2gee.group_functions
+        self.assertEqual(groups, [{'function': 'COUNT', 'value': 'pepe'},
+                                  {'function': 'SUM', 'value': 'pepe'},
+                                  {'function': 'AVG', 'value': 'pepe'},
+                                  {'function': 'FIRST', 'value': 'pepe'},
+                                  {'function': 'LAST', 'value': 'pepe'},
+                                  {'function': 'MAX', 'value': 'pepe'},
+                                  {'function': 'MIN', 'value': 'pepe'}])
 
-    def test_none_group_select(self):
+    def test_empty_group_select(self):
         sql2gee = SQL2GEE('select * from mytable')
-        groups = sql2gee.get_group_functions()
+        groups = sql2gee.group_functions
         self.assertEqual(groups, [])
 
     def test_where_simple(self):
