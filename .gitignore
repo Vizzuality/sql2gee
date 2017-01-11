@@ -10,3 +10,6 @@ ra.py
 **/*.pyc
 /htmlcov
 /.idea
+.DS_Store
+.ipynb_checkpoints
+*.ipynb
