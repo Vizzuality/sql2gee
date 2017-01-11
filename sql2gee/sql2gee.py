@@ -6,11 +6,7 @@ from sqlparse.sql import Identifier, IdentifierList, Function, Parenthesis, Comp
 
 class SQL2GEE:
     """
-    Converts SQL into calls to Google's Earth Engine via their python (2.7) API.
-
-    :Example:
-    >>> from sql2gee import SQL2GEE
-    >>> sql2gee = SQL2GEE('select thing from mytable')
+    Converts SQL into calls to Google's Earth Engine via their python (2.7) API
     """
     def __init__(self, sql):
         """Intialize the object and parse sql. Return SQL2GEE object to do the process"""
@@ -228,11 +224,12 @@ class SQL2GEE:
                 comparison = None
         return filters[0]
 
-    def get_where(self):
+    @property
+    def where(self):
         """Returns filter object obtained from where of the query in GEE format"""
-        val, where = self.parsed.token_next_by(i=sqlparse.sql.Where)
-        if where:
-            return self.parse_conditions(where.tokens)
+        val, tmp = self.parsed.token_next_by(i=sqlparse.sql.Where)
+        if tmp:
+            return self.parse_conditions(tmp.tokens)
         return None
 
     def apply_group(self, fc, group):
@@ -254,7 +251,7 @@ class SQL2GEE:
     def generate_query(self):
         """Return the GEE object with all filter, groups, functions, etc specified in the query"""
         fc = ee.FeatureCollection(self.table_name)
-        filters = self.get_where()
+        filters = self.where
         if filters:
             fc = fc.filter(filters)
         groups = self.group_functions

@@ -55,31 +55,31 @@ class TestSQL2GEE(apitestcase.ApiTestCase):
 
     def test_where_simple(self):
         sql2gee = SQL2GEE('select * from mytable where a > 2')
-        where = sql2gee.get_where()
+        where = sql2gee.where
         correct = Filter().gt('a', 2)
         self.assertEqual(where, correct)
 
     def test_where_with_and(self):
         sql2gee = SQL2GEE('select * from mytable where a > 2 and c = 2')
-        where = sql2gee.get_where()
+        where = sql2gee.where
         correct = Filter().And(Filter().gt('a', 2), Filter().eq('c', 2))
         self.assertEqual(where, correct)
 
     def test_where_with_or(self):
         sql2gee = SQL2GEE('select * from mytable where a > 2 or c = 2')
-        where = sql2gee.get_where()
+        where = sql2gee.where
         correct = Filter().Or(Filter().gt('a', 2), Filter().eq('c', 2))
         self.assertEqual(where, correct)
 
     def test_where_with_or_and_and(self):
         sql2gee = SQL2GEE('select * from mytable where a > 2 and c = 2 or x <= 2')
-        where = sql2gee.get_where()
+        where = sql2gee.where
         correct = Filter().Or(Filter().And(Filter().gt('a', 2), Filter().eq('c', 2)), Filter().lte('x', 2))
         self.assertEqual(where, correct)
 
     def test_where_with_string(self):
         sql2gee = SQL2GEE('select * from mytable where a = "pepe"')
-        where = sql2gee.get_where()
+        where = sql2gee.where
         correct = Filter().eq('a', 'pepe')
         self.assertEqual(where, correct)
 
