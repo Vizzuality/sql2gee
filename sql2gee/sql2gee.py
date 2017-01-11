@@ -79,11 +79,19 @@ class SQL2GEE:
                         list.append(self.parse_group(ident))
         return list
 
-    def remove_quotes(self, str):
-        if (str[0] == '"' or str[0] == "'") and (str[len(str) - 1] == '"' or str[len(str) - 1] == "'"):
-            return str[1:len(str) - 1]
-
-        return str
+    @staticmethod
+    def remove_quotes(input_str):
+        """Checks the first and last characters of an input_str
+        to see if they are quotation marks [' or "], if so
+        the function will strip them and return the string.
+        :type input_str: str"""
+        #assert isinstance(input_str, str), "Input not of str() type"
+        starts_with_quotation = input_str[0] in ['"', "'"]
+        ends_with_quotation = input_str[-1] in ['"', "'"]
+        if starts_with_quotation and ends_with_quotation:
+            return input_str[1: -1]
+        else:
+            return input_str
 
     def parse_comparison(self, comparison):
         values = []

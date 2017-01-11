@@ -1,7 +1,7 @@
 [![Build Status](https://travis-ci.org/benlaken/sql2gee.svg?branch=master)](https://travis-ci.org/benlaken/sql2gee)
 
 # sql2gee
-> Library to do sql queries to Google Earth Engine
+> Library to convert SQL queries into Google's Earth Engine Python API calls.
 
 ##SQL Supported:
 * SELECT (only with one table, joins not supported)
