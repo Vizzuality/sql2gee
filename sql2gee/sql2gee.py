@@ -25,18 +25,22 @@ class SQL2GEE:
             'OR': ee.Filter().Or
         }
 
-    def get_table_name(self):
-        """Return the table name specified in the query"""
+    @property
+    def table_name(self):
+        """Set table_name property using sql tokens, assuming it
+        is the first token of type Identifier after the 'FROM' keyword
+        also of type Identifier. If not found, raise an Exception."""
         from_seen = False
+        exception_1 = Exception('Table name not found')
         for item in self.parsed.tokens:
             if from_seen:
                 if isinstance(item, Identifier):
-                    return self.remove_quotes(item.value)
+                    return self.remove_quotes(str(item))
                 elif item.ttype is Keyword:
-                    raise Exception('Table not found')
-            elif item.ttype is Keyword and item.value.upper() == 'FROM':
+                    raise exception_1
+            elif item.ttype is Keyword and str(item).upper() == 'FROM':
                 from_seen = True
-        raise Exception('Table not found')
+        raise exception_1
 
     def get_select_list(self):
         """Return list with the columns specified in the query"""
@@ -231,7 +235,7 @@ class SQL2GEE:
 
     def generate_query(self):
         """Return the GEE object with all filter, groups, functions, etc specified in the query"""
-        fc = ee.FeatureCollection(self.get_table_name())
+        fc = ee.FeatureCollection(self.table_name)
         filters = self.get_where()
         if filters:
             fc = fc.filter(filters)
