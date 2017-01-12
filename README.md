@@ -50,7 +50,7 @@ Example library usage:
 
 ```python
 >>>print "Result of my query: ", q.execute()
-'Result of my query:', 1919
+Result of my query: 1919
 ```
 
 
