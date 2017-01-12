@@ -1,7 +1,7 @@
 [![Build Status](https://travis-ci.org/benlaken/sql2gee.svg?branch=master)](https://travis-ci.org/benlaken/sql2gee)
 
 # sql2gee
-> Library to convert SQL queries into Google's Earth Engine Python API calls.
+A python 2.7 library to convert SQL queries into Google's Earth Engine Python API calls.
 
 ##SQL Supported:
 * SELECT (only with one table, joins not supported)
@@ -22,56 +22,63 @@
   * FIRST
   * LAST
 
-##GEE Supported:
+## GEE Currently Supported:
 * FeatureCollection
 
 ##Usage
 
-Important: To use this library, the first is that you initialize the GEE library.
-Example:
+Important: To use this library, you must first initialize the Google Earth Engine (GEE) library (e.g. as shown below).
 ```python
-import ee
-ee.Initialize()
+>>>import ee
+>>>ee.Initialize()
 ```
 
 
 Example library usage:
 
-1 - Import library in your python file
+1. Import the SQL2GEE class from the sql2gee library in python.
 ```python
-from sql2gee.sql2gee import SQL2GEE
+>>>from sql2gee import SQL2GEE
 ```
 
-2 - Create an instance of SQL2GEE with the sql that you want execute in GEE
+2. Create an instance of SQL2GEE with the SQL command that you want execute in GEE, e.g. as shown below.
 ```python
-sql2gee = SQL2GEE('select count(width) from "ft:1qpKIcYQMBsXLA9RLWCaV9D0Hus2cMQHhI-ViKHo" where width > 100 ')
+>>>q = SQL2GEE('select count(width) from "ft:1qpKIcYQMBsXLA9RLWCaV9D0Hus2cMQHhI-ViKHo" where width > 100 ')
 ```
 
-3 - Generate the GEE object
+3. Execute the GEE query in on Google's servers.
+
 ```python
-sql2gee.generate_query()
+>>>print "Result of my query: ", q.execute()
+'result', 1919
 ```
 
-4 - Execute the query in GEE Servers
-```python
-print "result", sql2gee.execute()
-```
 
-##Develop
+##Development
 
 Create virtualenv:
-```
-virtualenv env
+```bash
+$virtualenv env
 ```
 
 Execute test:
+```bash
+$make test
 ```
-make test
+
+or using py.test
+
+```bash
+$cd <path/sql2gee>
+$py.test
 ```
 
+More documentation can be found in the docstrings and tests.
 
-More doc in Test
 
+## Notes
+
+Currently, Python 3.x is not supported, due to the G.E.E python API.
 
 ## Want to Contribute?
 Submit a pull request and I'll gladly review it.
