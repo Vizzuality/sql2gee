@@ -81,6 +81,63 @@ class SQL2GEE:
                         group_list.append(self.token_to_dictionary(identity))
         return group_list
 
+    @property
+    def feature_collection(self):
+        """Return the G.E.E. F.C. query object with all filter, groups, functions,
+        etc. specified in the query. Was originally get_query() method."""
+        fc = ee.FeatureCollection(self.table_name)
+        if self.where:
+            fc = fc.filter(self.where)
+        if self.group_functions:
+            for group in self.group_functions:
+                fc = self.apply_group(fc, group)
+        select = self.fields
+        if select and len(select) > 0 and not select[0] == '*':
+            fc = fc.select(select)
+        return fc
+
+    @property
+    def where(self):
+        """Returns filter object obtained from where of the query in GEE format"""
+        val, tmp = self.parsed.token_next_by(i=sqlparse.sql.Where)
+        if tmp:
+            return self.parse_conditions(tmp.tokens)
+        return None
+
+    @staticmethod
+    def apply_group(fc, group):
+        """Given a fc (feature_collection) object and group operation, return a
+        new fc object, extended by a method of the group operation."""
+        if group['function'] == 'COUNT':
+            return fc.aggregate_count(group['value'])
+        elif group['function'] == 'MAX':
+            return fc.aggregate_max(group['value'])
+        elif group['function'] == 'MIN':
+            return fc.aggregate_min(group['value'])
+        elif group['function'] == 'SUM':
+            return fc.aggregate_sum(group['value'])
+        elif group['function'] == 'AVG':
+            return fc.aggregate_mean(group['value'])
+        elif group['function'] == 'FIRST':
+            return fc.aggregate_first(group['value'])
+        elif group['function'] == 'LAST':
+            return fc.aggregate_last(group['value'])
+        else:
+            raise ValueError("Unknown group function attempted: ", group['function'])
+
+    @staticmethod
+    def remove_quotes(input_str):
+        """Checks the first and last characters of an input_str
+        to see if they are quotation marks [' or "], if so
+        the function will strip them and return the string.
+        :type input_str: str"""
+        starts_with_quotation = input_str[0] in ['"', "'"]
+        ends_with_quotation = input_str[-1] in ['"', "'"]
+        if starts_with_quotation and ends_with_quotation:
+            return input_str[1: -1]
+        else:
+            return input_str
+
     @staticmethod
     def token_to_dictionary(token_list):
         """Recieve a token e.g.('count(pepe)') and converts it into a dictionary
@@ -97,19 +154,6 @@ class SQL2GEE:
                 else:
                     raise Exception('* not allowed')
         return d
-
-    @staticmethod
-    def remove_quotes(input_str):
-        """Checks the first and last characters of an input_str
-        to see if they are quotation marks [' or "], if so
-        the function will strip them and return the string.
-        :type input_str: str"""
-        starts_with_quotation = input_str[0] in ['"', "'"]
-        ends_with_quotation = input_str[-1] in ['"', "'"]
-        if starts_with_quotation and ends_with_quotation:
-            return input_str[1: -1]
-        else:
-            return input_str
 
     def parse_comparison(self, comparison):
         values = []
@@ -224,48 +268,11 @@ class SQL2GEE:
                 comparison = None
         return filters[0]
 
-    @property
-    def where(self):
-        """Returns filter object obtained from where of the query in GEE format"""
-        val, tmp = self.parsed.token_next_by(i=sqlparse.sql.Where)
-        if tmp:
-            return self.parse_conditions(tmp.tokens)
-        return None
 
-    def apply_group(self, fc, group):
-        if group['function'] == 'COUNT':
-            return fc.aggregate_count(group['value'])
-        elif group['function'] == 'MAX':
-            return fc.aggregate_max(group['value'])
-        elif group['function'] == 'MIN':
-            return fc.aggregate_min(group['value'])
-        elif group['function'] == 'SUM':
-            return fc.aggregate_sum(group['value'])
-        elif group['function'] == 'AVG':
-            return fc.aggregate_mean(group['value'])
-        elif group['function'] == 'FIRST':
-            return fc.aggregate_first(group['value'])
-        elif group['function'] == 'LAST':
-            return fc.aggregate_last(group['value'])
 
-    def generate_query(self):
-        """Return the GEE object with all filter, groups, functions, etc specified in the query"""
-        fc = ee.FeatureCollection(self.table_name)
-        filters = self.where
-        if filters:
-            fc = fc.filter(filters)
-        groups = self.group_functions
-        if groups:
-            for group in groups:
-                fc = self.apply_group(fc, group)
-        select = self.fields
-        if select and len(select) > 0 and not select[0] == '*':
-            fc = fc.select(select)
-        self.fc = fc
-        return fc
 
     def execute(self):
         """Execute the GEE object in GEE Server"""
-        if self.fc:
-            return self.fc.getInfo()
+        if self.feature_collection:
+            return self.feature_collection.getInfo()
         return None
