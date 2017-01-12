@@ -4,8 +4,10 @@ from sqlparse.tokens import Keyword, Comparison
 from sqlparse.sql import Identifier, IdentifierList, Function, Parenthesis, Comparison
 
 
-
 class SQL2GEE:
+    """
+    Converts SQL into calls to Google's Earth Engine via their python (2.7) API
+    """
     def __init__(self, sql):
         """Intialize the object and parse sql. Return SQL2GEE object to do the process"""
         self.parsed = sqlparse.parse(sql)[0]
@@ -26,66 +28,132 @@ class SQL2GEE:
             'OR': ee.Filter().Or
         }
 
-    def get_table_name(self):
-        """Return the table name specified in the query"""
+    @property
+    def table_name(self):
+        """Set table_name property using sql tokens, assuming it
+        is the first token of type Identifier after the 'FROM' keyword
+        also of type Identifier. If not found, raise an Exception."""
         from_seen = False
+        exception_1 = Exception('Table name not found')
         for item in self.parsed.tokens:
             if from_seen:
                 if isinstance(item, Identifier):
-                    return self.remove_quotes(item.value)
+                    return self.remove_quotes(str(item))
                 elif item.ttype is Keyword:
-                    raise Exception('Table not found')
-            elif item.ttype is Keyword and item.value.upper() == 'FROM':
+                    raise exception_1
+            elif item.ttype is Keyword and str(item).upper() == 'FROM':
                 from_seen = True
-        raise Exception('Table not found')
+        raise exception_1
 
-    def get_select_list(self):
-        """Return list with the columns specified in the query"""
-        list = []
-        for item in self.parsed.tokens:
-            if item.ttype is Keyword and item.value.upper() == 'FROM':
-                return list
-            elif isinstance(item, Identifier):
-                list.append(item.value)
-            elif isinstance(item, IdentifierList):
-                for ident in item.tokens:
-                    if isinstance(ident, Identifier):
-                        list.append(ident.value)
-        return list
+    @property
+    def fields(self):
+        """A list of all fields in SQL query. If the FROM keyword is
+        encountered the list is immediately returned.
+        """
+        field_list = []
+        for t in self.parsed.tokens:
+            is_keyword = t.ttype is Keyword
+            is_from = str(t).upper() == 'FROM'
+            if is_keyword and is_from:
+                return field_list
+            elif isinstance(t, Identifier):
+                field_list.append(str(t))
+            elif isinstance(t, IdentifierList):
+                for identity in t.tokens:
+                    if isinstance(identity, Identifier):
+                        field_list.append(str(identity))
+        return field_list
 
-    def parse_group(self, token_list):
-        token = {}
-        for item in token_list:
-            if isinstance(item, Identifier):
-                token['function'] = item.value.upper()
-            elif isinstance(item, Parenthesis):
-                value = item.value.replace('(', '').replace(')', '').strip()
+    @property
+    def group_functions(self):
+        """Returns the group function with column names specified in the query:
+        e.g. from sql input of 'select count(pepe) from mytable', a dictionary of
+        {'function': 'COUNT', 'value': 'pepe'} should be returned by self.group_functions"""
+        group_list = []
+        for t in self.parsed.tokens:
+            if t.ttype is Keyword and t.value.upper() == 'FROM':
+                return group_list
+            elif isinstance(t, Function):
+                group_list.append(self.token_to_dictionary(t))
+            elif isinstance(t, IdentifierList):
+                for identity in t.tokens:
+                    if isinstance(identity, Function):
+                        group_list.append(self.token_to_dictionary(identity))
+        return group_list
+
+    @property
+    def feature_collection(self):
+        """Return the G.E.E. F.C. query object with all filter, groups, functions,
+        etc. specified in the query. Was originally get_query() method."""
+        fc = ee.FeatureCollection(self.table_name)
+        if self.where:
+            fc = fc.filter(self.where)
+        if self.group_functions:
+            for group in self.group_functions:
+                fc = self.apply_group(fc, group)
+        select = self.fields
+        if select and len(select) > 0 and not select[0] == '*':
+            fc = fc.select(select)
+        return fc
+
+    @property
+    def where(self):
+        """Returns filter object obtained from where of the query in GEE format"""
+        val, tmp = self.parsed.token_next_by(i=sqlparse.sql.Where)
+        if tmp:
+            return self.parse_conditions(tmp.tokens)
+        return None
+
+    @staticmethod
+    def apply_group(fc, group):
+        """Given a fc (feature_collection) object and group operation, return a
+        new fc object, extended by a method of the group operation."""
+        if group['function'] == 'COUNT':
+            return fc.aggregate_count(group['value'])
+        elif group['function'] == 'MAX':
+            return fc.aggregate_max(group['value'])
+        elif group['function'] == 'MIN':
+            return fc.aggregate_min(group['value'])
+        elif group['function'] == 'SUM':
+            return fc.aggregate_sum(group['value'])
+        elif group['function'] == 'AVG':
+            return fc.aggregate_mean(group['value'])
+        elif group['function'] == 'FIRST':
+            return fc.aggregate_first(group['value'])
+        elif group['function'] == 'LAST':
+            return fc.aggregate_last(group['value'])
+        else:
+            raise ValueError("Unknown group function attempted: ", group['function'])
+
+    @staticmethod
+    def remove_quotes(input_str):
+        """Checks the first and last characters of an input_str
+        to see if they are quotation marks [' or "], if so
+        the function will strip them and return the string.
+        :type input_str: str"""
+        starts_with_quotation = input_str[0] in ['"', "'"]
+        ends_with_quotation = input_str[-1] in ['"', "'"]
+        if starts_with_quotation and ends_with_quotation:
+            return input_str[1: -1]
+        else:
+            return input_str
+
+    @staticmethod
+    def token_to_dictionary(token_list):
+        """Recieve a token e.g.('count(pepe)') and converts it into a dictionary
+        with key:values for function and value."""
+        assert isinstance(token_list, sqlparse.sql.Function),'unexpected datatype'
+        d = {}
+        for t in token_list:
+            if isinstance(t, Identifier):
+                d['function'] = str(t).upper()
+            elif isinstance(t, Parenthesis):
+                value = t.value.replace('(', '').replace(')', '').strip()
                 if value != '*':
-                    token['value'] = value
+                    d['value'] = value
                 else:
                     raise Exception('* not allowed')
-        return token
-
-    def get_group_functions(self):
-        """Returns the group function with column names specified in the query"""
-        list = []
-        for item in self.parsed.tokens:
-            if item.ttype is Keyword and item.value.upper() == 'FROM':
-                return list
-            elif isinstance(item, Function):
-                list.append(self.parse_group(item))
-            elif isinstance(item, IdentifierList):
-                for ident in item.tokens:
-                    if isinstance(ident, Function):
-                        list.append(self.parse_group(ident))
-        return list
-
-    def remove_quotes(self, str):
-        if (str[0] == '"' or str[0] == "'") and (str[len(str) -1] == '"' or str[len(str) -1] == "'"):
-            return str[1:len(str) -1]
-
-        return str
-
+        return d
 
     def parse_comparison(self, comparison):
         values = []
@@ -109,11 +177,11 @@ class SQL2GEE:
         if comp.value.upper() == 'LIKE':
             filter = None
             if right.strip().startswith('%') and right.strip().endswith('%'):
-                filter = self.filters['%' + comp.value.upper() + '%'](left, right[1:len(right) -1])
+                filter = self.filters['%' + comp.value.upper() + '%'](left, right[1:len(right) - 1])
             elif right.strip().startswith('%'):
                 filter = self.filters['%' + comp.value.upper()](left, right[1:len(right)])
             elif right.strip().endswith('%'):
-                filter = self.filters[comp.value.upper() + '%'](left, right[0:len(right) -1])
+                filter = self.filters[comp.value.upper() + '%'](left, right[0:len(right) - 1])
             else:
                 filter = self.filters[comp.value.upper()](left, right)
 
@@ -128,7 +196,6 @@ class SQL2GEE:
         if exist_not:
             return filter.Not()
         return filter
-
 
     def generate_is(self, left, comp, right, ):
         if right.upper() == 'NULL':
@@ -164,10 +231,8 @@ class SQL2GEE:
                 if exist_not:
                     filter = filter.Not()
                 filters.append(filter)
-
             elif item.ttype is Keyword and (item.value.upper() == 'AND' or item.value.upper() == 'OR'):
                 comparison = self.comparisons[item.value.upper()]
-
             elif isinstance(item, Parenthesis):
                 filter = self.parse_conditions(item.tokens)
                 if isinstance(filter, ee.Filter):
@@ -177,17 +242,13 @@ class SQL2GEE:
                     leftValue = None
                     sub_comparison = None
                     exist_not = False
-
-            elif item.ttype is Keyword and ( item.value.upper() == 'LIKE' or item.value.upper() == 'IN' or item.value.upper() == 'IS' ):
+            elif item.ttype is Keyword and (item.value.upper() == 'LIKE' or item.value.upper() == 'IN' or item.value.upper() == 'IS'):
                 sub_comparison = item
-
             elif item.ttype is Keyword and item.value.upper() == 'NOT':
                 exist_not = True
-
             elif isinstance(item, IdentifierList):
                 return self.parse_list(item.tokens)
-
-            elif item.ttype is None or (item.ttype is Keyword and ( item.value.upper() == 'NULL' or item.value.upper().startswith('NOT') )):
+            elif item.ttype is None or (item.ttype is Keyword and (item.value.upper() == 'NULL' or item.value.upper().startswith('NOT'))):
                 if leftValue is None:
                     leftValue = item.value
                 else:
@@ -198,7 +259,6 @@ class SQL2GEE:
                     sub_comparison = None
                     leftValue = None
                     exist_not = False
-
             if comparison and len(filters) == 2:
                 statement = comparison(filters[0], filters[1])
                 if exist_not:
@@ -208,55 +268,10 @@ class SQL2GEE:
                 comparison = None
         return filters[0]
 
-    def get_where(self):
-        """Returns filter object obtained from where of the query in GEE format"""
-        val, where =  self.parsed.token_next_by(i=sqlparse.sql.Where)
-        if where:
-            return self.parse_conditions(where.tokens)
-
-        return None
-
-    def apply_group(self, fc, group):
-        if group['function'] == 'COUNT':
-            return fc.aggregate_count(group['value'])
-        elif group['function'] == 'MAX':
-            return fc.aggregate_max(group['value'])
-        elif group['function'] == 'MIN':
-            return fc.aggregate_min(group['value'])
-        elif group['function'] == 'SUM':
-            return fc.aggregate_sum(group['value'])
-        elif group['function'] == 'AVG':
-            return fc.aggregate_mean(group['value'])
-        elif group['function'] == 'FIRST':
-            return fc.aggregate_first(group['value'])
-        elif group['function'] == 'LAST':
-            return fc.aggregate_last(group['value'])
-
-
-    def generate_query(self):
-        """Return the GEE object with all filter, groups, functions, etc specified in the query"""
-        fc = ee.FeatureCollection(self.get_table_name())
-        filters = self.get_where()
-        if filters:
-            fc = fc.filter(filters)
-
-        groups = self.get_group_functions()
-        if groups:
-            for group in groups:
-                fc = self.apply_group(fc, group)
-
-        select = self.get_select_list()
-
-        if select and len(select) > 0 and not select[0] == '*':
-            fc = fc.select(select)
-
-        self.fc = fc
-        return fc
 
     def execute(self):
-        """Execute the GEE object in GEE Server"""
-        if self.fc:
-            return self.fc.getInfo()
-
+        """Execute the GEE object in GEE Server. This is the function that, when called, actually sends the SQL
+        request (which was converted to GEE-speak) to Google's servers for execution and returns the result."""
+        if self.feature_collection:
+            return self.feature_collection.getInfo()
         return None
-

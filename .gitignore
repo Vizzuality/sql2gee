@@ -9,3 +9,7 @@ ra.py
 /.tox
 **/*.pyc
 /htmlcov
+/.idea
+.DS_Store
+.ipynb_checkpoints
+*.ipynb
