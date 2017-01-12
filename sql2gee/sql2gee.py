@@ -269,10 +269,9 @@ class SQL2GEE:
         return filters[0]
 
 
-
-
     def execute(self):
-        """Execute the GEE object in GEE Server"""
+        """Execute the GEE object in GEE Server. This is the function that, when called, actually sends the SQL
+        request (which was converted to GEE-speak) to Google's servers for execution and returns the result."""
         if self.feature_collection:
             return self.feature_collection.getInfo()
         return None
