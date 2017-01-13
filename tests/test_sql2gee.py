@@ -218,3 +218,5 @@ class TestSQL2GEE(apitestcase.ApiTestCase):
             sql2gee = SQL2GEE('select count(*) from a')
             sql2gee.feature_collection
         self.assertTrue('* not allowed' in context.exception)
+        return
+

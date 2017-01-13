@@ -10,6 +10,7 @@ class SQL2GEE:
     """
     def __init__(self, sql):
         """Intialize the object and parse sql. Return SQL2GEE object to do the process"""
+        self.image_metadata = None
         self.parsed = sqlparse.parse(sql)[0]
         self.filters = {
             '<': ee.Filter().lt,
