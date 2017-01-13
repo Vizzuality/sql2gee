@@ -10,9 +10,8 @@ class SQL2GEE:
     """
     def __init__(self, sql):
         """Intialize the object and parse sql. Return SQL2GEE object to do the process"""
-        self.image_metadata = None
-        self.parsed = sqlparse.parse(sql)[0]
-        self.filters = {
+        self._parsed = sqlparse.parse(sql)[0]
+        self._filters = {
             '<': ee.Filter().lt,
             '<=': ee.Filter().lte,
             '>': ee.Filter().gt,
@@ -24,10 +23,17 @@ class SQL2GEE:
             'LIKE%': ee.Filter().stringStartsWith,
             'LIKE': ee.Filter().eq,
         }
-        self.comparisons = {
+        self._comparisons = {
             'AND': ee.Filter().And,
             'OR': ee.Filter().Or
         }
+
+    @property
+    def _ee_image_metadata(self):
+        """Private property that will hold the raw EE image.get_info() response
+        This will, in turn, be used to create an SQL-response-like table, as expected
+        from a ST_METADATA() Postgis query. """
+        return None
 
     @property
     def table_name(self):
@@ -36,7 +42,7 @@ class SQL2GEE:
         also of type Identifier. If not found, raise an Exception."""
         from_seen = False
         exception_1 = Exception('Table name not found')
-        for item in self.parsed.tokens:
+        for item in self._parsed.tokens:
             if from_seen:
                 if isinstance(item, Identifier):
                     return self.remove_quotes(str(item))
@@ -52,7 +58,7 @@ class SQL2GEE:
         encountered the list is immediately returned.
         """
         field_list = []
-        for t in self.parsed.tokens:
+        for t in self._parsed.tokens:
             is_keyword = t.ttype is Keyword
             is_from = str(t).upper() == 'FROM'
             if is_keyword and is_from:
@@ -71,7 +77,7 @@ class SQL2GEE:
         e.g. from sql input of 'select count(pepe) from mytable', a dictionary of
         {'function': 'COUNT', 'value': 'pepe'} should be returned by self.group_functions"""
         group_list = []
-        for t in self.parsed.tokens:
+        for t in self._parsed.tokens:
             if t.ttype is Keyword and t.value.upper() == 'FROM':
                 return group_list
             elif isinstance(t, Function):
@@ -100,7 +106,7 @@ class SQL2GEE:
     @property
     def where(self):
         """Returns filter object obtained from where of the query in GEE format"""
-        val, tmp = self.parsed.token_next_by(i=sqlparse.sql.Where)
+        val, tmp = self._parsed.token_next_by(i=sqlparse.sql.Where)
         if tmp:
             return self.parse_conditions(tmp.tokens)
         return None
@@ -172,19 +178,19 @@ class SQL2GEE:
                 else:
                     values.append(self.remove_quotes(item.value))
         if comparator:
-            return self.filters[comparator](values[0], values[1])
+            return self._filters[comparator](values[0], values[1])
 
     def generate_like(self, left, comp, right, exist_not):
         if comp.value.upper() == 'LIKE':
             filter = None
             if right.strip().startswith('%') and right.strip().endswith('%'):
-                filter = self.filters['%' + comp.value.upper() + '%'](left, right[1:len(right) - 1])
+                filter = self._filters['%' + comp.value.upper() + '%'](left, right[1:len(right) - 1])
             elif right.strip().startswith('%'):
-                filter = self.filters['%' + comp.value.upper()](left, right[1:len(right)])
+                filter = self._filters['%' + comp.value.upper()](left, right[1:len(right)])
             elif right.strip().endswith('%'):
-                filter = self.filters[comp.value.upper() + '%'](left, right[0:len(right) - 1])
+                filter = self._filters[comp.value.upper() + '%'](left, right[0:len(right) - 1])
             else:
-                filter = self.filters[comp.value.upper()](left, right)
+                filter = self._filters[comp.value.upper()](left, right)
 
             if exist_not:
                 return filter.Not()
@@ -233,7 +239,7 @@ class SQL2GEE:
                     filter = filter.Not()
                 filters.append(filter)
             elif item.ttype is Keyword and (item.value.upper() == 'AND' or item.value.upper() == 'OR'):
-                comparison = self.comparisons[item.value.upper()]
+                comparison = self._comparisons[item.value.upper()]
             elif isinstance(item, Parenthesis):
                 filter = self.parse_conditions(item.tokens)
                 if isinstance(filter, ee.Filter):
