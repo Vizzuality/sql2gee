@@ -1,8 +1,8 @@
-import unittest
+from __future__ import print_function
+import pytest
 from sql2gee import SQL2GEE
 from ee import apitestcase, Filter, FeatureCollection, Feature, Image
 import pprint
-
 
 class TestSQL2GEE(apitestcase.ApiTestCase):
     def test_distinguish_raster_from_polygon_request(self):
@@ -32,6 +32,14 @@ class TestSQL2GEE(apitestcase.ApiTestCase):
         q = SQL2GEE('select ST_SUMMARYSTATS(*) from myimage')
         assert q._is_image_request is True, ' '.join([err, q._raw])
         return
+
+    def test_raster_or_image_negative(self):
+        """Error should be returned if multiple image keywords given"""
+        q = SQL2GEE('select ST_SUMMARYSTATS(*), ST_HISTOGRAM(*) from myimage')
+        with pytest.raises(ValueError):
+            q._is_image_request
+        return
+
 
     def test_table_name_property(self):
         sql2gee = SQL2GEE('select pepe from mytable')

@@ -1,10 +1,12 @@
+from __future__ import print_function
 import sqlparse
 import ee
-from sqlparse.tokens import Keyword, Comparison
+import re
+from sqlparse.tokens import Keyword
 from sqlparse.sql import Identifier, IdentifierList, Function, Parenthesis, Comparison
 
 
-class SQL2GEE:
+class SQL2GEE(object):
     """
     Takes an SQL-like query and relates it to Google's Earth Engine syntax (specifically the Python 2.7 GEE API).
     Designed to perform operations on two types of geo-objects, Polygons (Feature Collections) or Rasters (Images).
@@ -14,7 +16,7 @@ class SQL2GEE:
     """
     def __init__(self, sql):
         """Intialize the object and parse sql. Return SQL2GEE object to do the process"""
-        self._raw(sql)
+        self._raw = sql
         self._parsed = sqlparse.parse(sql)[0]
         self._filters = {
             '<': ee.Filter().lt,
@@ -35,8 +37,19 @@ class SQL2GEE:
 
     @property
     def _is_image_request(self):
-        """Boolean test to indicate if the user intention is for an image (True) or Raster (False)"""
-        return None
+        """Boolean test to indicate if the user intention is for an image (True) or Raster (False).
+        Uses re package, to search _raw with A regex that splits on blank space, wildcards, and parentheses.
+        Converts the lists to sets, and performs an intersect to see if Image-type keywords are present."""
+        tmp = [r for r in re.split('[\(\*\)\s]', self._raw.lower()) if r != '']
+        tmp = set(tmp)
+        image_keywords = {'st_histogram', 'st_metadata', 'st_summarystats'}
+        intersect = tmp.intersection(image_keywords)
+        if len(intersect) == 0:
+            return False
+        elif len(intersect) == 1:
+            return True
+        else:
+            raise ValueError("Found multiple image-type keywords. Unsure of action.")
 
     @property
     def _base(self):
@@ -297,6 +310,8 @@ class SQL2GEE:
     def execute(self):
         """Execute the GEE object in GEE Server. This is the function that, when called, actually sends the SQL
         request (which was converted to GEE-speak) to Google's servers for execution and returns the result."""
+        ## This logic will be changed to instead execute the self.r , which will be made up of base + modifiers,
+        # So it can be either and Image() or FeatureCollection() type function.
         if self.feature_collection:
             return self.feature_collection.getInfo()
         return None
