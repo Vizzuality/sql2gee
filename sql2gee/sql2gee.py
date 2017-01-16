@@ -1,7 +1,7 @@
 from __future__ import print_function
-import sqlparse
 import ee
 import re
+import sqlparse
 from sqlparse.tokens import Keyword
 from sqlparse.sql import Identifier, IdentifierList, Function, Parenthesis, Comparison
 
@@ -13,6 +13,8 @@ class SQL2GEE(object):
     For the rasters there are only a specific number of valid operations (retrieve metadata, histogram data, or get
     summary statistics). We use postgis-like functions as the syntax to do this, and check to see if this is given in
     the sql string to detect the user intention.
+
+    gee_function = Image/Featurecollection(target_data) + modifiers
     """
     def __init__(self, sql):
         """Intialize the object and parse sql. Return SQL2GEE object to do the process"""
@@ -52,27 +54,43 @@ class SQL2GEE(object):
             raise ValueError("Found multiple image-type keywords. Unsure of action.")
 
     @property
-    def _base(self):
+    def _ee_image_metadata(self):
+        """Private property that holds the raw EE image(target).get_info() response.
+        This will be used to create a response table, as expected from a ST_METADATA() Postgis query.
+        """
+        return ee.Image(self.target_data).getInfo()
+
+    @property
+    def _ee_image_histogram(self):
+        """First step to retrieve ST_HISTOGRAM()-like info.
+        This will return an object with the band-wise statistics for a reduced image. If no reduce (point + buffer)
+        or polygon is given, we assume user wants all the possible image, in which case pass a default polygon to
+        reduce on which is global. This raw data should then be parsed into useable info (including using it to derrive
+        ST_SUMMARYSTATS()-like info).
+        """
+        # Identify target data
+        # Identify reducer (point + buffer or polygon if given).
+        #
+        # self.group_functions:
+        #t = image.reduceRegion(reducer=ee.Reducer.fixedHistogram(0, 10000, 10), bestEffort=True)
+        #t.getInfo()
+        pass
+
+    @property
+    def gee_function(self):
         """The foundation object to construct the G.E.E. function from (i.e. an Image or a Feature Collection)."""
         if self._is_image_request:
-            return ee.Image
+            return self._image
         else:
-            return ee.FeatureCollection
+            return self._feature_collection
 
     @property
-    def _ee_image_metadata(self):
-        """Private property that will hold the raw EE image.get_info() response
-        This will, in turn, be used to create an SQL-response-like table, as expected
-        from a ST_METADATA() Postgis query. """
-        return None
-
-    @property
-    def table_name(self):
-        """Set table_name property using sql tokens, assuming it
+    def target_data(self):
+        """Set target_data property using sql tokens, assuming it
         is the first token of type Identifier after the 'FROM' keyword
         also of type Identifier. If not found, raise an Exception."""
         from_seen = False
-        exception_1 = Exception('Table name not found')
+        exception_1 = Exception('Dataset not found')
         for item in self._parsed.tokens:
             if from_seen:
                 if isinstance(item, Identifier):
@@ -120,10 +138,16 @@ class SQL2GEE(object):
         return group_list
 
     @property
-    def feature_collection(self):
-        """Return the G.E.E. F.C. query object with all filter, groups, functions,
-        etc. specified in the query. Was originally get_query() method."""
-        fc = ee.FeatureCollection(self.table_name)
+    def _image(self):
+        """Return the G.E.E. Image function with th the data, and relevant actions applied."""
+        if self.image_action:
+            pass
+        return
+
+    @property
+    def _feature_collection(self):
+        """Return the G.E.E. FeatureCollection object with all filter, groups, and functions applied"""
+        fc = ee.FeatureCollection(self.target_data)
         if self.where:
             fc = fc.filter(self.where)
         if self.group_functions:
@@ -145,7 +169,7 @@ class SQL2GEE(object):
     @staticmethod
     def apply_group(fc, group):
         """Given a fc (feature_collection) object and group operation, return a
-        new fc object, extended by a method of the group operation."""
+        new fc object, extended by a method of the feature grouping operation."""
         if group['function'] == 'COUNT':
             return fc.aggregate_count(group['value'])
         elif group['function'] == 'MAX':
@@ -312,6 +336,6 @@ class SQL2GEE(object):
         request (which was converted to GEE-speak) to Google's servers for execution and returns the result."""
         ## This logic will be changed to instead execute the self.r , which will be made up of base + modifiers,
         # So it can be either and Image() or FeatureCollection() type function.
-        if self.feature_collection:
-            return self.feature_collection.getInfo()
+        if self._feature_collection:
+            return self.gee_function.getInfo()
         return None
