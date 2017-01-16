@@ -6,10 +6,15 @@ from sqlparse.sql import Identifier, IdentifierList, Function, Parenthesis, Comp
 
 class SQL2GEE:
     """
-    Converts SQL into calls to Google's Earth Engine via their python (2.7) API
+    Takes an SQL-like query and relates it to Google's Earth Engine syntax (specifically the Python 2.7 GEE API).
+    Designed to perform operations on two types of geo-objects, Polygons (Feature Collections) or Rasters (Images).
+    For the rasters there are only a specific number of valid operations (retrieve metadata, histogram data, or get
+    summary statistics). We use postgis-like functions as the syntax to do this, and check to see if this is given in
+    the sql string to detect the user intention.
     """
     def __init__(self, sql):
         """Intialize the object and parse sql. Return SQL2GEE object to do the process"""
+        self._raw(sql)
         self._parsed = sqlparse.parse(sql)[0]
         self._filters = {
             '<': ee.Filter().lt,
@@ -27,6 +32,19 @@ class SQL2GEE:
             'AND': ee.Filter().And,
             'OR': ee.Filter().Or
         }
+
+    @property
+    def _is_image_request(self):
+        """Boolean test to indicate if the user intention is for an image (True) or Raster (False)"""
+        return None
+
+    @property
+    def _base(self):
+        """The foundation object to construct the G.E.E. function from (i.e. an Image or a Feature Collection)."""
+        if self._is_image_request:
+            return ee.Image
+        else:
+            return ee.FeatureCollection
 
     @property
     def _ee_image_metadata(self):

@@ -5,6 +5,34 @@ import pprint
 
 
 class TestSQL2GEE(apitestcase.ApiTestCase):
+    def test_distinguish_raster_from_polygon_request(self):
+        """Check that we can distinguish between a raster and polygon sql request under various scenarios."""
+        err = 'Unable to determine type of request for sql:'
+        q = SQL2GEE('select pepe from mytable')
+        assert q._is_image_request is False, ' '.join([err, q._raw])
+        del q
+        q = SQL2GEE('SELECT TOP 1 * FROM mytable ORDER BY unique_column DESC')
+        assert q._is_image_request is False, ' '.join([err, q._raw])
+        del q
+        q = SQL2GEE('select * from mytable where a > 2 and c = 2 or x <= 2')
+        assert q._is_image_request is False, ' '.join([err, q._raw])
+        del q
+        q = SQL2GEE('select ST_METADATA(*) from myimage')
+        assert q._is_image_request is True, ' '.join([err, q._raw])
+        del q
+        q = SQL2GEE('select ST_METADATA(band1) from myimage')
+        assert q._is_image_request is True, ' '.join([err, q._raw])
+        del q
+        q = SQL2GEE('select ST_METADATA(band1) from myimage')
+        assert q._is_image_request is True, ' '.join([err, q._raw])
+        del q
+        q = SQL2GEE('select ST_HISTOGRAM(*) from myimage')
+        assert q._is_image_request is True, ' '.join([err, q._raw])
+        del q
+        q = SQL2GEE('select ST_SUMMARYSTATS(*) from myimage')
+        assert q._is_image_request is True, ' '.join([err, q._raw])
+        return
+
     def test_table_name_property(self):
         sql2gee = SQL2GEE('select pepe from mytable')
         table_name = sql2gee.table_name
