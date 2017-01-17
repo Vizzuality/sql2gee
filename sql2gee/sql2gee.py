@@ -1,4 +1,5 @@
 from __future__ import print_function
+from cached_property import cached_property
 import ee
 import re
 import sqlparse
@@ -13,11 +14,8 @@ class SQL2GEE(object):
     For the rasters there are only a specific number of valid operations (retrieve metadata, histogram data, or get
     summary statistics). We use postgis-like functions as the syntax to do this, and check to see if this is given in
     the sql string to detect the user intention.
-
-    gee_function = Image/Featurecollection(target_data) + modifiers
     """
     def __init__(self, sql):
-        """Intialize the object and parse sql. Return SQL2GEE object to do the process"""
         self._raw = sql
         self._parsed = sqlparse.parse(sql)[0]
         self._filters = {
@@ -36,10 +34,21 @@ class SQL2GEE(object):
             'AND': ee.Filter().And,
             'OR': ee.Filter().Or
         }
+        self._reducers = {
+            'count': ee.Reducer.count(),
+            'max': ee.Reducer.max(),
+            'mean': ee.Reducer.mean(),
+            'median': ee.Reducer.median(),
+            'min': ee.Reducer.min(),
+            'mode': ee.Reducer.mode(),
+            'stdev': ee.Reducer.sampleStdDev(),
+            'sum': ee.Reducer.sum(),
+            'var': ee.Reducer.variance(),
+        }
 
     @property
     def _is_image_request(self):
-        """Boolean test to indicate if the user intention is for an image (True) or Raster (False).
+        """Boolean indication if the user intention is for an image (True) or Raster (False).
         Uses re package, to search _raw with A regex that splits on blank space, wildcards, and parentheses.
         Converts the lists to sets, and performs an intersect to see if Image-type keywords are present."""
         tmp = [r for r in re.split('[\(\*\)\s]', self._raw.lower()) if r != '']
@@ -53,12 +62,43 @@ class SQL2GEE(object):
         else:
             raise ValueError("Found multiple image-type keywords. Unsure of action.")
 
-    @property
+    @cached_property
     def _ee_image_metadata(self):
         """Private property that holds the raw EE image(target).get_info() function.
         This is seperated from creating a formated table output (self.metadata).
         """
-        return ee.Image(self.target_data).getInfo()
+        if self._is_image_request:
+            return ee.Image(self.target_data).getInfo()
+        else:
+            return None
+
+    @cached_property
+    def _band_names(self):
+        if self._is_image_request:
+            return ee.Image(self.target_data).bandNames().getInfo()
+        else:
+            return None
+
+    @cached_property
+    def _band_max(self):
+        if self._is_image_request:
+            return ee.Image(self.target_data).reduceRegion(self._reducers['max'], bestEffort=True).getInfo()
+        else:
+            return None
+
+    @cached_property
+    def _band_means(self):
+        if self._is_image_request:
+            return ee.Image(self.target_data).reduceRegion(self._reducers['mean'], bestEffort=True).getInfo()
+        else:
+            return None
+
+    @cached_property
+    def _band_min(self):
+        if self._is_image_request:
+            return ee.Image(self.target_data).reduceRegion(self._reducers['min'], bestEffort=True).getInfo()
+        else:
+            return None
 
     @property
     def metadata(self):
@@ -74,7 +114,19 @@ class SQL2GEE(object):
                 print("Pixel Dimensions: ", band['dimensions'])
                 print("Min value: ", band['data_type']['min'])
                 print("Max value: ", band['data_type']['max'])
-        return
+            return
+        else:
+            return None
+
+    @property
+    def summary_stats(self):
+        """Start of basic summary stat reporting for images"""
+        if self._is_image_request:
+            for b in self._band_names:
+                print("Band = {0}, min = {1}, mean = {2}, max = {3}".format(
+                    b, self._band_mins[b], self._band_means[b], self._band_maxs[b]))
+        else:
+            return None
 
     @property
     def _ee_image_histogram(self):
@@ -84,12 +136,17 @@ class SQL2GEE(object):
         reduce on which is global. This raw data should then be parsed into useable info (including using it to derrive
         ST_SUMMARYSTATS()-like info).
         """
-        # Identify target data
-        # Identify reducer (point + buffer or polygon if given).
-        #
-        # self.group_functions:
-        #t = image.reduceRegion(reducer=ee.Reducer.fixedHistogram(0, 10000, 10), bestEffort=True)
-        #t.getInfo()
+        # get max and min of band 1, and calculate bin number for histogram
+        band_names = self._band_names
+        band_maxs = self._band_max
+        band_mins = self._band_min
+        #self._band_names  # need to extract the max and min using the dictionary keys of band names
+        # Find the largest/smallest max/min of all avaiable bands, and use this as input (and to calculate bin number)
+
+        tmp_reducer = ee.Reducer.fixedHistogram(minval, maxval, 10)       # Identify reducer to apply to an image
+        tmp_img = ee.Image(self.target_data)                        # Identify target data
+        tmp_img.reduceRegion(reducer=tmp_reducer, bestEffort=True)  # Apply reducer
+        #tmp_imp.getInfo()
         pass
 
     @property
