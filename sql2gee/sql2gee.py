@@ -34,23 +34,27 @@ class SQL2GEE(object):
             'AND': ee.Filter().And,
             'OR': ee.Filter().Or
         }
-        self._reducers = {
+
+    @property
+    def _reducers(self):
+        """Due to an E.E. initilization quirk, the reducers must be created after the __init__ stage"""
+        d = {
             'count': ee.Reducer.count(),
             'max': ee.Reducer.max(),
             'mean': ee.Reducer.mean(),
             'median': ee.Reducer.median(),
             'min': ee.Reducer.min(),
             'mode': ee.Reducer.mode(),
+            'percentiles': ee.Reducer.percentile([25, 50, 75]),
             'stdev': ee.Reducer.sampleStdDev(),
             'sum': ee.Reducer.sum(),
-            'var': ee.Reducer.variance(),
+            'var': ee.Reducer.variance()
         }
+        return d
 
     @property
     def _is_image_request(self):
-        """Boolean indication if the user intention is for an image (True) or Raster (False).
-        Uses re package, to search _raw with A regex that splits on blank space, wildcards, and parentheses.
-        Converts the lists to sets, and performs an intersect to see if Image-type keywords are present."""
+        """Detect if the user intends to use an image (True) or Feature collection (False)"""
         tmp = [r for r in re.split('[\(\*\)\s]', self._raw.lower()) if r != '']
         tmp = set(tmp)
         image_keywords = {'st_histogram', 'st_metadata', 'st_summarystats'}
@@ -100,6 +104,13 @@ class SQL2GEE(object):
         else:
             return None
 
+    @cached_property
+    def _band_percentiles(self):
+        if self._is_image_request:
+            return ee.Image(self.target_data).reduceRegion(self._reducers['percentiles'], bestEffort=True).getInfo()
+        else:
+            return None
+
     @property
     def metadata(self):
         """Formatted metadata"""
@@ -136,10 +147,10 @@ class SQL2GEE(object):
         reduce on which is global. This raw data should then be parsed into useable info (including using it to derrive
         ST_SUMMARYSTATS()-like info).
         """
-        # get max and min of band 1, and calculate bin number for histogram
-        band_names = self._band_names
-        band_maxs = self._band_max
-        band_mins = self._band_min
+        # Get a max and min of the band(s), and use it to calculate the number of bins in the histogram
+        # bin no. with Freedman-Diaconis method (http://www.fmrib.ox.ac.uk/datasets/techrep/tr00mj2/tr00mj2/node24.html)
+        band_max = max([self._band_max[key] for key in self._band_max])
+        band_min = min([self._band_max[key] for key in self._band_max])
         #self._band_names  # need to extract the max and min using the dictionary keys of band names
         # Find the largest/smallest max/min of all avaiable bands, and use this as input (and to calculate bin number)
 
