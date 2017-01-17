@@ -3,7 +3,6 @@ import pytest
 from sql2gee import SQL2GEE
 from ee import apitestcase, Filter, FeatureCollection
 
-
 class TestSQL2GEE(apitestcase.ApiTestCase):
 
     def test_identify_feature_queries(self):
@@ -32,6 +31,12 @@ class TestSQL2GEE(apitestcase.ApiTestCase):
             del q
         return
 
+    def test_fields_property(self):
+        sql2gee = SQL2GEE('select juan from mytable')
+        fields = sql2gee.fields
+        self.assertEqual(fields, ['juan'])
+        return
+
     def test_fail_too_many_image_keywords(self):
         """An Error should be returned if multiple image keywords given. This may not be the
         right behaviour, will need to check this after the library is more developed."""
@@ -47,12 +52,6 @@ class TestSQL2GEE(apitestcase.ApiTestCase):
         sql2gee = SQL2GEE('SELECT TOP 1 * FROM mytable ORDER BY unique_column DESC')
         table_name = sql2gee.target_data
         self.assertEqual(table_name, 'mytable')
-        return
-
-    def test_fields_property(self):
-        sql2gee = SQL2GEE('select juan from mytable')
-        fields = sql2gee.fields
-        self.assertEqual(fields, ['juan'])
         return
 
     def test_multiple_fields_property(self):
