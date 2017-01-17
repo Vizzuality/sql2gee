@@ -55,10 +55,26 @@ class SQL2GEE(object):
 
     @property
     def _ee_image_metadata(self):
-        """Private property that holds the raw EE image(target).get_info() response.
-        This will be used to create a response table, as expected from a ST_METADATA() Postgis query.
+        """Private property that holds the raw EE image(target).get_info() function.
+        This is seperated from creating a formated table output (self.metadata).
         """
         return ee.Image(self.target_data).getInfo()
+
+    @property
+    def metadata(self):
+        """Formatted metadata"""
+        if self._ee_image_metadata:
+            meta = self._ee_image_metadata # request metadata from G.E.E
+            for n, band in enumerate(meta['bands']):
+                print("-- Band {0} --".format(n))
+                print("CRS: ", band['crs'])
+                print("Transform: ", band['crs_transform'])
+                print("Data type: ", band['data_type']["type"])
+                print("ID: ", band['id'])
+                print("Pixel Dimensions: ", band['dimensions'])
+                print("Min value: ", band['data_type']['min'])
+                print("Max value: ", band['data_type']['max'])
+        return
 
     @property
     def _ee_image_histogram(self):
