@@ -11,7 +11,8 @@ setup(name='sql2gee',
       install_requires=[
         'sqlparse>=0.2.2',
         'earthengine-api==0.1.95',
-        'google-api-python-client==1.5.5'
+        'google-api-python-client==1.5.5',
+        'cached-property>=1.3.0'
       ],
       package_data={
         'sql2gee': [
