@@ -1,43 +1,40 @@
 from __future__ import print_function
 import pytest
-import unittest
 from sql2gee import SQL2GEE
-from ee import apitestcase, Filter, FeatureCollection, Feature, Image
-import pprint
+from ee import apitestcase, Filter, FeatureCollection
 
 
 class TestSQL2GEE(apitestcase.ApiTestCase):
-    def test_identify_intention_raster_or_image(self):
-        """Check that we can distinguish between a raster and polygon sql request under various scenarios."""
+
+    def test_identify_feature_queries(self):
         err = 'Unable to determine type of request for sql:'
-        q = SQL2GEE('select pepe from mytable')
-        assert q._is_image_request is False, ' '.join([err, q._raw])
-        del q
-        q = SQL2GEE('SELECT TOP 1 * FROM mytable ORDER BY unique_column DESC')
-        assert q._is_image_request is False, ' '.join([err, q._raw])
-        del q
-        q = SQL2GEE('select * from mytable where a > 2 and c = 2 or x <= 2')
-        assert q._is_image_request is False, ' '.join([err, q._raw])
-        del q
-        q = SQL2GEE('select ST_METADATA(*) from myimage')
-        assert q._is_image_request is True, ' '.join([err, q._raw])
-        del q
-        q = SQL2GEE('select ST_METADATA(band1) from myimage')
-        assert q._is_image_request is True, ' '.join([err, q._raw])
-        del q
-        q = SQL2GEE('select ST_METADATA(band1) from myimage')
-        assert q._is_image_request is True, ' '.join([err, q._raw])
-        del q
-        q = SQL2GEE('select ST_HISTOGRAM(*) from myimage')
-        assert q._is_image_request is True, ' '.join([err, q._raw])
-        del q
-        q = SQL2GEE('select ST_SUMMARYSTATS(*) from myimage')
-        assert q._is_image_request is True, ' '.join([err, q._raw])
+        feature_qlist = [
+            'select pepe from mytable',
+            'SELECT TOP 1 * FROM mytable ORDER BY unique_column DESC',
+            'select * from mytable where a > 2 and c = 2 or x <= 2']
+        for query in feature_qlist:
+            q = SQL2GEE(query)
+            assert q._is_image_request is False, ' '.join([err, q._raw])
+            del q
         return
 
-    def test_bad_intention_raster_or_image(self):
+    def test_identify_image_queries(self):
+        err = 'Unable to determine type of request for sql:'
+        image_qlist = [
+            'select ST_METADATA(*) from myimage',
+            'select ST_METADATA(band1) from myimage',
+            'select ST_METADATA(band1) from myimage',
+            'select ST_HISTOGRAM(*) from myimage',
+            'select ST_SUMMARYSTATS(*) from myimage']
+        for query in image_qlist:
+            q = SQL2GEE(query)
+            assert q._is_image_request is True, ' '.join([err, q._raw])
+            del q
+        return
+
+    def test_fail_too_many_image_keywords(self):
         """An Error should be returned if multiple image keywords given. This may not be the
-        right behaviour, will need to check this."""
+        right behaviour, will need to check this after the library is more developed."""
         q = SQL2GEE('select ST_SUMMARYSTATS(*), ST_HISTOGRAM(*) from myimage')
         with pytest.raises(ValueError):
             _ = q._is_image_request
@@ -243,18 +240,17 @@ class TestSQL2GEE(apitestcase.ApiTestCase):
     def test_fail_generate_feature_collection_with_where_is_incorrect(self):
         with self.assertRaises(Exception) as context:
             sql2gee = SQL2GEE('select * from "ft:mytable" where a is "2" ')
-            query = sql2gee._feature_collection
+            _ = sql2gee._feature_collection
         self.assertTrue('IS only support NULL value' in context.exception)
 
     def test_fail_table_not_found(self):
-        with self.assertRaises(Exception) as context:
-            sql2gee = SQL2GEE('select * from a,b')
-            sql2gee._feature_collection
-        self.assertTrue('Table not found' in context.exception)
+        q = SQL2GEE('select * from a,b')
+        with pytest.raises(Exception):
+            _ = q._feature_collection
+        return
 
-    def test_fail_table_not_found(self):
-        with self.assertRaises(Exception) as context:
-            sql2gee = SQL2GEE('select count(*) from a')
-            sql2gee._feature_collection
-        self.assertTrue('* not allowed' in context.exception)
+    def test_fail_table_not_found_extended(self):
+        q = SQL2GEE('select count(*) from a')
+        with pytest.raises(Exception):
+            _ = q._feature_collection
         return
