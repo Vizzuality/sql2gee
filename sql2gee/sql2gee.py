@@ -111,6 +111,26 @@ class SQL2GEE(object):
         else:
             return None
 
+    @cached_property
+    def _band_counts(self):
+        if self._is_image_request:
+            return ee.Image(self.target_data).reduceRegion(self._reducers['count'], bestEffort=True).getInfo()
+        else:
+            return None
+
+    @cached_property
+    def _band_IQR(self):
+        """Return a dictionary object with the InterQuartileRange (Q3 - Q1) per band."""
+        if self._is_image_request:
+            iqr = {}
+            for band in self._band_names:
+                tmp = r._band_percentiles[band + '_p75'] - r._band_percentiles[band + '_p25']
+                iqr[band] = tmp
+                del tmp
+            return iqr
+        else:
+            return None
+
     @property
     def metadata(self):
         """Formatted metadata"""
@@ -147,14 +167,19 @@ class SQL2GEE(object):
         reduce on which is global. This raw data should then be parsed into useable info (including using it to derrive
         ST_SUMMARYSTATS()-like info).
         """
-        # Get a max and min of the band(s), and use it to calculate the number of bins in the histogram
+        # Get a max and min from first band and use it to calculate the number of bins in the histogram
         # bin no. with Freedman-Diaconis method (http://www.fmrib.ox.ac.uk/datasets/techrep/tr00mj2/tr00mj2/node24.html)
-        band_max = max([self._band_max[key] for key in self._band_max])
-        band_min = min([self._band_max[key] for key in self._band_max])
-        #self._band_names  # need to extract the max and min using the dictionary keys of band names
-        # Find the largest/smallest max/min of all avaiable bands, and use this as input (and to calculate bin number)
+        band_max = self._band_max[self._band_names[0]]
+        band_min = self._band_min[self._band_names[0]]
+        band_iqr = self._band_IQR[self._band_names[0]]
+        band_n = self._band_count[self._band_names[0]]
+        h = 2 * band_iqr * (band_n**(-1/3))  #bin width
+        num_bins = (band_min - band_max) / h
 
-        tmp_reducer = ee.Reducer.fixedHistogram(minval, maxval, 10)       # Identify reducer to apply to an image
+        # Find the largest/smallest max/min of all avaiable bands, and use this as input (and to calculate bin number)
+        # Perhaps it's better to set the min, max, bins to stats from one band instead?
+
+        tmp_reducer = ee.Reducer.fixedHistogram(band_min, band_max, 10)       # Identify reducer to apply to an image
         tmp_img = ee.Image(self.target_data)                        # Identify target data
         tmp_img.reduceRegion(reducer=tmp_reducer, bestEffort=True)  # Apply reducer
         #tmp_imp.getInfo()
