@@ -2,8 +2,8 @@
 from setuptools import setup, find_packages
 
 setup(name='sql2gee',
-      version='0.0.1',
-      description='Library to convert SQL queries into Google Earth Engine syntax',
+      version='0.0.3',
+      description='Library to convert SQL-like queries into Google Earth Engine syntax, and return the responses',
       author='Raul Requero',
       author_email='raul.requero@vizzuality.com',
       license='MIT',
