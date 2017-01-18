@@ -21,6 +21,7 @@ A python 2.7 library to convert SQL queries into Google's Earth Engine Python AP
   * MIN
   * FIRST
   * LAST
+  * LIMIT
   
 * POSTGIS-LIKE IMAGE FUNCTIONS
   * ST_METADATA
@@ -56,9 +57,21 @@ Example library usage:
 3. Returns the result from executing the GEE query in on Google's servers.
 
 ```python
->>>print "Result of my query: ", q.execute
+>>>print "Result of my query: ", q.response
 Result of my query: 1919
 ```
+
+Here is another example, showing how you can limit the responses from a feature collection.
+
+```python
+>>>sql = 'select * from "ft:1qpKIcYQMBsXLA9RLWCaV9D0Hus2cMQHhI-ViKHo" LIMIT 1'
+>>>q = SQL2GEE(sql)
+>>>q.response
+{u'columns': 
+...
+ u'type': u'FeatureCollection'}
+```
+
 
 
 #### Image operations 
@@ -74,7 +87,7 @@ You can access the execute property of the SQL2GEE object directly, rather than 
 Below we show how to return metadata for the image resource.
 
 ```python
->>>SQL2GEE("SELECT ST_METADATA() FROM srtm90_v4").execute
+>>>SQL2GEE("SELECT ST_METADATA() FROM srtm90_v4").response
 -- Band 0 --
 CRS:  EPSG:4326
 Transform:  [0.000833333333333, 0.0, -180.0, 0.0, -0.000833333333333, 60.0]
@@ -88,13 +101,13 @@ Max value:  32767
 You can also retrieve summary statistics per band:
 
 ```python
->>>SQL2GEE("SELECT ST_SUMMARYSTATS() FROM srtm90_v4").execute
+>>>SQL2GEE("SELECT ST_SUMMARYSTATS() FROM srtm90_v4").response
 Band = elevation, min = -415, mean = 689.847483377, max = 7159
 ```
 
 You can also return a dictionary object of histogram data. (Note, bin numbers are set via the Freedman-Diaconis method.)
 ```python
->>>SQL2GEE("SELECT ST_HISTOGRAM() FROM srtm90_v4").execute
+>>>SQL2GEE("SELECT ST_HISTOGRAM() FROM srtm90_v4").response
 {u'elevation': [[-415.0, 14.0],
   [-404.94156706507306, 6.0],
   [-394.88313413014606, 3.0],

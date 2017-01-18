@@ -37,6 +37,16 @@ class TestSQL2GEE(apitestcase.ApiTestCase):
         self.assertEqual(fields, ['juan'])
         return
 
+    def test_identify_fc_limit(self):
+        q = SQL2GEE('select width from "ft:1qpKIcYQMBsXLA9RLWCaV9D0Hus2cMQHhI-ViKHo" LIMIT 3')
+        assert q.limit == 3, 'LIMIT not correctly detected'
+
+    def test_halt_at_bad_fc_limit(self):
+        q = SQL2GEE('select width from "ft:1qpKIcYQMBsXLA9RLWCaV9D0Hus2cMQHhI-ViKHo" LIMIT -3')
+        with pytest.raises(Exception):
+            _ = q.limit
+        return
+
     def test_fail_too_many_image_keywords(self):
         """An Error should be returned if multiple image keywords given. This may not be the
         right behaviour, will need to check this after the library is more developed."""

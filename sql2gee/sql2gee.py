@@ -276,21 +276,6 @@ class SQL2GEE(object):
                 #    raise Exception('* not allowed')
         return d
 
-
-    @property
-    def _feature_collection(self):
-        """Return the G.E.E. FeatureCollection object with all filter, groups, and functions applied"""
-        fc = ee.FeatureCollection(self.target_data)
-        if self.where:
-            fc = fc.filter(self.where)
-        if self.group_functions:
-            for group in self.group_functions:
-                fc = self.apply_group(fc, group)
-        select = self.fields
-        if select and len(select) > 0 and not select[0] == '*':
-            fc = fc.select(select)
-        return fc
-
     @property
     def _image(self):
         """Performs a diffrent Image operation depending on sql request."""
@@ -307,6 +292,22 @@ class SQL2GEE(object):
                 if st_summarystats_requested:
                     return self.summary_stats(subset=subset)
 
+    @property
+    def _feature_collection(self):
+        """Return the G.E.E. FeatureCollection object with all filter, groups, and functions applied"""
+        fc = ee.FeatureCollection(self.target_data)
+        if self.where:
+            fc = fc.filter(self.where)
+        if self.group_functions:
+            for group in self.group_functions:
+                fc = self.apply_group(fc, group)
+        select = self.fields
+        if select and len(select) > 0 and not select[0] == '*':
+            fc = fc.select(select)
+        if self.limit:
+            fc = fc.limit(self.limit)
+        return fc
+
 
     @property
     def where(self):
@@ -315,6 +316,19 @@ class SQL2GEE(object):
         if tmp:
             return self.parse_conditions(tmp.tokens)
         return None
+
+    @property
+    def limit(self):
+        """If LIMIT keyword set, this returns an integer to limit the maximum return from a feature collection query"""
+        watch_for_limit = False
+        for i in list(self._parsed):
+            if i.ttype is Keyword and i.value.lower() == "LIMIT".lower():
+                watch_for_limit = True
+            if watch_for_limit and i.ttype is sqlparse.tokens.Literal.Number.Integer:
+                limit_value = int(i.value)
+                assert limit_value >= 1, 'Limit must be >= 1'
+                return limit_value
+
 
     def apply_group(self, fc, group):
         """Given a fc (feature_collection) object and group operation, return a
@@ -464,7 +478,7 @@ class SQL2GEE(object):
         return filters[0]
 
     @property
-    def execute(self):
+    def response(self):
         """Execute the GEE object in GEE Server. This is the function that, when called, actually sends the SQL
         request (which was converted to GEE-speak) to Google's servers for execution and returns the result."""
         ## This logic will be changed to instead execute the self.r , which will be made up of base + modifiers,
