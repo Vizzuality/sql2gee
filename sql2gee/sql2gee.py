@@ -119,9 +119,11 @@ class SQL2GEE(object):
                 del tmp
             return iqr
 
-    @property
-    def metadata(self):
+
+    def metadata(self, subset=None):
         """Formatted metadata"""
+        if len(subset) > 0:
+            print('Subset requested: ', subset)
         if self._ee_image_metadata:
             meta = self._ee_image_metadata # request metadata from G.E.E
             for n, band in enumerate(meta['bands']):
@@ -135,13 +137,23 @@ class SQL2GEE(object):
                 print("Max value: ", band['data_type']['max'])
             return
 
-    @property
-    def summary_stats(self):
+
+    def summary_stats(self, subset=None):
         """Start of basic summary stat reporting for images to be exposed to the users, ST_SUMMARYSTATS()-like."""
-        if self._is_image_request:
-            for b in self._band_names:
-                print("Band = {0}, min = {1}, mean = {2}, max = {3}".format(
-                    b, self._band_min[b], self._band_mean[b], self._band_max[b]))
+        if len(subset) > 0:
+            print("Subset requested:", subset)
+        for b in self._band_names:
+            print("Band = {0}, min = {1}, mean = {2}, max = {3}".format(
+                b, self._band_min[b], self._band_mean[b], self._band_max[b]))
+
+
+    def histogram(self, subset=None):
+        """This property is responsible for modifying the raw output of E.E. histogram dictionary into a
+        PostGIS-like output."""
+        if len(subset) > 0:
+            print("Subset requested: ", subset)
+        return self._ee_image_histogram
+
 
     @property
     def _ee_image_histogram(self):
@@ -166,8 +178,9 @@ class SQL2GEE(object):
         tmp = ee.Image(self.target_data).reduceRegion(reducer=tmp_reducer, bestEffort=True).getInfo()
         return tmp
 
+
     def _histplot_preview(self):
-        """Returns a matplotlib plot object, meant for development only.
+        """Returns a matplotlib plot object, meant for development previews only.
 
         sql = "SELECT ST_METADATA(*) FROM srtm90_v4"
         r = SQL2GEE(sql)
@@ -176,35 +189,21 @@ class SQL2GEE(object):
         """
         import matplotlib.pyplot as plt
         for key in self._ee_image_histogram:
-            bins = []
-            frequency = []
-            for item in self._ee_image_histogram[key]:
-                bin_left, val = item
-                bins.append(bin_left)
-                frequency.append(val)
-            bins = np.array(bins)
-            frequency = np.array(frequency)
-            plt.step(bins, frequency / self._band_counts[key])
-            plt.title(key.capitalize())
-            plt.ylabel("frequency")
-            return plt
-
-    @property
-    def histogram(self):
-        """This property is responsible for modifying the raw output of E.E. histogram dictionary into a
-        PostGIS-like output."""
-        if self._is_image_request:
-            return self._ee_image_histogram
-        else:
-            return None
-
-    @property
-    def gee_function(self):
-        """The foundation object to construct the G.E.E. function from (i.e. an Image or a Feature Collection)."""
-        if self._is_image_request:
-            return self._image
-        else:
-            return self._feature_collection
+            if self._ee_image_histogram[key]:
+                bins = []
+                frequency = []
+                for item in self._ee_image_histogram[key]:
+                    bin_left, val = item
+                    bins.append(bin_left)
+                    frequency.append(val)
+                bins = np.array(bins)
+                frequency = np.array(frequency)
+                plt.step(bins, frequency / self._band_counts[key])
+                plt.title(key.capitalize())
+                plt.ylabel("frequency")
+                if plt:
+                    plt.show()
+        return
 
     @property
     def target_data(self):
@@ -259,6 +258,25 @@ class SQL2GEE(object):
                         group_list.append(self.token_to_dictionary(identity))
         return group_list
 
+    @staticmethod
+    def token_to_dictionary(token_list):
+        """ Receives a token e.g.('count(pepe)') and converts it into a dictionary
+        with key:values for function and value."""
+        assert isinstance(token_list, sqlparse.sql.Function),'unexpected datatype'
+        d = {}
+        for t in token_list:
+            if isinstance(t, Identifier):
+                d['function'] = str(t).upper()
+            elif isinstance(t, Parenthesis):
+                value = t.value.replace('(', '').replace(')', '').strip()
+                d['value'] = value   # allow "*" here and deal with it elsewhere
+                #if value != '*':
+                #    d['value'] = value
+                #else:
+                #    raise Exception('* not allowed')
+        return d
+
+
     @property
     def _feature_collection(self):
         """Return the G.E.E. FeatureCollection object with all filter, groups, and functions applied"""
@@ -274,6 +292,23 @@ class SQL2GEE(object):
         return fc
 
     @property
+    def _image(self):
+        """Performs a diffrent Image operation depending on sql request."""
+        if self._is_image_request:
+            for func in self.group_functions:
+                subset = func["value"].lower()
+                st_histogram_requested = func["function"].lower() == 'st_histogram'
+                st_summarystats_requested = func["function"].lower() == 'st_summarystats'
+                st_metadata_requested = func["function"].lower() == 'st_metadata'
+                if st_histogram_requested:
+                    return self.histogram(subset=subset)
+                if st_metadata_requested:
+                    return self.metadata(subset=subset)
+                if st_summarystats_requested:
+                    return self.summary_stats(subset=subset)
+
+
+    @property
     def where(self):
         """Returns filter object obtained from where of the query in GEE format"""
         val, tmp = self._parsed.token_next_by(i=sqlparse.sql.Where)
@@ -281,26 +316,26 @@ class SQL2GEE(object):
             return self.parse_conditions(tmp.tokens)
         return None
 
-    @staticmethod
-    def apply_group(fc, group):
+    def apply_group(self, fc, group):
         """Given a fc (feature_collection) object and group operation, return a
         new fc object, extended by a method of the feature grouping operation."""
-        if group['function'] == 'COUNT':
-            return fc.aggregate_count(group['value'])
-        elif group['function'] == 'MAX':
-            return fc.aggregate_max(group['value'])
-        elif group['function'] == 'MIN':
-            return fc.aggregate_min(group['value'])
-        elif group['function'] == 'SUM':
-            return fc.aggregate_sum(group['value'])
-        elif group['function'] == 'AVG':
-            return fc.aggregate_mean(group['value'])
-        elif group['function'] == 'FIRST':
-            return fc.aggregate_first(group['value'])
-        elif group['function'] == 'LAST':
-            return fc.aggregate_last(group['value'])
-        else:
-            raise ValueError("Unknown group function attempted: ", group['function'])
+        if not self._is_image_request:
+            if group['function'] == 'COUNT':
+                return fc.aggregate_count(group['value'])
+            elif group['function'] == 'MAX':
+                return fc.aggregate_max(group['value'])
+            elif group['function'] == 'MIN':
+                return fc.aggregate_min(group['value'])
+            elif group['function'] == 'SUM':
+                return fc.aggregate_sum(group['value'])
+            elif group['function'] == 'AVG':
+                return fc.aggregate_mean(group['value'])
+            elif group['function'] == 'FIRST':
+                return fc.aggregate_first(group['value'])
+            elif group['function'] == 'LAST':
+                return fc.aggregate_last(group['value'])
+            else:
+                raise ValueError("Unknown group function attempted: ", group['function'])
 
     @staticmethod
     def remove_quotes(input_str):
@@ -314,23 +349,6 @@ class SQL2GEE(object):
             return input_str[1: -1]
         else:
             return input_str
-
-    @staticmethod
-    def token_to_dictionary(token_list):
-        """Recieve a token e.g.('count(pepe)') and converts it into a dictionary
-        with key:values for function and value."""
-        assert isinstance(token_list, sqlparse.sql.Function),'unexpected datatype'
-        d = {}
-        for t in token_list:
-            if isinstance(t, Identifier):
-                d['function'] = str(t).upper()
-            elif isinstance(t, Parenthesis):
-                value = t.value.replace('(', '').replace(')', '').strip()
-                if value != '*':
-                    d['value'] = value
-                else:
-                    raise Exception('* not allowed')
-        return d
 
     def parse_comparison(self, comparison):
         values = []
@@ -445,12 +463,19 @@ class SQL2GEE(object):
                 comparison = None
         return filters[0]
 
-
+    @property
     def execute(self):
         """Execute the GEE object in GEE Server. This is the function that, when called, actually sends the SQL
         request (which was converted to GEE-speak) to Google's servers for execution and returns the result."""
         ## This logic will be changed to instead execute the self.r , which will be made up of base + modifiers,
         # So it can be either and Image() or FeatureCollection() type function.
         if self._feature_collection:
-            return self.gee_function.getInfo()
-        return None
+            try:
+                return self._feature_collection.getInfo()
+            except:
+                raise AttributeError('Failed to return Feature Collection result')
+        if self._image:
+            try:
+                return self._image
+            except:
+                raise AttributeError("Failed to return Image result")
