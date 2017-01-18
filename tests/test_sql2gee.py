@@ -1,22 +1,67 @@
-import unittest
+from __future__ import print_function
+import pytest
 from sql2gee import SQL2GEE
-from ee import apitestcase, Filter, FeatureCollection, Feature
-
+from ee import apitestcase, Filter, FeatureCollection
 
 class TestSQL2GEE(apitestcase.ApiTestCase):
-    def test_table_name_property(self):
-        sql2gee = SQL2GEE('select pepe from mytable')
-        table_name = sql2gee.table_name
-        self.assertEqual(table_name, 'mytable')
-        sql2gee = SQL2GEE('SELECT TOP 1 * FROM mytable ORDER BY unique_column DESC')
-        table_name = sql2gee.table_name
-        self.assertEqual(table_name, 'mytable')
+
+    def test_identify_feature_queries(self):
+        err = 'Unable to determine type of request for sql:'
+        feature_qlist = [
+            'select pepe from mytable',
+            'SELECT TOP 1 * FROM mytable ORDER BY unique_column DESC',
+            'select * from mytable where a > 2 and c = 2 or x <= 2']
+        for query in feature_qlist:
+            q = SQL2GEE(query)
+            assert q._is_image_request is False, ' '.join([err, q._raw])
+            del q
+        return
+
+    def test_identify_image_queries(self):
+        err = 'Unable to determine type of request for sql:'
+        image_qlist = [
+            'select ST_METADATA(*) from myimage',
+            'select ST_METADATA(band1) from myimage',
+            'select ST_METADATA(band1) from myimage',
+            'select ST_HISTOGRAM(*) from myimage',
+            'select ST_SUMMARYSTATS(*) from myimage']
+        for query in image_qlist:
+            q = SQL2GEE(query)
+            assert q._is_image_request is True, ' '.join([err, q._raw])
+            del q
         return
 
     def test_fields_property(self):
         sql2gee = SQL2GEE('select juan from mytable')
         fields = sql2gee.fields
         self.assertEqual(fields, ['juan'])
+        return
+
+    def test_identify_fc_limit(self):
+        q = SQL2GEE('select width from "ft:1qpKIcYQMBsXLA9RLWCaV9D0Hus2cMQHhI-ViKHo" LIMIT 3')
+        assert q.limit == 3, 'LIMIT not correctly detected'
+
+    def test_halt_at_bad_fc_limit(self):
+        q = SQL2GEE('select width from "ft:1qpKIcYQMBsXLA9RLWCaV9D0Hus2cMQHhI-ViKHo" LIMIT -3')
+        with pytest.raises(Exception):
+            _ = q.limit
+        return
+
+    def test_fail_too_many_image_keywords(self):
+        """An Error should be returned if multiple image keywords given. This may not be the
+        right behaviour, will need to check this after the library is more developed."""
+        q = SQL2GEE('select ST_SUMMARYSTATS(*), ST_HISTOGRAM(*) from myimage')
+        with pytest.raises(ValueError):
+            _ = q._is_image_request
+        return
+
+    def test_table_name_property(self):
+        sql2gee = SQL2GEE('select pepe from mytable')
+        table_name = sql2gee.target_data
+        self.assertEqual(table_name, 'mytable')
+        sql2gee = SQL2GEE('SELECT TOP 1 * FROM mytable ORDER BY unique_column DESC')
+        table_name = sql2gee.target_data
+        self.assertEqual(table_name, 'mytable')
         return
 
     def test_multiple_fields_property(self):
@@ -85,28 +130,28 @@ class TestSQL2GEE(apitestcase.ApiTestCase):
 
     def test_simple_feature_collection(self):
         sql2gee = SQL2GEE('select * from "ft:mytable" ')
-        query = sql2gee.feature_collection
+        query = sql2gee._feature_collection
         correct = FeatureCollection('ft:mytable')
         self.assertEqual(query, correct)
         return
 
     def test_simple_feature_collection_with_where(self):
         sql2gee = SQL2GEE('select * from "ft:mytable" where a > 2 ')
-        query = sql2gee.feature_collection
+        query = sql2gee._feature_collection
         correct = FeatureCollection('ft:mytable').filter(Filter().gt('a', 2))
         self.assertEqual(query, correct)
         return
 
     def test_feature_collection_simple_with_where_and_and(self):
         sql2gee = SQL2GEE('select * from "ft:mytable" where a > 2 and b = 2 ')
-        query = sql2gee.feature_collection
+        query = sql2gee._feature_collection
         correct = FeatureCollection('ft:mytable').filter(Filter().And(Filter().gt('a', 2), Filter().eq('b', 2)))
         self.assertEqual(query, correct)
         return
 
     def test_feature_collection_simple_with_where_several_conditions(self):
         sql2gee = SQL2GEE('select * from "ft:mytable" where (a > 2 or b < 2) and b = 2 ')
-        query = sql2gee.feature_collection
+        query = sql2gee._feature_collection
         correct = FeatureCollection('ft:mytable').filter(Filter().And(Filter().Or(Filter().gt('a', 2), Filter().lt('b', 2)), Filter().eq('b', 2)))
         self.assertEqual(query, correct)
         return
@@ -114,107 +159,107 @@ class TestSQL2GEE(apitestcase.ApiTestCase):
     def test_feature_collection_simple_with_where_float(self):
         sql2gee = SQL2GEE('select * from "ft:mytable" where a > 2.2 ')
         correct = FeatureCollection('ft:mytable').filter(Filter().gt('a', 2.2))
-        query = sql2gee.feature_collection
+        query = sql2gee._feature_collection
         self.assertEqual(query, correct)
 
     def test_feature_collection_simple_with_where_not_float(self):
         sql2gee = SQL2GEE('select * from "ft:mytable" where not a > 2.2 ')
         correct = FeatureCollection('ft:mytable').filter(Filter().gt('a', 2.2).Not())
-        query = sql2gee.feature_collection
+        query = sql2gee._feature_collection
         self.assertEqual(query, correct)
 
     def test_feature_collection_simple_with_where_like_eq(self):
         sql2gee = SQL2GEE('select * from "ft:mytable" where a like "2" ')
         correct = FeatureCollection('ft:mytable').filter(Filter().eq('a', '2'))
-        query = sql2gee.feature_collection
+        query = sql2gee._feature_collection
         self.assertEqual(query, correct)
 
     def test_feature_collection_simple_with_where_like_startsWith(self):
         sql2gee = SQL2GEE('select * from "ft:mytable" where a like "2%" ')
         correct = FeatureCollection('ft:mytable').filter(Filter().stringStartsWith('a', '2'))
-        query = sql2gee.feature_collection
+        query = sql2gee._feature_collection
         self.assertEqual(query, correct)
 
     def test_feature_collection_simple_with_where_like_endsWith(self):
         sql2gee = SQL2GEE('select * from "ft:mytable" where a like "%2" ')
         correct = FeatureCollection('ft:mytable').filter(Filter().stringEndsWith('a', '2'))
-        query = sql2gee.feature_collection
+        query = sql2gee._feature_collection
         self.assertEqual(query, correct)
 
     def test_feature_collection_simple_with_where_like_contains(self):
         sql2gee = SQL2GEE('select * from "ft:mytable" where a like "%2%" ')
         correct = FeatureCollection('ft:mytable').filter(Filter().stringContains('a', '2'))
-        query = sql2gee.feature_collection
+        query = sql2gee._feature_collection
         self.assertEqual(query, correct)
 
     def test_feature_collection_simple_with_where_not_like(self):
         sql2gee = SQL2GEE('select * from "ft:mytable" where a not like "%2%" ')
         correct = FeatureCollection('ft:mytable').filter(Filter().stringContains('a', '2').Not())
-        query = sql2gee.feature_collection
+        query = sql2gee._feature_collection
         self.assertEqual(query, correct)
 
     def test_feature_collection_simple_with_where_like_and_gt(self):
         sql2gee = SQL2GEE('select * from "ft:mytable" where a like "%2%" and b > 2 ')
         correct = FeatureCollection('ft:mytable').filter(Filter().And(Filter().stringContains('a', '2'), Filter().gt('b', 2)))
-        query = sql2gee.feature_collection
+        query = sql2gee._feature_collection
         self.assertEqual(query, correct)
 
     def test_feature_collection_simple_with_where_gt_and_like(self):
         sql2gee = SQL2GEE('select * from "ft:mytable" where b > 2 and a like "%2%"')
         correct = FeatureCollection('ft:mytable').filter(Filter().And(Filter().gt('b', 2), Filter().stringContains('a', '2')))
-        query = sql2gee.feature_collection
+        query = sql2gee._feature_collection
         self.assertEqual(query, correct)
 
     def test_feature_collection_simple_with_where_string(self):
         sql2gee = SQL2GEE('select * from "ft:mytable" where a = "a" ')
         correct = FeatureCollection('ft:mytable').filter(Filter().eq('a', "a"))
-        query = sql2gee.feature_collection
+        query = sql2gee._feature_collection
         self.assertEqual(query, correct)
 
     def test_feature_collection_simple_with_where_in(self):
         sql2gee = SQL2GEE('select * from "ft:mytable" where a in (1, 2) ')
         correct = FeatureCollection('ft:mytable').filter(Filter().inList('a', [1, 2]))
-        query = sql2gee.feature_collection
+        query = sql2gee._feature_collection
         self.assertEqual(query, correct)
 
     def test_feature_collection_simple_with_where_in_float(self):
         sql2gee = SQL2GEE('select * from "ft:mytable" where a in (1.2, 2) ')
         correct = FeatureCollection('ft:mytable').filter(Filter().inList('a', [1.2, 2]))
-        query = sql2gee.feature_collection
+        query = sql2gee._feature_collection
         self.assertEqual(query, correct)
 
     def test_feature_collection_simple_with_where_in_string(self):
         sql2gee = SQL2GEE('select * from "ft:mytable" where a in ("a", "b") ')
         correct = FeatureCollection('ft:mytable').filter(Filter().inList('a', ['a', 'b']))
-        query = sql2gee.feature_collection
+        query = sql2gee._feature_collection
         self.assertEqual(query, correct)
 
     def test_feature_collection_simple_with_where_is(self):
         sql2gee = SQL2GEE('select * from "ft:mytable" where a is NULL ')
         correct = FeatureCollection('ft:mytable').filter(Filter().eq('a', 'null'))
-        query = sql2gee.feature_collection
+        query = sql2gee._feature_collection
         self.assertEqual(query, correct)
 
     def test_feature_collection_simple_with_where_is_not(self):
         sql2gee = SQL2GEE('select * from "ft:mytable" where a is not NULL ')
         correct = FeatureCollection('ft:mytable').filter(Filter().neq('a', 'null'))
-        query = sql2gee.feature_collection
+        query = sql2gee._feature_collection
         self.assertEqual(query, correct)
 
     def test_fail_generate_feature_collection_with_where_is_incorrect(self):
         with self.assertRaises(Exception) as context:
             sql2gee = SQL2GEE('select * from "ft:mytable" where a is "2" ')
-            query = sql2gee.feature_collection
+            _ = sql2gee._feature_collection
         self.assertTrue('IS only support NULL value' in context.exception)
 
     def test_fail_table_not_found(self):
-        with self.assertRaises(Exception) as context:
-            sql2gee = SQL2GEE('select * from a,b')
-            sql2gee.feature_collection
-        self.assertTrue('Table not found' in context.exception)
+        q = SQL2GEE('select * from a,b')
+        with pytest.raises(Exception):
+            _ = q._feature_collection
+        return
 
-    def test_fail_table_not_found(self):
-        with self.assertRaises(Exception) as context:
-            sql2gee = SQL2GEE('select count(*) from a')
-            sql2gee.feature_collection
-        self.assertTrue('* not allowed' in context.exception)
+    def test_fail_table_not_found_extended(self):
+        q = SQL2GEE('select count(*) from a')
+        with pytest.raises(Exception):
+            _ = q._feature_collection
+        return
