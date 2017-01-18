@@ -41,3 +41,12 @@ def test_retrieve_raw_ee_raster_metadata():
     print("SQL2GEE retrieved: ", test_meta)
     assert not error, 'test metadata not equal to expected metadata'
     return
+
+
+# @pytest.mark.skip(reason="Needs to be initilised to pass.")
+# def test_histogram():
+#     Initialize()
+#     sql = "SELECT ST_METADATA(*) FROM srtm90_v4"
+#     r = SQL2GEE(sql)
+#     r._ee_image_histogram
+#     return

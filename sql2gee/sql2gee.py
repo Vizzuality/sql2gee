@@ -1,4 +1,5 @@
-from __future__ import print_function
+from __future__ import print_function, division
+import numpy as np
 from cached_property import cached_property
 import ee
 import re
@@ -37,7 +38,7 @@ class SQL2GEE(object):
 
     @property
     def _reducers(self):
-        """Due to an E.E. initilization quirk, the reducers must be created after the __init__ stage"""
+        """Due to an E.E. initialization quirk, the reducers must be created after the __init__ stage"""
         d = {
             'count': ee.Reducer.count(),
             'max': ee.Reducer.max(),
@@ -69,54 +70,43 @@ class SQL2GEE(object):
     @cached_property
     def _ee_image_metadata(self):
         """Private property that holds the raw EE image(target).get_info() function.
-        This is seperated from creating a formated table output (self.metadata).
+        This is separated from creating a formatted table output (self.metadata).
         """
         if self._is_image_request:
             return ee.Image(self.target_data).getInfo()
-        else:
-            return None
+
+    # NOTE : it is in the below reducers, that I should add a conditional to subset by a feature/feature collection
+    # if they are provided in the sql query rather than the current default of None...
 
     @cached_property
     def _band_names(self):
         if self._is_image_request:
             return ee.Image(self.target_data).bandNames().getInfo()
-        else:
-            return None
 
     @cached_property
     def _band_max(self):
         if self._is_image_request:
             return ee.Image(self.target_data).reduceRegion(self._reducers['max'], bestEffort=True).getInfo()
-        else:
-            return None
 
     @cached_property
-    def _band_means(self):
+    def _band_mean(self):
         if self._is_image_request:
             return ee.Image(self.target_data).reduceRegion(self._reducers['mean'], bestEffort=True).getInfo()
-        else:
-            return None
 
     @cached_property
     def _band_min(self):
         if self._is_image_request:
             return ee.Image(self.target_data).reduceRegion(self._reducers['min'], bestEffort=True).getInfo()
-        else:
-            return None
 
     @cached_property
     def _band_percentiles(self):
         if self._is_image_request:
             return ee.Image(self.target_data).reduceRegion(self._reducers['percentiles'], bestEffort=True).getInfo()
-        else:
-            return None
 
     @cached_property
     def _band_counts(self):
         if self._is_image_request:
             return ee.Image(self.target_data).reduceRegion(self._reducers['count'], bestEffort=True).getInfo()
-        else:
-            return None
 
     @cached_property
     def _band_IQR(self):
@@ -124,12 +114,10 @@ class SQL2GEE(object):
         if self._is_image_request:
             iqr = {}
             for band in self._band_names:
-                tmp = r._band_percentiles[band + '_p75'] - r._band_percentiles[band + '_p25']
+                tmp = self._band_percentiles[band + '_p75'] - self._band_percentiles[band + '_p25']
                 iqr[band] = tmp
                 del tmp
             return iqr
-        else:
-            return None
 
     @property
     def metadata(self):
@@ -146,44 +134,69 @@ class SQL2GEE(object):
                 print("Min value: ", band['data_type']['min'])
                 print("Max value: ", band['data_type']['max'])
             return
-        else:
-            return None
 
     @property
     def summary_stats(self):
-        """Start of basic summary stat reporting for images"""
+        """Start of basic summary stat reporting for images to be exposed to the users, ST_SUMMARYSTATS()-like."""
         if self._is_image_request:
             for b in self._band_names:
                 print("Band = {0}, min = {1}, mean = {2}, max = {3}".format(
-                    b, self._band_mins[b], self._band_means[b], self._band_maxs[b]))
-        else:
-            return None
+                    b, self._band_min[b], self._band_mean[b], self._band_max[b]))
 
     @property
     def _ee_image_histogram(self):
         """First step to retrieve ST_HISTOGRAM()-like info.
         This will return an object with the band-wise statistics for a reduced image. If no reduce (point + buffer)
         or polygon is given, we assume user wants all the possible image, in which case pass a default polygon to
-        reduce on which is global. This raw data should then be parsed into useable info (including using it to derrive
+        reduce on which is global. This raw data should then be parsed into usable info (including using it to derive
         ST_SUMMARYSTATS()-like info).
+
+        First step is to reduce with global data, but, will add polygons/ point+buffers. In this case the statistics
+        for the bands (max, min, counts, range, iqr, n) also need to come from the feature, not the whole band....
         """
-        # Get a max and min from first band and use it to calculate the number of bins in the histogram
-        # bin no. with Freedman-Diaconis method (http://www.fmrib.ox.ac.uk/datasets/techrep/tr00mj2/tr00mj2/node24.html)
-        band_max = self._band_max[self._band_names[0]]
-        band_min = self._band_min[self._band_names[0]]
-        band_iqr = self._band_IQR[self._band_names[0]]
-        band_n = self._band_count[self._band_names[0]]
-        h = 2 * band_iqr * (band_n**(-1/3))  #bin width
-        num_bins = (band_min - band_max) / h
+        # Estimate optimum bin width and bin number with Freedman-Diaconis method
+        first_band_max = self._band_max[self._band_names[0]]
+        first_band_min = self._band_min[self._band_names[0]]
+        first_band_iqr = self._band_IQR[self._band_names[0]]
+        first_band_n = self._band_counts[self._band_names[0]]
+        bin_width = (2 * first_band_iqr * (first_band_n ** (-1/3)))
+        num_bins = np.round((first_band_max - first_band_min) / bin_width)
+        # Set-up a histogram reducer, pass it to an image, and return the histogram data dictionary.
+        tmp_reducer = ee.Reducer.fixedHistogram(first_band_min, first_band_max, num_bins)
+        tmp = ee.Image(self.target_data).reduceRegion(reducer=tmp_reducer, bestEffort=True).getInfo()
+        return tmp
 
-        # Find the largest/smallest max/min of all avaiable bands, and use this as input (and to calculate bin number)
-        # Perhaps it's better to set the min, max, bins to stats from one band instead?
+    def _histplot_preview(self):
+        """Returns a matplotlib plot object, meant for development only.
 
-        tmp_reducer = ee.Reducer.fixedHistogram(band_min, band_max, 10)       # Identify reducer to apply to an image
-        tmp_img = ee.Image(self.target_data)                        # Identify target data
-        tmp_img.reduceRegion(reducer=tmp_reducer, bestEffort=True)  # Apply reducer
-        #tmp_imp.getInfo()
-        pass
+        sql = "SELECT ST_METADATA(*) FROM srtm90_v4"
+        r = SQL2GEE(sql)
+        p = r._histplot_preview()
+        p.show()
+        """
+        import matplotlib.pyplot as plt
+        for key in self._ee_image_histogram:
+            bins = []
+            frequency = []
+            for item in self._ee_image_histogram[key]:
+                bin_left, val = item
+                bins.append(bin_left)
+                frequency.append(val)
+            bins = np.array(bins)
+            frequency = np.array(frequency)
+            plt.step(bins, frequency / self._band_counts[key])
+            plt.title(key.capitalize())
+            plt.ylabel("frequency")
+            return plt
+
+    @property
+    def histogram(self):
+        """This property is responsible for modifying the raw output of E.E. histogram dictionary into a
+        PostGIS-like output."""
+        if self._is_image_request:
+            return self._ee_image_histogram
+        else:
+            return None
 
     @property
     def gee_function(self):
@@ -245,13 +258,6 @@ class SQL2GEE(object):
                     if isinstance(identity, Function):
                         group_list.append(self.token_to_dictionary(identity))
         return group_list
-
-    @property
-    def _image(self):
-        """Return the G.E.E. Image function with th the data, and relevant actions applied."""
-        if self.image_action:
-            pass
-        return
 
     @property
     def _feature_collection(self):
