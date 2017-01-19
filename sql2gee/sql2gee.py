@@ -119,7 +119,6 @@ class SQL2GEE(object):
                 del tmp
             return iqr
 
-
     def metadata(self, subset=None):
         """Formatted metadata"""
         if len(subset) > 0:
@@ -153,6 +152,11 @@ class SQL2GEE(object):
         if len(subset) > 0:
             print("Subset requested: ", subset)
         return self._ee_image_histogram
+
+    # step 1 : see if gemeotry data is passed - could be passsed with ST_CLIP or
+    # type could be geostore, geojson, or fusiontable
+    # step 2: ensure it is a feature collection (if not make it one)
+    # step 3: pass it to the fixedHistogramReducer
 
 
     @property
@@ -260,8 +264,8 @@ class SQL2GEE(object):
 
     @staticmethod
     def token_to_dictionary(token_list):
-        """ Receives a token e.g.('count(pepe)') and converts it into a dictionary
-        with key:values for function and value."""
+        """ Receives a token e.g.('count(pepe)') and converts it into a dict
+        with key:values for function and value ."""
         assert isinstance(token_list, sqlparse.sql.Function),'unexpected datatype'
         d = {}
         for t in token_list:
@@ -269,11 +273,7 @@ class SQL2GEE(object):
                 d['function'] = str(t).upper()
             elif isinstance(t, Parenthesis):
                 value = t.value.replace('(', '').replace(')', '').strip()
-                d['value'] = value   # allow "*" here and deal with it elsewhere
-                #if value != '*':
-                #    d['value'] = value
-                #else:
-                #    raise Exception('* not allowed')
+                d['value'] = value
         return d
 
     @property
@@ -308,7 +308,6 @@ class SQL2GEE(object):
             fc = fc.limit(self.limit)
         return fc
 
-
     @property
     def where(self):
         """Returns filter object obtained from where of the query in GEE format"""
@@ -328,7 +327,6 @@ class SQL2GEE(object):
                 limit_value = int(i.value)
                 assert limit_value >= 1, 'Limit must be >= 1'
                 return limit_value
-
 
     def apply_group(self, fc, group):
         """Given a fc (feature_collection) object and group operation, return a
@@ -353,8 +351,7 @@ class SQL2GEE(object):
 
     @staticmethod
     def remove_quotes(input_str):
-        """Checks the first and last characters of an input_str
-        to see if they are quotation marks [' or "], if so
+        """Checks the first and last characters of an input_str to see if they are quotation marks [' or "], if so
         the function will strip them and return the string.
         :type input_str: str"""
         starts_with_quotation = input_str[0] in ['"', "'"]
