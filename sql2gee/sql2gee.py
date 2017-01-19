@@ -1,5 +1,4 @@
 from __future__ import print_function, division
-import numpy as np
 from cached_property import cached_property
 import ee
 import re
@@ -15,10 +14,14 @@ class SQL2GEE(object):
     For the rasters there are only a specific number of valid operations (retrieve metadata, histogram data, or get
     summary statistics). We use postgis-like functions as the syntax to do this, and check to see if this is given in
     the sql string to detect the user intention.
+
+    If geojson data is provided, we will assume that a user intends for us to subset an image, by these data.
     """
-    def __init__(self, sql):
+    def __init__(self, sql, geojson=None, flags=None):
         self._raw = sql
         self._parsed = sqlparse.parse(sql)[0]
+        self.geojson = self._geojson_to_featurecollection(geojson)
+        self.flags = flags  # will be used in a later version of the code
         self._filters = {
             '<': ee.Filter().lt,
             '<=': ee.Filter().lte,
@@ -35,6 +38,23 @@ class SQL2GEE(object):
             'AND': ee.Filter().And,
             'OR': ee.Filter().Or
         }
+
+    def _geojson_to_featurecollection(self, geojson):
+        """If Geojson kwarg is recieved (containing geojson data) convert it into a useable E.E. object."""
+        if isinstance(geojson, dict):
+            assert geojson.get("geojson").get('features') != None, "Expected key not found in item passed to geojoson"
+            ee_geoms = []
+            for feature in geojson.get("geojson").get('features'):
+                feature_type = feature.get("geometry").get('type').lower()
+                if feature_type == 'multipolygon':
+                    tmp = ee.Geometry.MultiPolygon(feature.get('geometry').get('coordinates'))
+                    ee_geoms.append(tmp)
+                else:
+                    tmp = ee.Geometry.Polygon(feature.get('geometry').get('coordinates'))
+                    ee_geoms.append(tmp)
+            return ee.FeatureCollection(ee_geoms)
+        else:
+            return None
 
     @property
     def _reducers(self):
@@ -55,7 +75,8 @@ class SQL2GEE(object):
 
     @property
     def _is_image_request(self):
-        """Detect if the user intends to use an image (True) or Feature collection (False)"""
+        """Detect if the user intends to use an image (True) or Feature collection (False). In the future a flag will
+        be used to do this."""
         tmp = [r for r in re.split('[\(\*\)\s]', self._raw.lower()) if r != '']
         tmp = set(tmp)
         image_keywords = {'st_histogram', 'st_metadata', 'st_summarystats'}
@@ -176,7 +197,7 @@ class SQL2GEE(object):
         first_band_iqr = self._band_IQR[self._band_names[0]]
         first_band_n = self._band_counts[self._band_names[0]]
         bin_width = (2 * first_band_iqr * (first_band_n ** (-1/3)))
-        num_bins = np.round((first_band_max - first_band_min) / bin_width)
+        num_bins = int((first_band_max - first_band_min) / bin_width)
         # Set-up a histogram reducer, pass it to an image, and return the histogram data dictionary.
         tmp_reducer = ee.Reducer.fixedHistogram(first_band_min, first_band_max, num_bins)
         tmp = ee.Image(self.target_data).reduceRegion(reducer=tmp_reducer, bestEffort=True).getInfo()
@@ -185,12 +206,13 @@ class SQL2GEE(object):
 
     def _histplot_preview(self):
         """Returns a matplotlib plot object, meant for development previews only.
-
+        This needs numpy and matplotlib, not included in the requirements for size.
         sql = "SELECT ST_METADATA(*) FROM srtm90_v4"
         r = SQL2GEE(sql)
         p = r._histplot_preview()
         p.show()
         """
+        import numpy as np
         import matplotlib.pyplot as plt
         for key in self._ee_image_histogram:
             if self._ee_image_histogram[key]:

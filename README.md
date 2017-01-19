@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/benlaken/sql2gee.svg?branch=master)](https://travis-ci.org/benlaken/sql2gee)
+[![Build Status](https://travis-ci.org/Vizzuality/sql2gee.svg?branch=master)](https://travis-ci.org/benlaken/sql2gee)
 
 # sql2gee
 A python 2.7 library to convert SQL queries into Google's Earth Engine Python API calls.
