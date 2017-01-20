@@ -1,4 +1,5 @@
-[![Build Status](https://travis-ci.org/Vizzuality/sql2gee.svg?branch=master)](https://travis-ci.org/Vizzuality/sql2gee)
+[![Build Status](https://travis-ci.org/Vizzuality/forest-atlas-landscape-cms.svg?branch=develop)](https://travis-ci.org/Vizzuality/forest-atlas-landscape-cms)
+[![codecov](https://codecov.io/gh/Vizzuality/sql2gee/branch/develop/graph/badge.svg)](https://codecov.io/gh/Vizzuality/sql2gee)
 
 # sql2gee
 A python 2.7 library to convert SQL queries into Google's Earth Engine Python API calls.
@@ -24,6 +25,7 @@ A python 2.7 library to convert SQL queries into Google's Earth Engine Python AP
   * LIMIT
 
 * POSTGIS-LIKE IMAGE FUNCTIONS
+
   * ST_METADATA
   * ST_HISTOGRAM
   * ST_SUMMARYSTATS

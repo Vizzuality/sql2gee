@@ -7,7 +7,10 @@ install:
   - pip install --upgrade wheel
   - pip install --upgrade setuptools
   - pip install --upgrade codecov pytest pytest-cov
+  - pip install --upgrade pytest-cov
   - pip install .
 script:
-  -earthengine authenticate
-  - py.test
+  - earthengine authenticate
+  - py.test --cov sql2gee --cov-report xml --cov-report term
+after_success:
+  - codecov
