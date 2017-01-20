@@ -16,10 +16,9 @@ install:
   - pip install google-api-python-client
   - pip install .
 script:
-#  - echo -e "$EE_PRIVATE_KEY" | base64 -d > privatekey.pem
-  - openssl pkcs12 -in "$EE_PRIVATE_KEY" -nodes -nocerts > privatekey.pem
-  - pwd
-  - ls
+  #- echo -e "$EE_PRIVATE_KEY" | base64 -d > privatekey.pem
+  #- pwd
+  #- ls
   - py.test --cov sql2gee --cov-report xml --cov-report term
 after_success:
   - codecov
