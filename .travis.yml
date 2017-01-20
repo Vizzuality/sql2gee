@@ -12,6 +12,8 @@ install:
   - pip install .
 script:
   - e "$EE_PRIVATE_KEY" | base64 -d > privatekey.pem
+  - pwd
+  - ls
   - py.test --cov sql2gee --cov-report xml --cov-report term
 after_success:
   - codecov
