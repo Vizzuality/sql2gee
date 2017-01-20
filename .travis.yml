@@ -12,7 +12,6 @@ install:
   - pip install --upgrade pytest-cov
   - pip install oauth2client
   - pip install oauth2
-  - pip instsll pil
   - pip install 'pyOpenSSL>=0.11'
   - pip install pyCrypto
   - pip install google-api-python-client
