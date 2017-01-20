@@ -1,6 +1,7 @@
 from __future__ import print_function, division
 import pytest
 from sql2gee import SQL2GEE
+import ee
 from ee import Feature, Image, Initialize
 from oauth2client.service_account import ServiceAccountCredentials
 
