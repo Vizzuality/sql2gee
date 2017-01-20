@@ -3,12 +3,12 @@ import pytest
 from sql2gee import SQL2GEE
 import ee
 from ee import Feature, Image, Initialize
-from oauth2client.service_account import ServiceAccountCredentials
+#from oauth2client.service_account import ServiceAccountCredentials
 
-gee_credentials = ServiceAccountCredentials.from_p12_keyfile(
-    '390573081381-lm51tabsc8q8b33ik497hc66qcmbj11d@developer.gserviceaccount.com',
-    './privatekey.pem', scopes=ee.oauth.SCOPE)
-Initialize(gee_credentials)
+service_account = '390573081381-lm51tabsc8q8b33ik497hc66qcmbj11d@developer.gserviceaccount.com'
+credentials = ee.ServiceAccountCredentials(service_account, 'privatekey.pem')
+ee.Initialize(credentials)
+
 
 def test_retrieve_raw_ee_raster_metadata():
     """Test that basic raster metadata (in dictionary format) is returned when
