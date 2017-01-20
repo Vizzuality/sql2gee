@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/Vizzuality/sql2gee.svg?branch=master)](https://travis-ci.org/benlaken/sql2gee)
+[![Build Status](https://travis-ci.org/Vizzuality/sql2gee.svg?branch=master)](https://travis-ci.org/Vizzuality/sql2gee)
 
 # sql2gee
 A python 2.7 library to convert SQL queries into Google's Earth Engine Python API calls.
@@ -22,7 +22,7 @@ A python 2.7 library to convert SQL queries into Google's Earth Engine Python AP
   * FIRST
   * LAST
   * LIMIT
-  
+
 * POSTGIS-LIKE IMAGE FUNCTIONS
   * ST_METADATA
   * ST_HISTOGRAM
@@ -67,14 +67,14 @@ Here is another example, showing how you can limit the responses from a feature 
 >>>sql = 'select * from "ft:1qpKIcYQMBsXLA9RLWCaV9D0Hus2cMQHhI-ViKHo" LIMIT 1'
 >>>q = SQL2GEE(sql)
 >>>q.response
-{u'columns': 
+{u'columns':
 ...
  u'type': u'FeatureCollection'}
 ```
 
 
 
-#### Image operations 
+#### Image operations
 
 You can use SQL2GEE to extract info from an Image resource (e.g. the SRTM Digital Elevation Data Version 4 data: [srtm90_v4](http://srtm.csi.cgiar.org)). First, load SQL2GEE and the EE library, and Initialise an Earth Engine session.
 ```python
@@ -83,7 +83,7 @@ You can use SQL2GEE to extract info from an Image resource (e.g. the SRTM Digita
 >>>ee.Initialize()
 ```
 
-You can access the execute property of the SQL2GEE object directly, rather than assigning the object to a variable as in the previous example. 
+You can access the execute property of the SQL2GEE object directly, rather than assigning the object to a variable as in the previous example.
 Below we show how to return metadata for the image resource.
 
 ```python
