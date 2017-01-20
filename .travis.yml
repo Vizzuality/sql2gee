@@ -8,9 +8,10 @@ install:
   - pip install --upgrade setuptools
   - pip install --upgrade codecov pytest pytest-cov
   - pip install --upgrade pytest-cov
+  - pip install oauth2client
   - pip install .
 script:
-  - earthengine authenticate
+  - e "$EE_PRIVATE_KEY" | base64 -d > privatekey.pem
   - py.test --cov sql2gee --cov-report xml --cov-report term
 after_success:
   - codecov
