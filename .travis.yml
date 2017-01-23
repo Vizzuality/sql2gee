@@ -22,7 +22,7 @@ script:
   - pwd
   - ls
   - py.test --cov sql2gee --cov-report xml --cov-report term
-  #- travis-sphinx build
+  - travis-sphinx build
 after_success:
   - codecov
-  #- travis-sphinx deploy
+  - travis-sphinx deploy
