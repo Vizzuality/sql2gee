@@ -23,4 +23,4 @@ script:
   - travis-sphinx build
 after_success:
   - codecov
-  - travis-sphinx deploy
+  - travis-sphinx --branches=develop deploy

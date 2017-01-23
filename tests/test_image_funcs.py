@@ -22,7 +22,14 @@ def test_basic_table_query():
     return
 
 
-def test_retrieve_raw_ee_raster_metadata():
+def test_identify_band_names():
+    sql = "SELECT ST_HISTOGRAM() FROM srtm90_v4"
+    q = SQL2GEE(sql)
+    assert q._band_names == ['elevation']
+    return
+
+
+def test_retrieve_image_metadata():
     """Test that basic raster metadata (in dictionary format) is returned when
     the postgis ST_METADATA() command is given.
     Notes:
