@@ -11,6 +11,7 @@ Welcome to sql2gee's documentation!
    :caption: Contents:
 
    install
+   sql2gee
    support
 
 Indices and tables

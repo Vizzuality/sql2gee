@@ -4,6 +4,8 @@
 # sql2gee
 A python 2.7 library to convert SQL queries into Google's Earth Engine Python API calls.
 
+[Read the documentation](https://vizzuality.github.io/sql2gee/).
+
 ##SQL Supported:
 * SELECT (only with one table, joins not supported)
 * WHERE
