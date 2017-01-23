@@ -9,7 +9,7 @@ install:
   - pip install --upgrade setuptools
   - pip install --upgrade codecov pytest pytest-cov
   - pip install --upgrade pytest-cov
-  #- pip install oauth2 sphinx travis-sphinx sphinx_rtd_theme
+  - pip install oauth2 sphinx travis-sphinx sphinx_rtd_theme
   - pip install 'oauth2client==1.5.2'
   - pip install 'pyOpenSSL>=0.11'
   - pip install pyCrypto
@@ -20,7 +20,7 @@ script:
   - pwd
   - ls
   - py.test --cov sql2gee --cov-report xml --cov-report term
-  #- travis-sphinx build
+  - travis-sphinx build
 after_success:
   - codecov
-  #- travis-sphinx deploy
+  - travis-sphinx deploy
