@@ -436,7 +436,7 @@ class SQL2GEE(object):
                 comparison = None
         return filters[0]
 
-    @property
+    @cached_property
     def response(self):
         """Execute the GEE object in GEE Server. This is the function that, when called, actually sends the SQL
         request (which was converted to GEE-speak) to Google's servers for execution and returns the result."""

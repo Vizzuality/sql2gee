@@ -1,12 +1,25 @@
 from __future__ import print_function, division
 import pytest
+import sys
 from sql2gee import SQL2GEE
 import ee
 from ee import Feature, Image, Initialize
 
-service_account = '390573081381-lm51tabsc8q8b33ik497hc66qcmbj11d@developer.gserviceaccount.com'
-credentials = ee.ServiceAccountCredentials(service_account, './privatekey.pem')
-ee.Initialize(credentials, 'https://earthengine.googleapis.com')
+# quick hack, if using a local mac, assume you can initilise using the below...
+if sys.platform == 'darwin':
+    ee.Initialize()
+else:
+    # Else, assume you have an EE_private_key environment variable with authorisation...
+    service_account = '390573081381-lm51tabsc8q8b33ik497hc66qcmbj11d@developer.gserviceaccount.com'
+    credentials = ee.ServiceAccountCredentials(service_account, './privatekey.pem')
+    ee.Initialize(credentials, 'https://earthengine.googleapis.com')
+
+
+def test_basic_table_query():
+    sql = 'select count(width) from "ft:1qpKIcYQMBsXLA9RLWCaV9D0Hus2cMQHhI-ViKHo" where width > 100'
+    q = SQL2GEE(sql)
+    assert q.response == 1919, "Basic query incorrect"
+    return
 
 
 def test_retrieve_raw_ee_raster_metadata():
@@ -42,7 +55,24 @@ def test_retrieve_raw_ee_raster_metadata():
 
 def test_histogram():
     # pytest.skip("Need to initilise on Travis")
-    sql = "SELECT ST_METADATA(*) FROM srtm90_v4"
-    r = SQL2GEE(sql)
-    r._ee_image_histogram
+    sql = "SELECT ST_HISTOGRAM() FROM srtm90_v4"
+    q = SQL2GEE(sql)
+    num_bins = len(q.histogram['elevation'])
+    assert num_bins == 753, "Should be 753 bins by default (set by Freedman-Diaconis method)"
+    assert q.response['elevation'][0] == [-415.0, 14.0], 'First bin incorrect'
+    assert q.response['elevation'][-1] == [7148.941567065073, 0.0], 'Last bin incorrect'
     return
+
+
+def test_limit_on_tables():
+    sql = 'select width from "ft:1qpKIcYQMBsXLA9RLWCaV9D0Hus2cMQHhI-ViKHo" LIMIT '
+    err = 'Response was not equal to size of LIMIT'
+    limit = 1
+    r = SQL2GEE(sql + str(limit))
+    assert len(r.response['features']) == limit, err
+    limit = 2
+    r = SQL2GEE(sql + str(limit))
+    assert len(r.response['features']) == limit, err
+    limit = 5
+    r = SQL2GEE(sql + str(limit))
+    assert len(r.response['features']) == limit, err
