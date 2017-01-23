@@ -4,18 +4,17 @@ from sql2gee import SQL2GEE
 import ee
 from ee import Feature, Image, Initialize
 
-#service_account = '390573081381-lm51tabsc8q8b33ik497hc66qcmbj11d@developer.gserviceaccount.com'
-#credentials = ee.ServiceAccountCredentials(service_account, './privatekey.pem')
-#ee.Initialize(credentials)
-#
-#@pytest.mark.skip(reason="Needs to be initilised to pass.")
+service_account = '390573081381-lm51tabsc8q8b33ik497hc66qcmbj11d@developer.gserviceaccount.com'
+credentials = ee.ServiceAccountCredentials(service_account, './privatekey.pem')
+ee.Initialize(credentials, 'https://earthengine.googleapis.com')
+
+
 def test_retrieve_raw_ee_raster_metadata():
     """Test that basic raster metadata (in dictionary format) is returned when
     the postgis ST_METADATA() command is given.
     Notes:
         srtm90_v4 is a 90m Elevation image.
     """
-    pytest.skip("Until I can initilise on travis, skip this.")
     q = SQL2GEE("SELECT ST_METADATA(*) FROM srtm90_v4")
     ee_meta = {u'bands': [{u'crs': u'EPSG:4326',
                            u'crs_transform': [0.000833333333333,
