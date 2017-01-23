@@ -16,7 +16,9 @@ install:
   - pip install google-api-python-client
   - pip install .
 script:
+  - export EE_PRIVATE_KEY=$EE_PRIVATE_KEY
   #- echo -e "$EE_PRIVATE_KEY" | base64 -d > privatekey.pem
+  - echo $EE_PRIVATE_KEY | base64 -d > privatekey.pem
   #- pwd
   #- ls
   - py.test --cov sql2gee --cov-report xml --cov-report term
