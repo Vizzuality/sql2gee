@@ -40,9 +40,8 @@ def test_retrieve_raw_ee_raster_metadata():
     return
 
 
-# @pytest.mark.skip(reason="Needs to be initilised to pass.")
 def test_histogram():
-    pytest.skip("Need to initilise on Travis")
+    # pytest.skip("Need to initilise on Travis")
     sql = "SELECT ST_METADATA(*) FROM srtm90_v4"
     r = SQL2GEE(sql)
     r._ee_image_histogram
