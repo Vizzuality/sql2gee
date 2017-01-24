@@ -5,6 +5,14 @@ from ee import apitestcase, Filter, FeatureCollection
 
 class TestSQL2GEE(apitestcase.ApiTestCase):
 
+    def test_obtain_class_docstring(self):
+        sql = 'select * from "ft:1qpKIcYQMBsXLA9RLWCaV9D0Hus2cMQHhI-ViKHo"'
+        q = SQL2GEE(sql)
+        dstring = q.__doc__
+        assert isinstance(dstring, str), "Docstring not returned"
+        assert len(dstring) > 0, "Class docstring was empty"
+        return
+
     def test_identify_feature_queries(self):
         err = 'Unable to determine type of request for sql:'
         feature_qlist = [

@@ -94,7 +94,27 @@ def test_STSUMMARYSTATS():
     q.response == expected, "Summary stats did not match expected result"
     return
 
-def test_STSUMMARYSTATS_with_area_restriction_via_passing_geojson():
+def test_STSUMMARYSTATS_with_area_restriction_from_geojson_polygon():
+    """First, I need to construct a simple polygon out of multipolygon data, and pass that to SQL2GEE"""
+    expected = {u'elevation': {'count': 99626,
+                               'max': 489,
+                               'mean': 345.39571999277297,
+                               'min': 194,
+                               'stdev': 64.2380798454734,
+                               'sum': 34410394.0}}
+    gstore = "http://staging-api.globalforestwatch.org/geostore/4531cca6a8ddcf01bccf302b3dd7ae3f"
+    r = requests.get(gstore)
+    j = r.json()
+    j = j.get('data').get('attributes')
+    j['geojson']['features'][0]['geometry']['type'] = "Polygon"
+    j['geojson']['features'][0]['geometry']['coordinates'] = j['geojson']['features'][0]['geometry']['coordinates'][0][0]
+    # Initilise an SQL2GEE query object with geojson
+    q = SQL2GEE("SELECT ST_SUMMARYSTATS() FROM srtm90_v4", geojson=j)
+    assert isinstance(q.geojson, ee.FeatureCollection), "FeatureCollection wasn't created from passed Geojson data"
+    assert q.response == expected, "Response was not equal to expected values"
+    return
+
+def test_STSUMMARYSTATS_with_area_restriction_via_passing_geojson_multipolygon():
     """If a geojson argument is passed to SQL2GEE it should be converted into an Earth Engine Feature Collection.
     This should then be used to subset the area considered for results."""
     # Get a test geojson object by accessing Vizzuality's geostore
