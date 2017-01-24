@@ -13,3 +13,6 @@ ra.py
 .DS_Store
 .ipynb_checkpoints
 *.ipynb
+docs/_build/html/*
+docs/_build/doctrees
+tests/__pycache__/
