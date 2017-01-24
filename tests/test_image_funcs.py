@@ -74,6 +74,32 @@ def test_first_with_where_table_query():
     assert q.response == 125.0, "FIRST with WHERE query incorrect"
     return
 
+def test_var_table_query():
+    sql = 'select VAR(width) from "ft:1qpKIcYQMBsXLA9RLWCaV9D0Hus2cMQHhI-ViKHo"'
+    q = SQL2GEE(sql)
+    assert q.response == 2423.5074511457533, "Simple VAR query incorrect"
+
+def test_var_table_where_all_equal():
+    sql = 'select VAR(width) from "ft:1qpKIcYQMBsXLA9RLWCaV9D0Hus2cMQHhI-ViKHo" WHERE width = 500'
+    q = SQL2GEE(sql)
+    assert q.response == 0.0, "Simple VAR query incorrect"
+
+def test_stdev_table():
+    sql = 'select STDEV(width) from "ft:1qpKIcYQMBsXLA9RLWCaV9D0Hus2cMQHhI-ViKHo"'
+    q = SQL2GEE(sql)
+    assert q.response == 49.22913213886421, "Simple STDEV query incorrect"
+
+def test_stdev_width_lt_table():
+    sql = 'select STDEV(width) from "ft:1qpKIcYQMBsXLA9RLWCaV9D0Hus2cMQHhI-ViKHo" where width < 500'
+    q = SQL2GEE(sql)
+    assert q.response == 35.01078172011275, "STDEV with WHERE LT 500 query incorrect"
+
+def test_stdev_width_eq_table():
+    sql = 'select STDEV(width) from "ft:1qpKIcYQMBsXLA9RLWCaV9D0Hus2cMQHhI-ViKHo" where width = 500'
+    q = SQL2GEE(sql)
+    assert q.response == 0.0, "STDEV with WHERE EQ 500 query incorrect"
+
+
 def test_identify_band_names():
     sql = "SELECT ST_HISTOGRAM() FROM srtm90_v4"
     q = SQL2GEE(sql)
