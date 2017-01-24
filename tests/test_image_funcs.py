@@ -1,33 +1,30 @@
 from __future__ import print_function, division
 import pytest
+import requests
 import sys
 from sql2gee import SQL2GEE
 import ee
-from ee import Feature, Image, Initialize
 
-# quick hack, if using a local mac, assume you can initilise using the below...
+# Quick hack, if using a local mac, assume you can initilise using the below...
 if sys.platform == 'darwin':
     ee.Initialize()
 else:
-    # Else, assume you have an EE_private_key environment variable with authorisation...
+    # Else, assume you have an EE_private_key environment variable with authorisation, as on Travis-CI
     service_account = '390573081381-lm51tabsc8q8b33ik497hc66qcmbj11d@developer.gserviceaccount.com'
     credentials = ee.ServiceAccountCredentials(service_account, './privatekey.pem')
     ee.Initialize(credentials, 'https://earthengine.googleapis.com')
 
-
-def test_basic_table_query():
+def test_count_table_query():
     sql = 'select count(width) from "ft:1qpKIcYQMBsXLA9RLWCaV9D0Hus2cMQHhI-ViKHo" where width > 100'
     q = SQL2GEE(sql)
     assert q.response == 1919, "Basic query incorrect"
     return
-
 
 def test_identify_band_names():
     sql = "SELECT ST_HISTOGRAM() FROM srtm90_v4"
     q = SQL2GEE(sql)
     assert q._band_names == ['elevation']
     return
-
 
 def test_retrieve_image_metadata():
     """Test that basic raster metadata (in dictionary format) is returned when
@@ -59,9 +56,8 @@ def test_retrieve_image_metadata():
     assert not error, 'test metadata not equal to expected metadata'
     return
 
-
 def test_histogram():
-    # pytest.skip("Need to initilise on Travis")
+    """Test that a dictionary containing a list of expected length and values is returned"""
     sql = "SELECT ST_HISTOGRAM() FROM srtm90_v4"
     q = SQL2GEE(sql)
     num_bins = len(q.histogram['elevation'])
@@ -70,16 +66,50 @@ def test_histogram():
     assert q.response['elevation'][-1] == [7148.941567065073, 0.0], 'Last bin incorrect'
     return
 
-
 def test_limit_on_tables():
+    """Test ability to limit the size of SQL table requests"""
     sql = 'select width from "ft:1qpKIcYQMBsXLA9RLWCaV9D0Hus2cMQHhI-ViKHo" LIMIT '
     err = 'Response was not equal to size of LIMIT'
     limit = 1
-    r = SQL2GEE(sql + str(limit))
-    assert len(r.response['features']) == limit, err
+    q = SQL2GEE(sql + str(limit))
+    assert len(q.response['features']) == limit, err
     limit = 2
-    r = SQL2GEE(sql + str(limit))
-    assert len(r.response['features']) == limit, err
+    q = SQL2GEE(sql + str(limit))
+    assert len(q.response['features']) == limit, err
     limit = 5
-    r = SQL2GEE(sql + str(limit))
-    assert len(r.response['features']) == limit, err
+    q = SQL2GEE(sql + str(limit))
+    assert len(q.response['features']) == limit, err
+    return
+
+def test_STSUMMARYSTATS():
+    """Check an expected dictionary is returned via the ST_SUMMARYSTATS() keyword"""
+    expected = {u'elevation': {'count': 2747198,
+                                'max': 7159,
+                                'mean': 689.8474833769903,
+                                'min': -415,
+                                'stdev': 865.9582784994756,
+                                'sum': 1859471136.0274282}}
+    sql = "SELECT ST_SUMMARYSTATS() FROM srtm90_v4"
+    q = SQL2GEE(sql)
+    q.response == expected, "Summary stats did not match expected result"
+    return
+
+def test_STSUMMARYSTATS_with_area_restriction_via_passing_geojson():
+    """If a geojson argument is passed to SQL2GEE it should be converted into an Earth Engine Feature Collection.
+    This should then be used to subset the area considered for results."""
+    # Get a test geojson object by accessing Vizzuality's geostore
+    expected = {u'elevation': {'count': 118037,
+                                'max': 489,
+                                'mean': 326.5521573743826,
+                                'min': 126,
+                                'stdev': 75.69057079693977,
+                                'sum': 38545237.0}}
+    gstore = "http://staging-api.globalforestwatch.org/geostore/4531cca6a8ddcf01bccf302b3dd7ae3f"
+    r = requests.get(gstore)
+    j = r.json()
+    j = j.get('data').get('attributes')
+    # Initilise an SQL2GEE query object with geojson
+    q = SQL2GEE("SELECT ST_SUMMARYSTATS() FROM srtm90_v4", geojson=j)
+    assert isinstance(q.geojson, ee.FeatureCollection), "geojson data not converted to ee.FeatureCollection type"
+    assert q.response == expected, "Area restricted response did not match expected result"
+    return
