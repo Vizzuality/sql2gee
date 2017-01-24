@@ -23,7 +23,8 @@ A python 2.7 library to convert SQL queries into Google's Earth Engine Python AP
   * MAX
   * MIN
   * FIRST
-  * LAST
+  * STDEV
+  * VAR
   * LIMIT
 
 * POSTGIS-LIKE IMAGE FUNCTIONS

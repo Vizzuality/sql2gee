@@ -312,8 +312,10 @@ class SQL2GEE(object):
                 return fc.aggregate_mean(group['value'])
             elif group['function'] == 'FIRST':
                 return fc.aggregate_first(group['value'])
-            elif group['function'] == 'LAST':
-                return fc.aggregate_last(group['value'])
+            elif group['function'] == 'VAR':
+                return fc.aggregate_sample_var(group['value'])
+            elif group['function'] == 'STDEV':
+                return fc.aggregate_sample_sd(group['value'])
             else:
                 raise ValueError("Unknown group function attempted: ", group['function'])
 

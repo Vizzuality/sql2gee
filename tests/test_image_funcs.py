@@ -15,9 +15,63 @@ else:
     ee.Initialize(credentials, 'https://earthengine.googleapis.com')
 
 def test_count_table_query():
-    sql = 'select count(width) from "ft:1qpKIcYQMBsXLA9RLWCaV9D0Hus2cMQHhI-ViKHo" where width > 100'
+    sql = 'select count(width) from "ft:1qpKIcYQMBsXLA9RLWCaV9D0Hus2cMQHhI-ViKHo"'
     q = SQL2GEE(sql)
-    assert q.response == 1919, "Basic query incorrect"
+    assert q.response == 1919, "BASIC COUNT query incorrect"
+    return
+
+def test_count_table_query_with_where_statement():
+    sql = 'select count(width) from "ft:1qpKIcYQMBsXLA9RLWCaV9D0Hus2cMQHhI-ViKHo" where width > 400'
+    q = SQL2GEE(sql)
+    assert q.response == 1677, "COUNT with WHERE query incorrect"
+    return
+
+def test_max_table_query():
+    sql = 'select MAX(width) from "ft:1qpKIcYQMBsXLA9RLWCaV9D0Hus2cMQHhI-ViKHo"'
+    q = SQL2GEE(sql)
+    assert q.response == 500.0, "Basic MAX query incorrect"
+    return
+
+def test_min_table_query():
+    sql = 'select MIN(width) from "ft:1qpKIcYQMBsXLA9RLWCaV9D0Hus2cMQHhI-ViKHo"'
+    q = SQL2GEE(sql)
+    assert q.response == 125.0, "Basic MIN query incorrect"
+    return
+
+def test_sum_table_query():
+    sql = 'select SUM(width) from "ft:1qpKIcYQMBsXLA9RLWCaV9D0Hus2cMQHhI-ViKHo"'
+    q = SQL2GEE(sql)
+    assert q.response == 924091.0, "Basic SUM query incorrect"
+    return
+
+def test_sum_with_where_table_query():
+    sql = 'select SUM(width) from "ft:1qpKIcYQMBsXLA9RLWCaV9D0Hus2cMQHhI-ViKHo" WHERE width < 400'
+    q = SQL2GEE(sql)
+    assert q.response == 83306.0, "SUM with WHERE query incorrect"
+    return
+
+def test_avg_with_where_table_query():
+    sql = 'select AVG(width) from "ft:1qpKIcYQMBsXLA9RLWCaV9D0Hus2cMQHhI-ViKHo" WHERE width < 400'
+    q = SQL2GEE(sql)
+    assert q.response == 354.4936170212766, "AVG with WHERE query incorrect"
+    return
+
+def test_avg_with_doublewhere_table_query():
+    sql = 'select AVG(width) from "ft:1qpKIcYQMBsXLA9RLWCaV9D0Hus2cMQHhI-ViKHo" where width > 100 and where width < 280'
+    q = SQL2GEE(sql)
+    assert q.response == 212.25, "Complex AVG (with compound WHERE) query incorrect"
+    return
+
+def test_first_table_query():
+    sql = 'select FIRST(width) from "ft:1qpKIcYQMBsXLA9RLWCaV9D0Hus2cMQHhI-ViKHo"'
+    q = SQL2GEE(sql)
+    assert q.response == 500.0, "Simple FIRST query incorrect"
+    return
+
+def test_first_with_where_table_query():
+    sql = 'select FIRST(width) from "ft:1qpKIcYQMBsXLA9RLWCaV9D0Hus2cMQHhI-ViKHo" WHERE width < 500'
+    q = SQL2GEE(sql)
+    assert q.response == 125.0, "FIRST with WHERE query incorrect"
     return
 
 def test_identify_band_names():
