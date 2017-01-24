@@ -133,3 +133,14 @@ def test_STSUMMARYSTATS_with_area_restriction_via_passing_geojson_multipolygon()
     assert isinstance(q.geojson, ee.FeatureCollection), "geojson data not converted to ee.FeatureCollection type"
     assert q.response == expected, "Area restricted response did not match expected result"
     return
+
+
+def test_STHISTORGRAM_multiband_image():
+    expected_keys = [u'B10', u'BQA', u'B11', u'B4', u'B5', u'B6', u'B7', u'B1', u'B2', u'B3', u'B8', u'B9']
+    q = SQL2GEE("SELECT ST_HISTOGRAM() FROM LC81412332013146LGN00")
+    assert isinstance(q.response, dict), "Dictionary was not returned as a response"
+    assert len(q.response) == 12, "Size of the dictionary was diffrent from expected response"
+    assert q.response.keys() == expected_keys, "Expected keys in response dictionary were not returned"
+    for key in q.response.keys():
+        if q.response[key] != None:
+            assert len(q.response[key]) == 210, "Expected 210 bins in histogram"

@@ -124,20 +124,26 @@ class SQL2GEE(object):
         return d
 
     @cached_property
-    def histogram(self):
-        """Retrieve ST_HISTOGRAM()-like info.
-        This will return a dictionary object with bands as keys, and for each band a nested list of (2xn) for bin and frequency
-        e.g.: {['band1']: [[left-bin position, frequency] ... n-bins]]}
-        """
-        # Estimate optimum bin width and bin number with Freedman-Diaconis method
+    def _default_histogram_inputs(self):
+        """Return the optimum histogram function inputs using Freedman-Diaconis method, to be used by default"""
         first_band_max = self._reduce_image[self._band_names[0]+'_max']
         first_band_min = self._reduce_image[self._band_names[0]+'_min']
         first_band_iqr = self._band_IQR[self._band_names[0]]
         first_band_n = self._reduce_image[self._band_names[0]+'_count']
         bin_width = (2 * first_band_iqr * (first_band_n ** (-1/3)))
         num_bins = int((first_band_max - first_band_min) / bin_width)
+        return first_band_min, first_band_max, num_bins
+
+    @cached_property
+    def histogram(self):
+        """Retrieve ST_HISTOGRAM()-like info.
+        This will return a dictionary object with bands as keys, and for each band a nested list of (2xn) for bin and frequency
+        e.g.: {['band1']: [[left-bin position, frequency] ... n-bins]]}
+        """
+        # If no arguments were passed to ST_HISTOGRAM, then USE auto-calculated DEFAULTS...
+        input_min, input_max, input_bin_num = self._default_histogram_inputs
         d = {}
-        d['reducer'] = ee.Reducer.fixedHistogram(first_band_min, first_band_max, num_bins)
+        d['reducer'] = ee.Reducer.fixedHistogram(input_min, input_max, input_bin_num)
         d['bestEffort'] = True
         if self.geojson:
             d['geometry'] = self.geojson
