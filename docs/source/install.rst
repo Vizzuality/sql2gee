@@ -1,6 +1,8 @@
 Installation
 ============
 
-Via pip:
+You can conveniently install sql2gee via pip.
 
-``pip install sql2gee``
+.. code-block:: bash
+
+    $pip install sql2gee

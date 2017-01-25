@@ -1,5 +1,5 @@
-sql2gee package
-==================
+The sql2gee Package
+===================
 
 Submodules
 ----------

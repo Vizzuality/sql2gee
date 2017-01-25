@@ -54,8 +54,8 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'sql2gee'
-copyright = '2017, Raul Requero'
-author = 'Raul Requero'
+copyright = '2017, Benjamin A. Laken'
+author = 'Benjamin A. Laken'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
