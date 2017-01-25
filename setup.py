@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 setup(name='sql2gee',
-      version='0.0.6',
+      version='0.0.7',
       description='Library to convert SQL-like queries into Google Earth Engine syntax, and return the responses',
       author='Raul Requero',
       author_email='raul.requero@vizzuality.com',
@@ -16,5 +16,5 @@ setup(name='sql2gee',
       package_data={'sql2gee': ['tests/*.py', ], },
       test_suite='tests',
       url='https://github.com/Vizzuality/sql2gee',
-      download_url='https://github.com/Vizzuality/sql2gee/tarball/0.0.3',
+      download_url='https://github.com/Vizzuality/sql2gee/tarball/0.0.7',
       zip_safe=False)

@@ -70,7 +70,7 @@ instantiate a class instance and call this property in a single argument, e.g. `
 
 
 Using the FIRST() aggregator
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 These data have a column called **lng**, each row of 'which contains a value for Longitude where a photo was taken.
 
@@ -235,3 +235,72 @@ To retrieve image metadata, use the ST_METADATA() function. (A refrence to the P
                      u'system:time_start': 950227200000},
      u'type': u'Image',
      u'version': 1463778555689000}
+
+
+Summary Statistics over an Image
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Summary statistics can be retrieved per-band of Images in the Earth Engine data catalouge via the use of the postgis-like
+`ST_SUMMARYSTATS() <http://postgis.net/docs/RT_ST_SummaryStats.html>`_ function, as shown below.
+
+.. code-block:: python
+   :linenos:
+
+    >>>sql = 'SELECT ST_SUMMARYSTATS() from srtm90_v4'
+    >>>q = SQL2GEE(sql)
+    >>>q.response
+    {u'elevation': {'count': 2747198,
+                    'max': 7159,
+                    'mean': 689.8474833769903,
+                    'min': -415,
+                    'stdev': 865.9582784994756,
+                    'sum': 1859471136.0274282}}
+
+It is possible to add an area-restriction to the image queries, by passing a geojson polygon or multipolygon object as an
+argument to the SQL2GEE class as follows.
+
+Note, in the below example we call a geojson object using a geostore API and the
+`Python Requests library <http://docs.python-requests.org/en/master/>`_, but if you happen-to-have a geojson handy, then
+you could simply pass that instead and skip lines 1-5.
+
+.. code-block:: python
+   :linenos:
+
+    >>>import requests
+    >>>gstore = "http://staging-api.globalforestwatch.org/geostore/4531cca6a8ddcf01bccf302b3dd7ae3f"
+    >>>r = requests.get(gstore)
+    >>>j = r.json()
+    >>>j = j.get('data').get('attributes')
+
+    >>>sql = "SELECT ST_SUMMARYSTATS() FROM srtm90_v4"
+    >>>q = SQL2GEE(sql, geojson=j)
+    {u'elevation': {'count': 118037,
+                    'max': 489,
+                    'mean': 326.5521573743826,
+                    'min': 126,
+                    'stdev': 75.69057079693977,
+                    'sum': 38545237.0}}
+
+
+Histogram information over an Image
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+To return the data required to produce a histogram (bin position and frequency), the postgis-like `ST_HISTOTRAM() <http://postgis.net/docs/manual-dev/RT_ST_Histogram.html>`_ method can be used.
+Again, SQL2GEE can be passed a geojson if desired, as in the previous example, to restrict the results to only a specific region (or regions).
+
+.. code-block:: python
+   :linenos:
+
+    >>>sql = "SELECT ST_HISTOGRAM() FROM srtm90_v4"
+    >>>q = SQL2GEE(sql)
+    >>>q.response
+    {u'elevation': [[-415.0, 14.0],
+                    [-404.94156706507306, 6.0],
+                    [-394.88313413014606, 3.0],
+                    [-384.8247011952191, 1.0],
+                    ...
+                    [7128.824701195219, 0.0],
+                    [7138.883134130146, 0.0],
+                    [7148.941567065073, 0.0]]}
+
+The returned dictionary contains a key for each band in the image, which holds a 2D list, of [(x, y)...n], where n = number of bins. The x position in the returned list gives the left bin corner, while the y position gives the frequency (from 0-1) for that bin.
