@@ -136,8 +136,8 @@ class SQL2GEE(object):
 
     @cached_property
     def histogram(self):
-        """Retrieve ST_HISTOGRAM()-like info.
-        This will return a dictionary object with bands as keys, and for each band a nested list of (2xn) for bin and frequency
+        """Retrieve ST_HISTOGRAM()-like info. This will return a dictionary object with bands as keys, and for each
+        band a nested list of (2xn) for bin and frequency.
         e.g.: {['band1']: [[left-bin position, frequency] ... n-bins]]}
         """
         # If no arguments were passed to ST_HISTOGRAM, then USE auto-calculated DEFAULTS...
@@ -206,7 +206,7 @@ class SQL2GEE(object):
     def token_to_dictionary(token_list):
         """ Receives a token e.g.('count(pepe)') and converts it into a dict
         with key:values for function and value ."""
-        assert isinstance(token_list, sqlparse.sql.Function),'unexpected datatype'
+        assert isinstance(token_list, sqlparse.sql.Function), 'unexpected datatype'
         d = {}
         for t in token_list:
             if isinstance(t, Identifier):
@@ -221,15 +221,11 @@ class SQL2GEE(object):
         """Performs a diffrent Image operation depending on sql request."""
         if self._is_image_request:
             for func in self.group_functions:
-                subset = func["value"].lower()
-                st_histogram_requested = func["function"].lower() == 'st_histogram'
-                st_summarystats_requested = func["function"].lower() == 'st_summarystats'
-                st_metadata_requested = func["function"].lower() == 'st_metadata'
-                if st_histogram_requested:
+                if func["function"].lower() == 'st_histogram':
                     return self.histogram
-                if st_metadata_requested:
+                if func["function"].lower() == 'st_metadata':
                     return self.metadata
-                if st_summarystats_requested:
+                if func["function"].lower() == 'st_summarystats':
                     return self.summary_stats
 
     @property
@@ -339,13 +335,15 @@ class SQL2GEE(object):
         else:
             raise Exception(comp.value + ' not supported')
 
-    def generate_in(self, left, comp, right, exist_not):
+    @staticmethod
+    def generate_in(left, comp, right, exist_not):
         filter = ee.Filter().inList(left, right)
         if exist_not:
             return filter.Not()
         return filter
 
-    def generate_is(self, left, comp, right, ):
+    @staticmethod
+    def generate_is(left, comp, right, ):
         if right.upper() == 'NULL':
             return ee.Filter().eq(left, 'null')
         elif right.upper().startswith('NOT') and right.upper().endswith('NULL'):
@@ -423,12 +421,6 @@ class SQL2GEE(object):
         ## This logic will be changed to instead execute the self.r , which will be made up of base + modifiers,
         # So it can be either and Image() or FeatureCollection() type function.
         if self._feature_collection:
-            try:
-                return self._feature_collection.getInfo()
-            except:
-                raise AttributeError('Failed to return Feature Collection result')
-        if self._image:
-            try:
-                return self._image
-            except:
-                raise AttributeError("Failed to return Image result")
+            return self._feature_collection.getInfo()
+        elif self._image:
+            return self._image
