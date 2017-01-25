@@ -70,7 +70,7 @@ instantiate a class instance and call this property in a single argument, e.g. `
 
 
 Using the FIRST() aggregator
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 These data have a column called **lng**, each row of 'which contains a value for Longitude where a photo was taken.
 
