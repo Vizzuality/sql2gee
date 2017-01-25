@@ -6,7 +6,7 @@
 Welcome to sql2gee's documentation!
 ===================================
 
-The `sql2gee library<https://github.com/Vizzuality/sql2gee>`_ is designed to convert SQL (and `Postgis <http://postgis.net>`_)-like queries into commands to be executed on
+The `sql2gee library <https://github.com/Vizzuality/sql2gee>`_ is designed to convert SQL (and `Postgis <http://postgis.net>`_)-like queries into commands to be executed on
 `Google's Earth Engine <https://earthengine.google.com>`_, using their `Python API <https://developers.google.com/earth-engine/python_install>`_.
 
 This library allows you to create SQL queries against either vector data or rasters:
