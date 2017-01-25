@@ -165,7 +165,7 @@ def test_ST_HISTOGRAM_with_area_restriction():
     gstore = "http://staging-api.globalforestwatch.org/geostore/4531cca6a8ddcf01bccf302b3dd7ae3f"
     r = requests.get(gstore)
     j = r.json()
-    j = j.get('data').get('attributes')
+    j = j.get('data').get('attributes').get('geojson')
     # Initilise an SQL2GEE query object with geojson
     q = SQL2GEE("SELECT ST_HISTOGRAM() FROM srtm90_v4", geojson=j)
     assert isinstance(q.geojson, ee.FeatureCollection), "Geojson data not converted to ee.FeatureCollection type"
@@ -215,9 +215,9 @@ def test_STSUMMARYSTATS_with_area_restriction_from_geojson_polygon():
     gstore = "http://staging-api.globalforestwatch.org/geostore/4531cca6a8ddcf01bccf302b3dd7ae3f"
     r = requests.get(gstore)
     j = r.json()
-    j = j.get('data').get('attributes')
-    j['geojson']['features'][0]['geometry']['type'] = "Polygon"
-    j['geojson']['features'][0]['geometry']['coordinates'] = j['geojson']['features'][0]['geometry']['coordinates'][0][0]
+    j = j.get('data').get('attributes').get('geojson')
+    j['features'][0]['geometry']['type'] = "Polygon"
+    j['features'][0]['geometry']['coordinates'] = j['features'][0]['geometry']['coordinates'][0][0]
     # Initilise an SQL2GEE query object with geojson
     q = SQL2GEE("SELECT ST_SUMMARYSTATS() FROM srtm90_v4", geojson=j)
     assert isinstance(q.geojson, ee.FeatureCollection), "FeatureCollection wasn't created from passed Geojson data"
@@ -237,7 +237,7 @@ def test_STSUMMARYSTATS_with_area_restriction_via_passing_geojson_multipolygon()
     gstore = "http://staging-api.globalforestwatch.org/geostore/4531cca6a8ddcf01bccf302b3dd7ae3f"
     r = requests.get(gstore)
     j = r.json()
-    j = j.get('data').get('attributes')
+    j = j.get('data').get('attributes').get('geojson')
     # Initilise an SQL2GEE query object with geojson
     q = SQL2GEE("SELECT ST_SUMMARYSTATS() FROM srtm90_v4", geojson=j)
     assert isinstance(q.geojson, ee.FeatureCollection), "geojson data not converted to ee.FeatureCollection type"

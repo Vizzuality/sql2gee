@@ -42,9 +42,9 @@ class SQL2GEE(object):
     def _geojson_to_featurecollection(self, geojson):
         """If Geojson kwarg is recieved (containing geojson data) convert it into a useable E.E. object."""
         if isinstance(geojson, dict):
-            assert geojson.get("geojson").get('features') != None, "Expected key not found in item passed to geojoson"
+            assert geojson.get('features') != None, "Expected key not found in item passed to geojoson"
             ee_geoms = []
-            for feature in geojson.get("geojson").get('features'):
+            for feature in geojson.get('features'):
                 feature_type = feature.get("geometry").get('type').lower()
                 if feature_type == 'multipolygon':
                     tmp = ee.Geometry.MultiPolygon(feature.get('geometry').get('coordinates'))

@@ -270,7 +270,7 @@ you could simply pass that instead and skip lines 1-5.
     >>>gstore = "http://staging-api.globalforestwatch.org/geostore/4531cca6a8ddcf01bccf302b3dd7ae3f"
     >>>r = requests.get(gstore)
     >>>j = r.json()
-    >>>j = j.get('data').get('attributes')
+    >>>j = j.get('data').get('attributes').get('geojson')
 
     >>>sql = "SELECT ST_SUMMARYSTATS() FROM srtm90_v4"
     >>>q = SQL2GEE(sql, geojson=j)
