@@ -149,41 +149,13 @@ class SQL2GEE(object):
             d['geometry'] = self.geojson
         return ee.Image(self.target_data).reduceRegion(**d).getInfo()
 
-    def _histplot_preview(self):
-        """Returns a matplotlib plot object, meant for development previews only.
-        This needs numpy and matplotlib to be installed, which are not included in the requirements for size.
-        sql = "SELECT ST_HISTPLOT() FROM srtm90_v4"
-        r = SQL2GEE(sql)
-        r._histplot_preview()
-        """
-        import numpy as np
-        import matplotlib.pyplot as plt
-        for key in self.histogram:
-            if self.histogram[key]:
-                bins = []
-                frequency = []
-                for item in self.histogram[key]:
-                    bin_left, val = item
-                    bins.append(bin_left)
-                    frequency.append(val)
-                bins = np.array(bins)
-                frequency = np.array(frequency)
-                counts = [self._reduce_image[band+'_count'] for band in self._band_names]
-                counts = np.array(counts)
-                plt.step(bins, frequency / counts)
-                plt.title(key.capitalize())
-                plt.ylabel("frequency")
-                if plt:
-                    plt.show()
-        return
-
     @property
     def target_data(self):
         """Set target_data property using sql tokens, assuming it
         is the first token of type Identifier after the 'FROM' keyword
         also of type Identifier. If not found, raise an Exception."""
         from_seen = False
-        exception_1 = Exception('Dataset not found')
+        exception_1 = Exception('Unable to determine dataset in SQL query statement.')
         for item in self._parsed.tokens:
             if from_seen:
                 if isinstance(item, Identifier):

@@ -1,4 +1,5 @@
 from __future__ import print_function, division
+import numpy as np
 import pytest
 import requests
 import sys
@@ -132,11 +133,10 @@ def test_retrieve_image_metadata():
                                u'system:time_start': 950227200000},
                u'type': u'Image',
                u'version': 1463778555689000}
-    error = q.metadata != ee_meta
-    assert not error, 'test metadata not equal to expected metadata'
+    assert q.response == ee_meta, 'Metadata response was not equal to expected metadata'
     return
 
-def test_histogram():
+def test_ST_HISTOGRAM():
     """Test that a dictionary containing a list of expected length and values is returned"""
     sql = "SELECT ST_HISTOGRAM() FROM srtm90_v4"
     q = SQL2GEE(sql)
@@ -145,6 +145,36 @@ def test_histogram():
     assert q.response['elevation'][0] == [-415.0, 14.0], 'First bin incorrect'
     assert q.response['elevation'][-1] == [7148.941567065073, 0.0], 'Last bin incorrect'
     return
+
+def test_ST_HISTORGRAM_multiband_image():
+    expected_keys = [u'B10', u'BQA', u'B11', u'B4', u'B5', u'B6', u'B7', u'B1', u'B2', u'B3', u'B8', u'B9']
+    q = SQL2GEE("SELECT ST_HISTOGRAM() FROM LC81412332013146LGN00")
+    assert isinstance(q.response, dict), "Dictionary was not returned as a response"
+    assert len(q.response) == 12, "Size of the dictionary was diffrent from expected response"
+    assert q.response.keys() == expected_keys, "Expected keys in response dictionary were not returned"
+    for key in q.response.keys():
+        if q.response[key] != None:
+            assert len(q.response[key]) == 210, "Expected 210 bins in histogram"
+    return
+
+
+def test_ST_HISTOGRAM_with_area_restriction():
+    """If a geojson argument is passed to SQL2GEE it should be converted into an Earth Engine Feature Collection.
+    This should then be used to subset the area considered for results."""
+    # Get a test geojson object by accessing Vizzuality's geostore
+    gstore = "http://staging-api.globalforestwatch.org/geostore/4531cca6a8ddcf01bccf302b3dd7ae3f"
+    r = requests.get(gstore)
+    j = r.json()
+    j = j.get('data').get('attributes')
+    # Initilise an SQL2GEE query object with geojson
+    q = SQL2GEE("SELECT ST_HISTOGRAM() FROM srtm90_v4", geojson=j)
+    assert isinstance(q.geojson, ee.FeatureCollection), "Geojson data not converted to ee.FeatureCollection type"
+    assert len(q.response['elevation']) == 101, "Returned area-restricted histogram not equal to len of expected result"
+    flist = [freq for x, freq in q.response['elevation']]
+    assert np.mean(flist) == 1168.6435643564357, "Values returned from histogram dont match expected"
+    assert q.response['elevation'][0] == [126.0, 8.0], "Returned bins don't match expected values"
+    return
+
 
 def test_limit_on_tables():
     """Test ability to limit the size of SQL table requests"""
@@ -213,14 +243,3 @@ def test_STSUMMARYSTATS_with_area_restriction_via_passing_geojson_multipolygon()
     assert isinstance(q.geojson, ee.FeatureCollection), "geojson data not converted to ee.FeatureCollection type"
     assert q.response == expected, "Area restricted response did not match expected result"
     return
-
-
-def test_STHISTORGRAM_multiband_image():
-    expected_keys = [u'B10', u'BQA', u'B11', u'B4', u'B5', u'B6', u'B7', u'B1', u'B2', u'B3', u'B8', u'B9']
-    q = SQL2GEE("SELECT ST_HISTOGRAM() FROM LC81412332013146LGN00")
-    assert isinstance(q.response, dict), "Dictionary was not returned as a response"
-    assert len(q.response) == 12, "Size of the dictionary was diffrent from expected response"
-    assert q.response.keys() == expected_keys, "Expected keys in response dictionary were not returned"
-    for key in q.response.keys():
-        if q.response[key] != None:
-            assert len(q.response[key]) == 210, "Expected 210 bins in histogram"
