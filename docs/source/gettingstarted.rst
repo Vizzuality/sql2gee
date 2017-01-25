@@ -28,9 +28,53 @@ Simple Queries to Fusion Table data
 After loading the libraries, you may create SQL queries against either Features (vector data) or rasters (image data).
 For example, we may use a public Fusion Table dataset by passing it's ID as a table argument
 (e.g. `Panoramic Photos and locations from San Francisco <https://fusiontables.google.com/data?docid=1qpKIcYQMBsXLA9RLWCaV9D0Hus2cMQHhI-ViKHo#rows:id=1>`_).
-This data has a column called **lng**, each row of 'which contains a value for Longitude where a photo was taken.
 
-We may request the first row of **lng** data from the table as follows.
+Using the LIMIT keyword
+^^^^^^^^^^^^^^^^^^^^^^^
+
+We may obtain the first entry in the Fusion table using the LIMIT keyword.
+
+.. code-block:: python
+   :linenos:
+
+    >>>sql = 'select * from "ft:1qpKIcYQMBsXLA9RLWCaV9D0Hus2cMQHhI-ViKHo" LIMIT 1'
+    >>>q = SQL2GEE(sql)
+    >>>q.response
+    {u'columns': {u'date': u'Number',
+                  u'height': u'Number',
+                  u'lng': u'Number',
+                  u'title': u'String',
+                  u'url': u'String',
+                  u'user_id': u'Number',
+                  u'user_name': u'String',
+                  u'width': u'Number'},
+     u'features': [{u'geometry': {u'coordinates': [-122.199705, 37.808411],
+                                  u'geodesic': True,
+                                  u'type': u'Point'},
+                    u'id': u'2',
+                    u'properties': {u'date': 1169596800000,
+                                    u'height': 375.0,
+                                    u'lng': -122.199705,
+                                    u'title': u'Oakland California LDS Temple',
+                                    u'url': u'http://mw2.google.com/mw-panoramio/photos/medium/551255.jpg',
+                                    u'user_id': 99249.0,
+                                    u'user_name': u'shaunikadearman',
+                                    u'width': 500.0},
+                    u'type': u'Feature'}],
+     u'properties': {u'DocID': u'1qpKIcYQMBsXLA9RLWCaV9D0Hus2cMQHhI-ViKHo',
+                     u'name': u'SF Panoramio Photos +ID'},
+     u'type': u'FeatureCollection'}
+
+Note that the actual response to our query is returned via the ``response`` property, and it is possible to both
+instantiate a class instance and call this property in a single argument, e.g. ``SQL@GEE('select * from "ft:1qpKIcYQMBsXLA9RLWCaV9D0Hus2cMQHhI-ViKHo" LIMIT 1').response``.
+
+
+Using the FIRST() aggregator
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+These data have a column called **lng**, each row of 'which contains a value for Longitude where a photo was taken.
+
+We may request the first value from the **lng** column from the table as follows.
 
 .. code-block:: python
    :linenos:
@@ -40,9 +84,10 @@ We may request the first row of **lng** data from the table as follows.
     >>>q.response
     -122.199705
 
-Note that the actual response to our query is returned via the ``q.response`` property.
+Counting rows in a table
+^^^^^^^^^^^^^^^^^^^^^^^^
 
-We may count the number of rows of **lng** data in the table as follows.
+We may count the number of rows of **lng** data in the table with the COUNT() aggregator function as follows.
 
 .. code-block:: python
    :linenos:
@@ -147,3 +192,46 @@ greater-than 400 pixels.
     >>>q = SQL2GEE(sql)
     >>>q.response
     -122.36732296666668
+
+
+Operations on Image Data
+-------------------------
+
+Sql2gee supports Postgis-like operations on raster (image) data that is publicly accessible in Google's Earth Engine.
+Our functions include the ability to subset (clip) images by `geojson <http://geojson.org>`_ data.
+If successful, the response of these objects will be a dictionary.
+
+We will demonstrate performing these operations on both a single-band image, **strm90_v4** (which contains 90m
+elevation data globally), and **LC81412332013146LGN00** (a multi-band Landasat-8 tile).
+
+Retrieve Image Metadata
+^^^^^^^^^^^^^^^^^^^^^^^
+
+To retrieve image metadata, use the ST_METADATA() function. (A refrence to the Postgis version of this operation is
+`here <http://postgis.net/docs/RT_ST_MetaData.html>`_.)
+
+.. code-block:: python
+   :linenos:
+
+    >>>sql = 'SELECT ST_METADATA() from srtm90_v4'
+    >>>q = SQL2GEE(sql)
+    >>>q.response
+    {u'bands': [{u'crs': u'EPSG:4326',
+                 u'crs_transform': [0.000833333333333,
+                                    0.0,
+                                    -180.0,
+                                    0.0,
+                                    -0.000833333333333,
+                                    60.0],
+                 u'data_type': {u'max': 32767,
+                                u'min': -32768,
+                                u'precision': u'int',
+                                u'type': u'PixelType'},
+                 u'dimensions': [432000, 144000],
+                 u'id': u'elevation'}],
+     u'id': u'srtm90_v4',
+     u'properties': {u'system:asset_size': 18827626666,
+                     u'system:time_end': 951177600000,
+                     u'system:time_start': 950227200000},
+     u'type': u'Image',
+     u'version': 1463778555689000}
