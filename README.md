@@ -1,4 +1,4 @@
-[![license](https://img.shields.io/packagist/l/doctrine/orm.svg)](https://github.com/Vizzuality/sql2gee/blob/develop/LICENSE)
+[![license](https://img.shields.io/github/license/mashape/apistatus.svg)](https://github.com/Vizzuality/sql2gee/blob/develop/LICENSE)
 [![Build Status](https://travis-ci.org/Vizzuality/forest-atlas-landscape-cms.svg?branch=develop)](https://travis-ci.org/Vizzuality/forest-atlas-landscape-cms)
 [![codecov](https://codecov.io/gh/Vizzuality/sql2gee/branch/develop/graph/badge.svg)](https://codecov.io/gh/Vizzuality/sql2gee)
 
