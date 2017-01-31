@@ -79,7 +79,7 @@ class SQL2GEE(object):
         else:
             return None
 
-    @property
+    @cached_property
     def _is_image_request(self):
         """Detect if the user intends to use an image (True) or Feature collection (False). In the future a flag will
         be used to do this."""
@@ -94,7 +94,7 @@ class SQL2GEE(object):
         else:
             raise ValueError("Found multiple image-type keywords. Unsure of action.")
 
-    @property
+    @cached_property
     def _band_names(self):
         if self._is_image_request:
             return ee.Image(self.target_data).bandNames().getInfo()
@@ -146,31 +146,86 @@ class SQL2GEE(object):
                        }
         return d
 
-    @property
-    def _default_histogram_inputs(self):
-        """Return the optimum histogram function inputs using Freedman-Diaconis method, to be used by default"""
-        first_band_max = self._reduce_image[self._band_names[0]+'_max']
-        first_band_min = self._reduce_image[self._band_names[0]+'_min']
-        first_band_iqr = self._band_IQR[self._band_names[0]]
-        first_band_n = self._reduce_image[self._band_names[0]+'_count']
+    def _default_histogram_inputs(self, band_name):
+        """Return the optimum histogram min, max, bins, using Freedman-Diaconis method, to be used by default
+        band_name is the dictionary key (that relates to self._band_names)
+        """
+        first_band_max = self._reduce_image[band_name +'_max']
+        first_band_min = self._reduce_image[band_name +'_min']
+        first_band_iqr = self._band_IQR[band_name]
+        first_band_n = self._reduce_image[band_name +'_count']
         bin_width = (2 * first_band_iqr * (first_band_n ** (-1/3)))
         num_bins = int((first_band_max - first_band_min) / bin_width)
         return first_band_min, first_band_max, num_bins
+
+
+    def st_histogram_kwarg_extraction(self):
+        """Extract the values that should be passed to ST_HISTOGRAM() function:
+        SETOF record ST_Histogram(raster rast, integer nband, integer bins, boolean right);
+        Raster = any string (e.g. raster)
+        nband = either the integer index of band (e.g. 1, counting from 1 to n), or the band name (e.g. 'elevation')
+        bins - integer bin number
+        right = boolean (true default - means data goes from min-to-max, false = max-to-min)
+        """
+        for function in self.group_functions:
+            if function['function'].lower() == "st_histogram":
+                values = function['value']
+                if len(values) == 0: # IF no arguments given to ST_HISTOGRAM()
+                    return None
+                else:
+                    # If arguments have been passed to the ST_HISTOGRAM() function, extract them.
+                    assert len(values.split(',')) == 4, "ST_HISTOGRAM() should be passed 4 values, e.g." \
+                                                        "SELECT ST_Histogram(rast, 1, 50, true) FROM srtm90_v4"
+                    tmp = values.split(',')
+                    raster = str(tmp[0].strip())
+                    try:
+                        numband = int(tmp[1].strip()) - 1  # a zero index for self._band_list
+                        nband = self._band_names[numband]
+                    except:
+                        nband = str(tmp[1].strip())
+                    assert nband in self._band_names, '{0} is not a valid band name in the requested data.'.format(nband)
+                    bins = int(tmp[2].strip())
+                    assert bins > 0, "Bin number for ST_HISTOGRAM() must be > 0: bins = {0} passed.".format(bins)
+                    right = str(tmp[3]).strip().lower()
+                    assert right in ['true',
+                                     'false'], 'ST_HISTOGRAM() right argument was not set as a boolean: {0}'.format(
+                        right)
+                    if right == 'true':
+                        right = True
+                    else:
+                        right = False
+                    return [raster, nband, bins, right]
 
     @cached_property
     def histogram(self):
         """Retrieve ST_HISTOGRAM()-like info. This will return a dictionary object with bands as keys, and for each
         band a nested list of (2xn) for bin and frequency.
         e.g.: {['band1']: [[left-bin position, frequency] ... n-bins]]}
+        If no arguments were passed to ST_HISTOGRAM, then USE auto-calculated defaults and 1st band.
+        Otherwise, respond to the args.
         """
-        # If no arguments were passed to ST_HISTOGRAM, then USE auto-calculated DEFAULTS...
-        input_min, input_max, input_bin_num = self._default_histogram_inputs
+        tmp_dic = {}
+        band_of_interest = self._band_names[0] # by default, set the first band as the band to examine
+        dont_flip_order = True
+        hist_args = self.st_histogram_kwarg_extraction()
+        if hist_args:
+            _, band_of_interest, input_bin_num, dont_flip_order = hist_args
+            input_min, input_max, _ = self._default_histogram_inputs(band_of_interest)
+        else:
+            input_min, input_max, input_bin_num = self._default_histogram_inputs(band_of_interest)
         d = {}
         d['reducer'] = ee.Reducer.fixedHistogram(input_min, input_max, input_bin_num)
         d['bestEffort'] = True
         if self.geojson:
             d['geometry'] = self.geojson
-        return ee.Image(self.target_data).reduceRegion(**d).getInfo()
+        tmp_response = ee.Image(self.target_data).select(band_of_interest).reduceRegion(**d).getInfo()
+        # tmp_response = ee.Image(self.target_data).reduceRegion(**d).getInfo()
+        if dont_flip_order:
+            tmp_dic[band_of_interest] = tmp_response[band_of_interest]
+        else:
+            tmp_dic[band_of_interest] = tmp_response[band_of_interest][:][::-1]
+        return tmp_dic
+
 
     @property
     def target_data(self):

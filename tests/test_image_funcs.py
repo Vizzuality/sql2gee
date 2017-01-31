@@ -100,7 +100,6 @@ def test_stdev_width_eq_table():
     q = SQL2GEE(sql)
     assert q.response == 0.0, "STDEV with WHERE EQ 500 query incorrect"
 
-
 def test_identify_band_names():
     sql = "SELECT ST_HISTOGRAM() FROM srtm90_v4"
     q = SQL2GEE(sql)
@@ -147,16 +146,34 @@ def test_ST_HISTOGRAM():
     return
 
 def test_ST_HISTORGRAM_multiband_image():
-    expected_keys = [u'B10', u'BQA', u'B11', u'B4', u'B5', u'B6', u'B7', u'B1', u'B2', u'B3', u'B8', u'B9']
+    """Without any speicifc keywords set, ST_HISTOGRAM gives back a dic with the first band, and best-guess binning"""
+    expected_keys = [u'B1']
     q = SQL2GEE("SELECT ST_HISTOGRAM() FROM LC81412332013146LGN00")
     assert isinstance(q.response, dict), "Dictionary was not returned as a response"
-    assert len(q.response) == 12, "Size of the dictionary was diffrent from expected response"
+    assert len(q.response) == 1, "Size of the dictionary was diffrent from expected response"
     assert q.response.keys() == expected_keys, "Expected keys in response dictionary were not returned"
     for key in q.response.keys():
         if q.response[key] != None:
             assert len(q.response[key]) == 210, "Expected 210 bins in histogram"
     return
 
+def test_ST_HISTORGRAM_keywords_select_specific_band_and_bins():
+    """Without any speicifc keywords set, ST_HISTOGRAM gives back a dic with the first band, and best-guess binning"""
+    expected_keys = [u'B5']
+    q = SQL2GEE("SELECT ST_HISTOGRAM(raster, B5, 10, true) FROM LC81412332013146LGN00")
+    assert isinstance(q.response, dict), "Dictionary was not returned as a response"
+    assert len(q.response) == 1, "Size of the dictionary was diffrent from expected response"
+    assert q.response.keys() == expected_keys, "Expected B5 in response dictionary"
+    for key in q.response.keys():
+        if q.response[key] != None:
+            assert len(q.response[key]) == 10, "Expected 10 bins in histogram"
+    return
+
+def test_ST_HISTORGRAM_keywords_reversed():
+    """Without any speicifc keywords set, ST_HISTOGRAM gives back a dic with the first band, and best-guess binning"""
+    q = SQL2GEE("SELECT ST_HISTOGRAM(raster, 1, 10, false) FROM srtm90_v4")
+    assert q.response['elevation'][0][0] > q.response['elevation'][-1][0], "Bins should be in reverse order"
+    return
 
 def test_ST_HISTOGRAM_with_area_restriction():
     """If a geojson argument is passed to SQL2GEE it should be converted into an Earth Engine Feature Collection.
@@ -174,7 +191,6 @@ def test_ST_HISTOGRAM_with_area_restriction():
     assert np.mean(flist) == 1168.6435643564357, "Values returned from histogram dont match expected"
     assert q.response['elevation'][0] == [126.0, 8.0], "Returned bins don't match expected values"
     return
-
 
 def test_limit_on_tables():
     """Test ability to limit the size of SQL table requests"""
@@ -243,7 +259,6 @@ def test_STSUMMARYSTATS_with_area_restriction_via_passing_geojson_multipolygon()
     assert isinstance(q.geojson, ee.FeatureCollection), "geojson data not converted to ee.FeatureCollection type"
     assert q.response == expected, "Area restricted response did not match expected result"
     return
-
 
 def test_ST_SUMMARYSTATS_with_tricky_data():
     """A problem with image data that is a composite. We will try and get a response, if an EEException is raised,
