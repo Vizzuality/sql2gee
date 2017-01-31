@@ -332,9 +332,8 @@ For example, we may retrieve histogram information for `B2` of a Landast-8 tile,
             [13249.2, 2731.4980392156863],
             [14137.099999999999, 465.0]]}
 
-*n.b.* If the band names of an image are unknown, you may either 1) use integer values as an index (i.e. instead of entering `B2` in the previous example)
- you may have simply entered 2), or, alternatively, you may find the keys of the bands (band names) via a separate query to the image using ST_METADATA(),
- as shown below.
+If the band names of an image are unknown, you may use integer values as an index: E.g. instead of entering `B2` in the previous example
+you could have entered the integer `2`. Alternatively, you may discover the keys of the bands (band names) via a separate query to the image using ST_METADATA(), as shown below.
 
 .. code-block:: python
    :linenos:
