@@ -304,15 +304,16 @@ Again, SQL2GEE can be passed a geojson if desired, as in the previous example, t
                     [7148.941567065073, 0.0]]}
 
 By default, the returned dictionary contains a key for the first band of the specified image. This holds a 2D list, of [(x, y)...n], where n = number of bins.
-The x position in the returned list gives the left bin corner, while the y position gives the frequency (from 0-1) for that bin. By default the
-bin number is calculated via the `Freedman-Diaconis rule <https://en.wikipedia.org/wiki/Freedman–Diaconis_rule>`_
+The x position in the returned list gives the left bin corner, while the y position gives the frequency (counts) for that bin. By default, the
+bin number is calculated via the `Freedman-Diaconis rule <https://en.wikipedia.org/wiki/Freedman–Diaconis_rule>`_.
 However, `ST_HISTOGRAM() <http://postgis.net/docs/manual-dev/RT_ST_Histogram.html>`_ is designed to be called with arguments, like the POSTGIS version of the function. Currently, the effect of these arguments
 is to specify the *band* a user wishes to retrieve, the number of *bins* a user wishes to use in their histogram, and whether or not the user wishes to invert the order
-of the returned bins (return them from largest x-value to smallest, instead of smallest-to-largest). Due to imitating the postgis-like nature of these functions,
-keyword assignment is not supported, and therefore requests must include all arguments. Due to this, a string `raster` (with no whitespace or commas) must also be given as a first argument.
-As in the POSTGIS documentation the arguments for ST_HISTOGRAM are as follows: ST_Histogram(raster rast, integer nband, integer bins, boolean right).
+of the returned bins (i.e. return them from largest **bin value** to smallest, instead of smallest-to-largest). Due to imitating the postgis-like nature of these functions,
+keyword assignment is not supported, and therefore requests must include all arguments. Additionally, a string `raster` (with no whitespace or commas) must also be given as a first argument. However,
+this string does not have any affect on the program: we reccomend simply calling it `raster`, without quotation marks (as in the below example).
+As in the POSTGIS documentation the arguments for ST_HISTOGRAM are as follows: ST_Histogram(*raster* **rast**, *integer* **nband**, *integer* **bins**, *boolean* **right**).
 
-For example, we may retrieve histogram information for `B2` of a Landast-8 tile, divided into 10 bins, as follows:
+For example, we may retrieve histogram information for `B2` of a Landast-8 tile, divided into 10 bins, ordered from lowest bin value to largest, as follows:
 
 .. code-block:: python
    :linenos:
@@ -331,4 +332,27 @@ For example, we may retrieve histogram information for `B2` of a Landast-8 tile,
             [13249.2, 2731.4980392156863],
             [14137.099999999999, 465.0]]}
 
-*n.b. If the band names of an image are unknown to the user, you may find them via a query with ST_METADATA().*
+*n.b.* If the band names of an image are unknown, you may either 1) use integer values as an index (i.e. instead of entering `B2` in the previous example)
+ you may have simply entered 2), or, alternatively, you may find the keys of the bands (band names) via a separate query to the image using ST_METADATA(),
+ as shown below.
+
+.. code-block:: python
+   :linenos:
+
+    >>>sql = "SELECT ST_METADATA() FROM LC81412332013146LGN00"
+    >>>q = SQL2GEE(sql)
+    >>>q.response
+    >>>for band in r.response['bands']:
+    >>>    print(band['id'])
+    B1
+    B2
+    B3
+    B4
+    B5
+    B6
+    B7
+    B8
+    B9
+    B10
+    B11
+    BQA
