@@ -12,7 +12,8 @@ ra.py
 /.idea
 .DS_Store
 .ipynb_checkpoints
-*.ipynb
+/*.ipynb
 docs/_build/html/*
 docs/_build/doctrees
 tests/__pycache__/
+/build

@@ -6,6 +6,29 @@ import sqlparse
 from sqlparse.tokens import Keyword
 from sqlparse.sql import Identifier, IdentifierList, Function, Parenthesis, Comparison
 
+_default_geojson = {u'crs': {},
+                    u'features': [
+                                    {u'geometry': dict(coordinates=[[[[1.40625,
+                                                           85.1114157806266],
+                                                          [0,
+                                                           -84.99010018023479],
+                                                          [-180,
+                                                           -85.05112877980659],
+                                                          [-180,
+                                                           85.1114157806266]]],
+                                                        [[[179.296875,
+                                                           85.05112877980659],
+                                                          [1.40625,
+                                                           85.05112877980659],
+                                                          [0.703125,
+                                                           -84.99010018023479],
+                                                          [179.296875,
+                                                           -84.86578186731522]]]],
+                                    evenOdd= True,
+                                    type= u'MultiPolygon'),
+                                    u'type': u'Feature'}
+                                ],
+                    u'type': u'FeatureCollection'}
 
 class SQL2GEE(object):
     """
@@ -71,12 +94,12 @@ class SQL2GEE(object):
         else:
             raise ValueError("Found multiple image-type keywords. Unsure of action.")
 
-    @cached_property
+    @property
     def _band_names(self):
         if self._is_image_request:
             return ee.Image(self.target_data).bandNames().getInfo()
 
-    @cached_property
+    @property
     def _reduce_image(self):
         """ Construct a combined reducer dictionary and pass it to a ReduceRegion().getInfo() command.
         If a geometry has been passed to SQL2GEE, it will be passed to ensure only a subset of the band is examined.
@@ -123,7 +146,7 @@ class SQL2GEE(object):
                        }
         return d
 
-    @cached_property
+    @property
     def _default_histogram_inputs(self):
         """Return the optimum histogram function inputs using Freedman-Diaconis method, to be used by default"""
         first_band_max = self._reduce_image[self._band_names[0]+'_max']
@@ -216,7 +239,7 @@ class SQL2GEE(object):
                 d['value'] = value
         return d
 
-    @property
+    @cached_property
     def _image(self):
         """Performs a diffrent Image operation depending on sql request."""
         if self._is_image_request:
@@ -228,7 +251,7 @@ class SQL2GEE(object):
                 if func["function"].lower() == 'st_summarystats':
                     return self.summary_stats
 
-    @property
+    @cached_property
     def _feature_collection(self):
         """Return the G.E.E. FeatureCollection object with all filter, groups, and functions applied"""
         fc = ee.FeatureCollection(self.target_data)
@@ -414,13 +437,18 @@ class SQL2GEE(object):
                 comparison = None
         return filters[0]
 
+
     @cached_property
     def response(self):
         """Execute the GEE object in GEE Server. This is the function that, when called, actually sends the SQL
         request (which was converted to GEE-speak) to Google's servers for execution and returns the result."""
         ## This logic will be changed to instead execute the self.r , which will be made up of base + modifiers,
         # So it can be either and Image() or FeatureCollection() type function.
-        if self._feature_collection:
+        if self._is_image_request:
+            try:
+                return self._image
+            except ee.EEException:
+                # If we hit the image composite bug then add a global region to group the image together and try again
+                return SQL2GEE(sql=self._raw, geojson=_default_geojson)._image
+        else:
             return self._feature_collection.getInfo()
-        elif self._image:
-            return self._image

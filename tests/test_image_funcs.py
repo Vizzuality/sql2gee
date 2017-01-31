@@ -243,3 +243,13 @@ def test_STSUMMARYSTATS_with_area_restriction_via_passing_geojson_multipolygon()
     assert isinstance(q.geojson, ee.FeatureCollection), "geojson data not converted to ee.FeatureCollection type"
     assert q.response == expected, "Area restricted response did not match expected result"
     return
+
+
+def test_ST_SUMMARYSTATS_with_tricky_data():
+    """A problem with image data that is a composite. We will try and get a response, if an EEException is raised,
+    a default (near-global) feature collection will be passed to the area, which will cause reducers to correctly
+    treat it like an image."""
+    sql = "SELECT ST_SUMMARYSTATS() FROM GFSAD1000_V0"
+    q = SQL2GEE(sql)
+    assert isinstance(q.response, dict), "Dictionary should have been returned"
+    return
