@@ -150,13 +150,17 @@ class SQL2GEE(object):
         """Return the optimum histogram min, max, bins, using Freedman-Diaconis method, to be used by default
         band_name is the dictionary key (that relates to self._band_names)
         """
-        first_band_max = self._reduce_image[band_name +'_max']
-        first_band_min = self._reduce_image[band_name +'_min']
-        first_band_iqr = self._band_IQR[band_name]
-        first_band_n = self._reduce_image[band_name +'_count']
-        bin_width = (2 * first_band_iqr * (first_band_n ** (-1/3)))
-        num_bins = int((first_band_max - first_band_min) / bin_width)
-        return first_band_min, first_band_max, num_bins
+        band_max = self._reduce_image[band_name +'_max']
+        band_count = self._reduce_image[band_name +'_count']
+        band_min = self._reduce_image[band_name +'_min']
+        band_iqr = self._band_IQR[band_name]
+        band_n = self._reduce_image[band_name +'_count']
+        bin_width = (2 * band_iqr * (band_n ** (-1/3)))
+        try:
+            num_bins = int((band_max - band_min) / bin_width)
+        except ZeroDivisionError:
+            num_bins = band_count ** 0.5  # as a last-resort, use the square root of the counts to set-bin size
+        return band_min, band_max, num_bins
 
 
     def st_histogram_kwarg_extraction(self):
