@@ -218,6 +218,8 @@ class SQL2GEE(object):
         else:
             input_min, input_max, input_bin_num = self._default_histogram_inputs(band_of_interest)
         d = {}
+        input_max = input_max + 1  # In EE counting the min -> max range is exclusive at max value, so need to increment
+        print("HISTOGRAM PROPERTIES CALL min {0}, max {1}, bins {2}".format(input_min, input_max, input_bin_num))
         d['reducer'] = ee.Reducer.fixedHistogram(input_min, input_max, input_bin_num)
         d['bestEffort'] = True
         if self.geojson:

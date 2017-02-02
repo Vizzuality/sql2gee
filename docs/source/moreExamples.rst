@@ -11,8 +11,8 @@ Change data-set shows high-resolution statistics on forest cover and loss during
 via Google's Earth Engine platform, via the data-set ID `UMD/hansen/global_forest_change_2014`.
 
 These data have a band called `lossyear`, which shows, for every pixel where forest was lost, the year that the loss
-likely occured. The integers are from 1 to 14, and mean year since 2000. Pixels with a 0 value indicate locations where
-forest was not lost. (And so 0 values should be ignored.)
+likely occured. The integers are from 0 to 14, all values > 0 indicate year since 2000. Pixels with a 0 value indicate locations where
+forest was not lost (and should be ignored).
 
 Let's use the ST_HISTOGRAM function of the SQL2GEE library to create a step-plot (using Matplotlib), to show these data.
 
@@ -34,7 +34,7 @@ has been successfully returned.
 .. code-block:: python
    :linenos:
 
-    >>>sql = 'SELECT ST_HISTOGRAM(raster, lossyear, 14, true) FROM "UMD/hansen/global_forest_change_2015"'
+    >>>sql = 'SELECT ST_HISTOGRAM(raster, lossyear, 15, true) FROM "UMD/hansen/global_forest_change_2015"'
     >>>q = SQL2GEE(sql)
     >>>q.response
     {'lossyear': [[0.0, 9939196.0],

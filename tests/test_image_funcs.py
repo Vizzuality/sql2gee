@@ -142,7 +142,7 @@ def test_ST_HISTOGRAM():
     num_bins = len(q.histogram['elevation'])
     assert num_bins == 753, "Should be 753 bins by default (set by Freedman-Diaconis method)"
     assert q.response['elevation'][0] == [-415.0, 14.0], 'First bin incorrect'
-    assert q.response['elevation'][-1] == [7148.941567065073, 0.0], 'Last bin incorrect'
+    assert q.response['elevation'][-1] == [7149.940239043825, 1.0], 'Last bin incorrect'
     return
 
 def test_ST_HISTORGRAM_multiband_image():
@@ -188,7 +188,7 @@ def test_ST_HISTOGRAM_with_area_restriction():
     assert isinstance(q.geojson, ee.FeatureCollection), "Geojson data not converted to ee.FeatureCollection type"
     assert len(q.response['elevation']) == 101, "Returned area-restricted histogram not equal to len of expected result"
     flist = [freq for x, freq in q.response['elevation']]
-    assert np.mean(flist) == 1168.6435643564357, "Values returned from histogram dont match expected"
+    assert np.mean(flist) == 1168.6831683168316, "Values returned from histogram dont match expected"
     assert q.response['elevation'][0] == [126.0, 8.0], "Returned bins don't match expected values"
     return
 
@@ -267,4 +267,13 @@ def test_ST_SUMMARYSTATS_with_tricky_data():
     sql = "SELECT ST_SUMMARYSTATS() FROM GFSAD1000_V0"
     q = SQL2GEE(sql)
     assert isinstance(q.response, dict), "Dictionary should have been returned"
+    return
+
+def test_ST_HISTOGRAM_bins_correct():
+    """Hansen Forest change dataset has a band called lossyear, which has integer values of 0->14.
+    Make a test to create a bin for each integer."""
+    sql = 'SELECT ST_HISTOGRAM(raster, lossyear, 15, true) FROM "UMD/hansen/global_forest_change_2015"'
+    q = SQL2GEE(sql)
+    assert len(q.response['lossyear']) == 15, "15 bins expected"
+    assert q.response['lossyear'][14][0] == 14, "Expected last bin to be 14 exactly"
     return
