@@ -71,7 +71,7 @@ We can extract these data and plot them as follows:
     >>>year = bin_pos[1:]+2000
 
     >>>plt.plot(year, percent_value)
-    >>>plt.title('Of all the forest we lost in the last decade, \n which year was it destroyed in?')
+    >>>plt.title('Of all forest lost in the last decade, \n which year was it lost in?')
     >>>plt.xlabel('Year')
     >>>plt.ylabel("Percent (%)")
     >>>plt.show()
