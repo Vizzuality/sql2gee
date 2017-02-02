@@ -37,20 +37,21 @@ has been successfully returned.
     >>>sql = 'SELECT ST_HISTOGRAM(raster, lossyear, 15, true) FROM "UMD/hansen/global_forest_change_2015"'
     >>>q = SQL2GEE(sql)
     >>>q.response
-    {'lossyear': [[0.0, 9939196.0],
-      [1.0, 3389.0],
-      [2.0, 4079.0],
-      [3.0, 3730.0],
-      [4.0, 4994.0],
-      [5.0, 4521.0],
-      [6.0, 4338.0],
-      [7.0, 4408.0],
-      [8.0, 4396.0],
-      [9.0, 3937.0],
-      [10.0, 4361.0],
-      [11.0, 4274.0],
-      [12.0, 6215.0],
-      [13.0, 5901.0]]}
+    {'lossyear': [[0.0, 1291270.0],
+      [1.0, 192.0],
+      [2.0, 483.0],
+      [3.0, 449.0],
+      [4.0, 1185.0],
+      [5.0, 462.0],
+      [6.0, 1264.0],
+      [7.0, 2156.0],
+      [8.0, 514.0],
+      [9.0, 343.0],
+      [10.0, 1374.0],
+      [11.0, 334.0],
+      [12.0, 992.0],
+      [13.0, 2624.0],
+      [14.0, 7629.0]]}
 
 We can extract these data and plot them as follows:
 
@@ -73,7 +74,6 @@ We can extract these data and plot them as follows:
     >>>plt.title('Of all the forest we lost in the last decade, \n which year was it destroyed in?')
     >>>plt.xlabel('Year')
     >>>plt.ylabel("Percent (%)")
-    >>>plt.xlim(2001, 2013)
     >>>plt.show()
 
 .. image:: _static/matplot_f1.png
