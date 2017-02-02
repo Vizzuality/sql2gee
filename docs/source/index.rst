@@ -21,6 +21,7 @@ If raster (image) data is desired, you may use any Image resource from the `Eart
    install
    supportedsyntax
    gettingstarted
+   moreExamples
    sql2gee
    support
 
