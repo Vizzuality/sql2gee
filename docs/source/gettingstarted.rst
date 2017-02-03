@@ -204,38 +204,53 @@ If successful, the response of these objects will be a dictionary.
 We will demonstrate performing these operations on both a single-band image, **strm90_v4** (which contains 90m
 elevation data globally), and **LC81412332013146LGN00** (a multi-band Landasat-8 tile).
 
-Retrieve Image Metadata
-^^^^^^^^^^^^^^^^^^^^^^^
+Retrieve Image Property Metadata
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 To retrieve image metadata, use the ST_METADATA() function. (A refrence to the Postgis version of this operation is
-`here <http://postgis.net/docs/RT_ST_MetaData.html>`_.)
+`here <http://postgis.net/docs/RT_ST_MetaData.html>`_.) Note, the POSTGIS function requires that a string defining the
+name of the raster is provided as an argument. In our case, it does not matter if it is given or not, but we have
+included it below (as `rast`) to be more postgis-like.
 
 .. code-block:: python
    :linenos:
 
-    >>>sql = 'SELECT ST_METADATA() from srtm90_v4'
+    >>>sql = 'SELECT ST_METADATA(rast) from srtm90_v4'
     >>>q = SQL2GEE(sql)
     >>>q.response
-    {u'bands': [{u'crs': u'EPSG:4326',
-                 u'crs_transform': [0.000833333333333,
-                                    0.0,
-                                    -180.0,
-                                    0.0,
-                                    -0.000833333333333,
-                                    60.0],
-                 u'data_type': {u'max': 32767,
-                                u'min': -32768,
-                                u'precision': u'int',
-                                u'type': u'PixelType'},
-                 u'dimensions': [432000, 144000],
-                 u'id': u'elevation'}],
-     u'id': u'srtm90_v4',
-     u'properties': {u'system:asset_size': 18827626666,
-                     u'system:time_end': 951177600000,
-                     u'system:time_start': 950227200000},
-     u'type': u'Image',
-     u'version': 1463778555689000}
+    {u'system:asset_size': 18827626666,
+     u'system:time_end': 951177600000,
+     u'system:time_start': 950227200000}
 
+
+Band-Specific Image Metadata
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+To retrieve a dictionary providing information relating to specific bands of data use the ST_BANDMETADATA() function.
+A reference to the POSTGIS version of this operation is given `here <http://postgis.net/docs/manual-dev/RT_ST_BandMetaData.html>`_.
+The function requires a raster string to be passed, like in POSTGIS, although in our case it does nothing (we call it
+rast below), and a band number (or string identifier). We call the first band with the integer 1, but, if we knew in
+advance that the band name was *elevation*, we could have also used this string to reference the band.
+
+.. code-block:: python
+   :linenos:
+
+    >>>sql = 'SELECT ST_BANDMETADATA(rast, 1) from srtm90_v4' # could use either 1 or the name of the band (elevation)
+    >>>q = SQL2GEE(sql)
+    >>>q.response
+    {u'crs': u'EPSG:4326',
+     u'crs_transform': [0.000833333333333,
+                        0.0,
+                        -180.0,
+                        0.0,
+                        -0.000833333333333,
+                        60.0],
+     u'data_type': {u'max': 32767,
+                    u'min': -32768,
+                    u'precision': u'int',
+                    u'type': u'PixelType'},
+     u'dimensions': [432000, 144000],
+     u'id': u'elevation'}
 
 Summary Statistics over an Image
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

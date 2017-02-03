@@ -85,7 +85,7 @@ class SQL2GEE(object):
         be used to do this."""
         tmp = [r for r in re.split('[\(\*\)\s]', self._raw.lower()) if r != '']
         tmp = set(tmp)
-        image_keywords = {'st_histogram', 'st_metadata', 'st_summarystats'}
+        image_keywords = {'st_histogram', 'st_metadata', 'st_summarystats', 'st_bandmetadata'}
         intersect = tmp.intersection(image_keywords)
         if len(intersect) == 0:
             return False
@@ -127,10 +127,52 @@ class SQL2GEE(object):
             return iqr
 
     @cached_property
-    def metadata(self):
+    def _metadata(self):
         """Property that holds the Metadata dictionary returned from Earth Engine."""
         if self._is_image_request:
             return ee.Image(self.target_data).getInfo()
+
+    @property
+    def st_metadata(self):
+        """The image property Metadata dictionary returned from Earth Engine."""
+        return self._metadata['properties']
+
+    # I want a function to handel postgis keywords in general. It should take the values as an argument, and a dictionary
+    # specifying what (and in what order) keywords should have been given (ordered dict). And return the required values.
+    # @staticmethod
+    # def _handel_postgis_arguments(argument_string, d):
+    #     """Expects a string list of arguments passed to postgis function, and an ordered dictionary of keys needed"""
+    #     assert len(argument_string) > 0, "No arguments passed to postgis function"
+    #     desired_values = []  # return a list of parsed arguments to unpack
+    #     value_list = argument_string.split(',')
+    #     if d.get('raster'):
+    #         raster = str(tmp[0].strip())
+    #     if d.get('nband'):
+
+    @property
+    def st_bandmetadata(self):
+        """Return only metadata for a specifically requested band, like postgis function"""
+        for function in self.group_functions:
+            if function['function'].lower() == "st_bandmetadata":
+                values = function['value']
+                if len(values) == 0: # IF no arguments given to ST_BANDMETADATA()
+                    raise KeyError("raster string and bandnum integer (or band key string) must be provided")
+                else:
+                    # If arguments have been passed to the ST_BANDMETADATA() function, extract them.
+                    assert len(values.split(',')) == 2, "ST_BANDMETADATA() should be passed 2 values, e.g." \
+                                                        "SELECT ST_BANDMETADATA(rast, elevation) FROM srtm90_v4"
+                    tmp = values.split(',')
+                    _ = str(tmp[0].strip())  # ignore the raster string
+                    try:
+                        numband = int(tmp[1].strip()) - 1  # a zero index for self._band_list
+                        nband = self._band_names[numband]
+                    except:
+                        nband = str(tmp[1].strip())
+                    assert nband in self._band_names, '{0} not a valid band name in the requested data.'.format(nband)
+        for band in self._metadata.get('bands'):
+            if band.get('id') == nband:
+                tmp_meta = band
+        return tmp_meta
 
     @cached_property
     def summary_stats(self):
@@ -307,7 +349,9 @@ class SQL2GEE(object):
                 if func["function"].lower() == 'st_histogram':
                     return self.histogram
                 if func["function"].lower() == 'st_metadata':
-                    return self.metadata
+                    return self.st_metadata
+                if func["function"].lower() == 'st_bandmetadata':
+                    return self.st_bandmetadata
                 if func["function"].lower() == 'st_summarystats':
                     return self.summary_stats
 

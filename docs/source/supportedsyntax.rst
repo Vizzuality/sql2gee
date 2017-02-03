@@ -28,7 +28,8 @@ Feature Collection Functions
 
 Postgis-like Raster Functions
     * ST_METADATA
-    * ST_HISTOGRAM
+    * ST_BANDMETADATA
     * ST_SUMMARYSTATS
+    * ST_HISTOGRAM
 
 We will add support for more language features as time goes on.
