@@ -66,7 +66,8 @@ We may obtain the first entry in the Fusion table using the LIMIT keyword.
      u'type': u'FeatureCollection'}
 
 Note that the actual response to our query is returned via the ``response`` property, and it is possible to both
-instantiate a class instance and call this property in a single argument, e.g. ``SQL@GEE('select * from "ft:1qpKIcYQMBsXLA9RLWCaV9D0Hus2cMQHhI-ViKHo" LIMIT 1').response``.
+instantiate a class instance and call this property in a single argument, e.g.
+``SQL@GEE('select * from "ft:1qpKIcYQMBsXLA9RLWCaV9D0Hus2cMQHhI-ViKHo" LIMIT 1').response``.
 
 
 Using the FIRST() aggregator
@@ -195,7 +196,7 @@ greater-than 400 pixels.
 
 
 Operations on Image Data
--------------------------
+------------------------
 
 Sql2gee supports Postgis-like operations on raster (image) data that is publicly accessible in Google's Earth Engine.
 Our functions include the ability to subset (clip) images by `geojson <http://geojson.org>`_ data.
@@ -226,9 +227,9 @@ included it below (as `rast`) to be more postgis-like.
 Band-Specific Image Metadata
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-To retrieve a dictionary providing information relating to specific bands of data use the ST_BANDMETADATA() function.
-A reference to the POSTGIS version of this operation is given `here <http://postgis.net/docs/manual-dev/RT_ST_BandMetaData.html>`_.
-The function requires a raster string to be passed, like in POSTGIS, although in our case it does nothing (we call it
+To retrieve a dictionary providing information relating to specific bands of data use the ST_BANDMETADATA(), a
+`POSTGIS-like <http://postgis.net/docs/manual-dev/RT_ST_BandMetaData.html>`_ function.
+This requires a raster string to be passed, like in POSTGIS, although in our case it does nothing (we call it
 rast below), and a band number (or string identifier). We call the first band with the integer 1, but, if we knew in
 advance that the band name was *elevation*, we could have also used this string to reference the band.
 
