@@ -22,10 +22,10 @@ First, we load the required libraries, and authenticate with Earth Engine.
 .. code-block:: python
    :linenos:
 
-    >>>from sql2gee import SQL2GEE, histplot_preview
-    >>>import ee
-    >>>import matplotlib.pyplot as plt
-    >>>ee.Initialize()
+    from sql2gee import SQL2GEE
+    import ee
+    import matplotlib.pyplot as plt
+    ee.Initialize()
 
 Next, we make a request via SQL2GEE to the Hansen dataset. Calling the response property we can confirm that a histogram
 has been successfully returned.
@@ -34,9 +34,9 @@ has been successfully returned.
 .. code-block:: python
    :linenos:
 
-    >>>sql = 'SELECT ST_HISTOGRAM(raster, lossyear, 15, true) FROM "UMD/hansen/global_forest_change_2015"'
-    >>>q = SQL2GEE(sql)
-    >>>q.response
+    sql = 'SELECT ST_HISTOGRAM(raster, lossyear, 15, true) FROM "UMD/hansen/global_forest_change_2015"'
+    q = SQL2GEE(sql)
+    q.response
     {'lossyear': [[0.0, 1291270.0],
       [1.0, 192.0],
       [2.0, 483.0],
@@ -58,22 +58,22 @@ We can extract these data and plot them as follows:
 .. code-block:: python
    :linenos:
 
-    >>>bin_pos = []
-    >>>counts = []
-    >>>for pair in response['lossyear']:
-            bin_left, count = pair
-            bin_pos.append(bin_left)
-            counts.append(count)
-    >>>bin_pos = np.array(bin_pos)
-    >>>counts = np.array(counts)
+    bin_pos = []
+    counts = []
+    for pair in response['lossyear']:
+        bin_left, count = pair
+        bin_pos.append(bin_left)
+        counts.append(count)
+    bin_pos = np.array(bin_pos)
+    counts = np.array(counts)
 
-    >>>percent_value = (counts[1:]/sum(counts[1:])*100.)
-    >>>year = bin_pos[1:]+2000
+    percent_value = (counts[1:]/sum(counts[1:])*100.)
+    year = bin_pos[1:]+2000
 
-    >>>plt.plot(year, percent_value)
-    >>>plt.title('Of all forest lost in the last decade, \n which year was it lost in?')
-    >>>plt.xlabel('Year')
-    >>>plt.ylabel("Percent (%)")
-    >>>plt.show()
+    plt.plot(year, percent_value)
+    plt.title('Of all forest lost in the last decade, \n which year was it lost in?')
+    plt.xlabel('Year')
+    plt.ylabel("Percent (%)")
+    plt.show()
 
 .. image:: _static/matplot_f1.png
