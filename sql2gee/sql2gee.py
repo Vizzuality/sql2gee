@@ -137,17 +137,44 @@ class SQL2GEE(object):
         """The image property Metadata dictionary returned from Earth Engine."""
         return self._metadata['properties']
 
-    # I want a function to handel postgis keywords in general. It should take the values as an argument, and a dictionary
-    # specifying what (and in what order) keywords should have been given (ordered dict). And return the required values.
-    # @staticmethod
-    # def _handel_postgis_arguments(argument_string, d):
-    #     """Expects a string list of arguments passed to postgis function, and an ordered dictionary of keys needed"""
-    #     assert len(argument_string) > 0, "No arguments passed to postgis function"
-    #     desired_values = []  # return a list of parsed arguments to unpack
-    #     value_list = argument_string.split(',')
-    #     if d.get('raster'):
-    #         raster = str(tmp[0].strip())
-    #     if d.get('nband'):
+
+    def extract_postgis_arguments(self, argument_string, list_of_expected):
+        """Expects a string list of arguments passed to postgis function, and an ordered list of keys needed
+        In this way, we should be able to handle any postgis argument arrangements:
+        value_string, ordered keyword list: ['raster', 'band_id', 'n_bins'])
+        """
+        assert len(argument_string) > 0, "No arguments passed to postgis function"
+        value_list = argument_string.split(',')
+        assert len(value_list) == len(
+            list_of_expected), "argument string from postgis not equal to list of expected keys"
+        return_values = []
+        for expected, argument in zip(list_of_expected, value_list):
+            if expected is 'raster':
+                return_values.append(str(argument.strip()))
+            if expected is 'band_id':
+                try:
+                    numband = int(argument.strip()) - 1  # a zero index for self._band_list
+                    nband = self._band_names[numband]
+                except:
+                    nband = str(argument.strip())
+                assert nband in self._band_names, '{0} is not a valid band name in the requested data.'.format(nband)
+                return_values.append(nband)
+            if expected is 'n_bins':
+                try:
+                    bins = int(argument.strip())
+                    assert bins > 0, "Bin number for ST_HISTOGRAM() must be > 0: bins = {0} passed.".format(bins)
+                except:
+                    assert argument.strip().lower() == 'auto',"Either pass int number of desired bins, or auto"
+                    bins = None
+                return_values.append(bins)
+            if expected is 'bool':
+                bool_arg = None
+                if argument.strip().lower() == 'true': bool_arg = True
+                if argument.strip().lower() == 'false': bool_arg = False
+                assert isinstance(bool_arg, bool), "Boolean not correctly set"
+                return_values.append(bool_arg)
+        assert len(return_values) == len(list_of_expected),'Failed to identify all keywords :('
+        return return_values
 
     @property
     def st_bandmetadata(self):
@@ -155,20 +182,8 @@ class SQL2GEE(object):
         for function in self.group_functions:
             if function['function'].lower() == "st_bandmetadata":
                 values = function['value']
-                if len(values) == 0: # IF no arguments given to ST_BANDMETADATA()
-                    raise KeyError("raster string and bandnum integer (or band key string) must be provided")
-                else:
-                    # If arguments have been passed to the ST_BANDMETADATA() function, extract them.
-                    assert len(values.split(',')) == 2, "ST_BANDMETADATA() should be passed 2 values, e.g." \
-                                                        "SELECT ST_BANDMETADATA(rast, elevation) FROM srtm90_v4"
-                    tmp = values.split(',')
-                    _ = str(tmp[0].strip())  # ignore the raster string
-                    try:
-                        numband = int(tmp[1].strip()) - 1  # a zero index for self._band_list
-                        nband = self._band_names[numband]
-                    except:
-                        nband = str(tmp[1].strip())
-                    assert nband in self._band_names, '{0} not a valid band name in the requested data.'.format(nband)
+                assert len(values) > 0, "raster string and bandnum integer (or band key string) must be provided"
+                _, nband = self.extract_postgis_arguments(values, ['raster','band_id'])
         for band in self._metadata.get('bands'):
             if band.get('id') == nband:
                 tmp_meta = band
@@ -204,69 +219,29 @@ class SQL2GEE(object):
             num_bins = band_count ** 0.5  # as a last-resort, use the square root of the counts to set-bin size
         return band_min, band_max, num_bins
 
-
-    def st_histogram_kwarg_extraction(self):
-        """Extract the values that should be passed to ST_HISTOGRAM() function:
-        SETOF record ST_Histogram(raster rast, integer nband, integer bins, boolean right);
-        Raster = any string (e.g. raster)
-        nband = either the integer index of band (e.g. 1, counting from 1 to n), or the band name (e.g. 'elevation')
-        bins - integer bin number
-        right = boolean (true default - means data goes from min-to-max, false = max-to-min)
-        """
-        for function in self.group_functions:
-            if function['function'].lower() == "st_histogram":
-                values = function['value']
-                if len(values) == 0: # IF no arguments given to ST_HISTOGRAM()
-                    return None
-                else:
-                    # If arguments have been passed to the ST_HISTOGRAM() function, extract them.
-                    assert len(values.split(',')) == 4, "ST_HISTOGRAM() should be passed 4 values, e.g." \
-                                                        "SELECT ST_Histogram(rast, 1, 50, true) FROM srtm90_v4"
-                    tmp = values.split(',')
-                    raster = str(tmp[0].strip())
-                    try:
-                        numband = int(tmp[1].strip()) - 1  # a zero index for self._band_list
-                        nband = self._band_names[numband]
-                    except:
-                        nband = str(tmp[1].strip())
-                    assert nband in self._band_names, '{0} is not a valid band name in the requested data.'.format(nband)
-                    bins = int(tmp[2].strip())
-                    assert bins > 0, "Bin number for ST_HISTOGRAM() must be > 0: bins = {0} passed.".format(bins)
-                    right = str(tmp[3]).strip().lower()
-                    assert right in ['true',
-                                     'false'], 'ST_HISTOGRAM() right argument was not set as a boolean: {0}'.format(
-                        right)
-                    if right == 'true':
-                        right = True
-                    else:
-                        right = False
-                    return [raster, nband, bins, right]
-
     @cached_property
     def histogram(self):
         """Retrieve ST_HISTOGRAM()-like info. This will return a dictionary object with bands as keys, and for each
-        band a nested list of (2xn) for bin and frequency.
-        e.g.: {['band1']: [[left-bin position, frequency] ... n-bins]]}
-        If no arguments were passed to ST_HISTOGRAM, then USE auto-calculated defaults and 1st band.
-        Otherwise, respond to the args.
+        band a nested list of (2xn) for bin and frequency. If the user wants us to use the optimum bin number,
+        they can pass n-bins 'auto' instead of an integer.
         """
         tmp_dic = {}
-        band_of_interest = self._band_names[0] # by default, set the first band as the band to examine
-        dont_flip_order = True
-        hist_args = self.st_histogram_kwarg_extraction()
-        if hist_args:
-            _, band_of_interest, input_bin_num, dont_flip_order = hist_args
-            input_min, input_max, _ = self._default_histogram_inputs(band_of_interest)
-        else:
-            input_min, input_max, input_bin_num = self._default_histogram_inputs(band_of_interest)
+        for function in self.group_functions:
+            if function['function'].lower() == "st_histogram":
+                values = function['value']
+                assert len(values) > 0, "ST_Histogram must be called with arguments"
+        hist_args = self.extract_postgis_arguments(values, ['raster','band_id', 'n_bins', 'bool'])
+        _, band_of_interest, input_bin_num, dont_flip_order = hist_args
+        input_min, input_max, auto_bins = self._default_histogram_inputs(band_of_interest)
+        if not input_bin_num:
+            input_bin_num = auto_bins
         d = {}
-        input_max = input_max + 1  # In EE counting the min -> max range is exclusive at max value, so need to increment
+        input_max = input_max + 1  # In EE counting the min -> max range is exc. at max, so need to increment here.
         d['reducer'] = ee.Reducer.fixedHistogram(input_min, input_max, input_bin_num)
         d['bestEffort'] = True
         if self.geojson:
             d['geometry'] = self.geojson
         tmp_response = ee.Image(self.target_data).select(band_of_interest).reduceRegion(**d).getInfo()
-        # tmp_response = ee.Image(self.target_data).reduceRegion(**d).getInfo()
         if dont_flip_order:
             tmp_dic[band_of_interest] = tmp_response[band_of_interest]
         else:
