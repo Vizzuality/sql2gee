@@ -101,7 +101,7 @@ def test_stdev_width_eq_table():
     assert q.response == 0.0, "STDEV with WHERE EQ 500 query incorrect"
 
 def test_identify_band_names():
-    sql = "SELECT ST_HISTOGRAM() FROM srtm90_v4"
+    sql = "SELECT ST_HISTOGRAM(rast, elevation, 10, true) FROM srtm90_v4"
     q = SQL2GEE(sql)
     assert q._band_names == ['elevation']
     return
@@ -144,9 +144,9 @@ def test_retrieve_st_bandmetadata():
 
 def test_ST_HISTOGRAM():
     """Test that a dictionary containing a list of expected length and values is returned"""
-    sql = "SELECT ST_HISTOGRAM() FROM srtm90_v4"
+    sql = "SELECT ST_HISTOGRAM(rast, 1, auto, true) FROM srtm90_v4"
     q = SQL2GEE(sql)
-    num_bins = len(q.histogram['elevation'])
+    num_bins = len(q.response['elevation'])
     assert num_bins == 753, "Should be 753 bins by default (set by Freedman-Diaconis method)"
     assert q.response['elevation'][0] == [-415.0, 14.0], 'First bin incorrect'
     assert q.response['elevation'][-1] == [7149.940239043825, 1.0], 'Last bin incorrect'
@@ -154,9 +154,9 @@ def test_ST_HISTOGRAM():
 
 
 def test_ST_HISTORGRAM_multiband_image():
-    """Without any speicifc keywords set, ST_HISTOGRAM gives back a dic with the first band, and best-guess binning"""
+    """ST_HISTOGRAM should give back a dic with the first band, and best-guess binning if auto argument is specified"""
     expected_keys = [u'B1']
-    q = SQL2GEE("SELECT ST_HISTOGRAM() FROM LC81412332013146LGN00")
+    q = SQL2GEE("SELECT ST_HISTOGRAM(rast, 1, auto, true) FROM LC81412332013146LGN00")
     assert isinstance(q.response, dict), "Dictionary was not returned as a response"
     assert len(q.response) == 1, "Size of the dictionary was diffrent from expected response"
     assert q.response.keys() == expected_keys, "Expected keys in response dictionary were not returned"
@@ -192,7 +192,7 @@ def test_ST_HISTOGRAM_with_area_restriction():
     j = r.json()
     j = j.get('data').get('attributes').get('geojson')
     # Initilise an SQL2GEE query object with geojson
-    q = SQL2GEE("SELECT ST_HISTOGRAM() FROM srtm90_v4", geojson=j)
+    q = SQL2GEE("SELECT ST_HISTOGRAM(rast, 1, auto, true) FROM srtm90_v4", geojson=j)
     assert isinstance(q.geojson, ee.FeatureCollection), "Geojson data not converted to ee.FeatureCollection type"
     assert len(q.response['elevation']) == 101, "Returned area-restricted histogram not equal to len of expected result"
     flist = [freq for x, freq in q.response['elevation']]
