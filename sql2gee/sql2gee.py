@@ -258,7 +258,7 @@ class SQL2GEE(object):
         exception_1 = Exception('Unable to determine dataset in SQL query statement.')
         for item in self._parsed.tokens:
             if from_seen:
-                if isinstance(item, Identifier):
+                if len(item.value.strip()) > 0:
                     return self.remove_quotes(str(item))
                 elif item.ttype is Keyword:
                     raise exception_1
