@@ -307,3 +307,13 @@ def test_ST_GeomFromGeoJSON():
     assert q.geojson, "Geojson was None"
     assert q.response == correct, "Incorrect response returned"
     return
+
+def test_auto_bug():
+    """Test a bug that was noticed regarding the use of auto as an argument"""
+    sql = "SELECT ST_HISTOGRAM(rast, 1, auto, true) FROM srtm90_v4"
+    q = SQL2GEE(sql)
+    try:
+        _ = q.response
+    except:
+        # If the response failed to retun fail this test...
+        assert False
