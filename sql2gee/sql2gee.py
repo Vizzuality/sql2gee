@@ -2,11 +2,13 @@ from __future__ import print_function, division
 from cached_property import cached_property
 import ee
 import re
+import ast
 import sqlparse
 from sqlparse.tokens import Keyword
 from sqlparse.sql import Identifier, IdentifierList, Function, Parenthesis, Comparison
 
-_default_geojson = {u'crs': {},
+_default_geojson = {u'crs':'EPSG:4326',
+
                     u'features': [
                                     {u'geometry': dict(coordinates=[[[[1.40625,
                                                            85.1114157806266],
@@ -63,7 +65,10 @@ class SQL2GEE(object):
         }
 
     def _geojson_to_featurecollection(self, geojson):
-        """If Geojson kwarg is recieved (containing geojson data) convert it into a useable E.E. object."""
+        """If Geojson kwarg is recieved or ST_GEOMFROMGEOJSON sql argument is used,
+        (containing geojson data) convert it into a useable E.E. object."""
+        if 'st_geomfromgeojson' in self._raw.lower():
+            geojson = self.geojson_from_STGeomFromGeoJSON()
         if isinstance(geojson, dict):
             assert geojson.get('features') != None, "Expected key not found in item passed to geojoson"
             ee_geoms = []
@@ -78,6 +83,25 @@ class SQL2GEE(object):
             return ee.FeatureCollection(ee_geoms)
         else:
             return None
+
+    def geojson_from_STGeomFromGeoJSON(self):
+        """Extract geojson dictionary, and crs code from a complex SQL command using Regex"""
+        geojson = {u'features': [],
+                   u'type': u'FeatureCollection'}
+        matchObj = re.match(r"(.*) ST_INTERSECTS((.*))", self._raw, re.M | re.I)
+        codestring = matchObj.group(2)
+        crs_code = re.search(r'(\),.*\),)', codestring, re.I).group(0)[2:-2]
+        assert int(crs_code) == 4326, "Project {code} not yet supported".format(code=crs_code)
+        searchObj = re.search(r'\{.*\}', codestring, re.I)
+        d_string = searchObj.group(0)
+        d = ast.literal_eval(d_string)
+        if int(crs_code) == 4326:
+            geojson['crs'] = 'EPSG:4326'
+        else:
+            assert False, ('{crs} currently unsupported'.format(crs=crs_code))
+        geojson['features'].append({u'geometry': d})
+        return geojson
+
 
     @cached_property
     def _is_image_request(self):

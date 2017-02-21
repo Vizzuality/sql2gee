@@ -285,3 +285,25 @@ def test_ST_HISTOGRAM_bins_correct():
     assert len(q.response['lossyear']) == 15, "15 bins expected"
     assert q.response['lossyear'][14][0] == 14, "Expected last bin to be 14 exactly"
     return
+
+def test_ST_GeomFromGeoJSON():
+    """Test that SQL queries can set a geojson object that gets correctly used."""
+    sql = ''.join(["SELECT ST_SUMMARYSTATS() FROM 'srtm90_v4'",
+                   "WHERE ST_INTERSECTS(ST_SetSRID(ST_GeomFromGeoJSON(",
+                   '{"type":"Polygon",',
+                   '"coordinates":[[[-43.39599609375,-4.740675384778361],'
+                   '[-43.39599609375,-4.959615024698014],'
+                   '[-43.17626953125,-4.806364708499984],'
+                   '[-43.39599609375,-4.740675384778361]]]}'
+                   "),4326), the_geom)"])
+    correct = {u'elevation': {'count': 34591,
+                    'max': 168,
+                    'mean': 100.04986846289498,
+                    'min': 52,
+                    'stdev': 21.884540897513183,
+                    'sum': 3460825.0}}
+    q = SQL2GEE(sql)
+    print(q._raw)
+    assert q.geojson, "Geojson was None"
+    assert q.response == correct, "Incorrect response returned"
+    return

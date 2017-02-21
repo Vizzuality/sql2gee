@@ -300,30 +300,6 @@ Summary statistics can be retrieved per-band of Images in the Earth Engine data 
                     'stdev': 865.9582784994756,
                     'sum': 1859471136.0274282}}
 
-It is possible to add an area-restriction to the image queries, by passing a geojson polygon or multipolygon object as an
-argument to the SQL2GEE class as follows.
-
-Note, in the below example we call a geojson object using a geostore API and the
-`Python Requests library <http://docs.python-requests.org/en/master/>`_, but if you happen-to-have a geojson handy, then
-you could simply pass that instead and skip lines 1-5.
-
-.. code-block:: python
-   :linenos:
-
-    import requests
-    gstore = "http://staging-api.globalforestwatch.org/geostore/4531cca6a8ddcf01bccf302b3dd7ae3f"
-    r = requests.get(gstore)
-    j = r.json()
-    j = j.get('data').get('attributes').get('geojson')
-
-    sql = "SELECT ST_SUMMARYSTATS() FROM srtm90_v4"
-    q = SQL2GEE(sql, geojson=j)
-    {u'elevation': {'count': 118037,
-                    'max': 489,
-                    'mean': 326.5521573743826,
-                    'min': 126,
-                    'stdev': 75.69057079693977,
-                    'sum': 38545237.0}}
 
 
 Histogram information over an Image Band
@@ -383,3 +359,68 @@ For example, we may retrieve histogram information for `B2` of a Landast-8 tile,
             [12361.3, 10498.752941176472],
             [13249.2, 2731.4980392156863],
             [14137.099999999999, 465.0]]}
+
+
+Area restriction of rasters via geojson
+---------------------------------------
+
+It is possible to add an area-restriction to the image queries by passing a geojson polygon or multipolygon object, or by using
+the **ST_GeomFromGeoJSON** POSTGIS argument. Both of these approaches are demonstrated in the following section. If a geojson
+is passed, any aggregations (summary statistics) or histogram operations on the rasters are only processed over the area of the
+raster which intersects the passed geojson.
+
+Passing a Geojson object directly as a kwarg
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+It is possible to pass a geojson to SQL2GEE via the geojson keyword argument, as shown below.
+
+Note, in the below example we call a geojson object using a geostore API and the
+`Python Requests library <http://docs.python-requests.org/en/master/>`_, but if you happen-to-have a geojson handy, then
+you could simply pass that instead and skip lines 1-5.
+
+.. code-block:: python
+   :linenos:
+
+    import requests
+    gstore = "http://staging-api.globalforestwatch.org/geostore/4531cca6a8ddcf01bccf302b3dd7ae3f"
+    r = requests.get(gstore)
+    j = r.json()
+    j = j.get('data').get('attributes').get('geojson')
+
+    sql = "SELECT ST_SUMMARYSTATS() FROM srtm90_v4"
+    q = SQL2GEE(sql, geojson=j)
+    {u'elevation': {'count': 118037,
+                    'max': 489,
+                    'mean': 326.5521573743826,
+                    'min': 126,
+                    'stdev': 75.69057079693977,
+                    'sum': 38545237.0}}
+
+Passing a Geojson via SQL
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Geojson can be created directly using POSTGIS-like functions via **ST_GeomFromGeoJSON**, as shown below.
+Currently, SQL2GEE only supports arguments in the form of ST_INTERSECTS(ST_SetSRID(ST_GeomFromGeoJSON(*[args]**),
+and only for EPSG:4326.
+
+.. code-block:: python
+   :linenos:
+
+    sql = ''.join(["SELECT ST_SUMMARYSTATS() FROM 'srtm90_v4'",
+                   "WHERE ST_INTERSECTS(ST_SetSRID(ST_GeomFromGeoJSON(",
+                   '{"type":"Polygon",',
+                    '"coordinates":[[[-43.39599609375,-4.740675384778361],'
+                    '[-43.39599609375,-4.959615024698014],'
+                    '[-43.17626953125,-4.806364708499984],'
+                    '[-43.39599609375,-4.740675384778361]]]}'
+                    "),4326), the_geom)"])
+    print(sql)
+    SELECT ST_SUMMARYSTATS() FROM 'srtm90_v4'WHERE ST_INTERSECTS(ST_SetSRID(ST_GeomFromGeoJSON({"type":"Polygon","coordinates":[[[-43.39599609375,-4.740675384778361],[-43.39599609375,-4.959615024698014],[-43.17626953125,-4.806364708499984],[-43.39599609375,-4.740675384778361]]]}),4326), the_geom)
+    q = SQL2GEE(sql)
+    q.response
+    {'elevation': {'count': 34591,
+                    'max': 168,
+                    'mean': 100.04986846289498,
+                    'min': 52,
+                    'stdev': 21.884540897513183,
+                    'sum': 3460825.0}}
