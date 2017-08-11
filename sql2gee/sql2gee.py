@@ -159,7 +159,8 @@ class SQL2GEE(object):
     @property
     def st_metadata(self):
         """The image property Metadata dictionary returned from Earth Engine."""
-        return self._metadata['properties']
+        metadata=self._metadata['properties'].copy()
+        return metadata.update({"bands":self._metadata['bands']})
 
 
     def extract_postgis_arguments(self, argument_string, list_of_expected):
