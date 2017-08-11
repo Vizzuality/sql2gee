@@ -101,10 +101,10 @@ def test_stdev_width_eq_table():
     assert q.response == 0.0, "STDEV with WHERE EQ 500 query incorrect"
 
 def test_identify_band_names():
-    sql = "SELECT ST_HISTOGRAM(rast, elevation, 10, true) FROM srtm90_v4"
-    q = SQL2GEE(sql)
-    assert q._band_names == ['elevation']
-    return
+   sql = "SELECT ST_HISTOGRAM(rast, elevation, 10, true) FROM srtm90_v4"
+   q = SQL2GEE(sql)
+   assert q._band_names == ['elevation']
+   return
 
 def test_retrieve_st_metadata():
     """Test that basic raster metadata (in dictionary format) is returned when
@@ -115,7 +115,30 @@ def test_retrieve_st_metadata():
     q = SQL2GEE("SELECT ST_METADATA(rast) FROM srtm90_v4")
     ee_meta = {u'system:asset_size': 18827626666,
                u'system:time_end': 951177600000,
-               u'system:time_start': 950227200000}
+               u'system:time_start': 950227200000,
+               u'bands':[{
+                          "id": "elevation",
+                          "data_type": {
+                            "type": "PixelType",
+                            "precision": "int",
+                            "min": -32768,
+                            "max": 32767
+                          },
+                          "dimensions": [
+                            432000,
+                            144000
+                          ],
+                          "crs": "EPSG:4326",
+                          "crs_transform": [
+                            0.000833333333333,
+                            0,
+                            -180,
+                            0,
+                            -0.000833333333333,
+                            60
+                          ]
+                        }]
+            }
     assert q.response == ee_meta, 'Metadata response was not equal to expected metadata'
     return
 
@@ -316,4 +339,14 @@ def test_auto_bug():
         _ = q.response
     except:
         # If the response failed to retun fail this test...
-        assert False
+        assert q.response == None
+
+def test_band_byname():
+    """Test a bug that was noticed regarding the use of auto as an argument"""
+    sql = "SELECT ST_HISTOGRAM(rast, 'elevation', auto, true) FROM srtm90_v4"
+    q = SQL2GEE(sql)
+    try:
+        _=q.response
+    except:
+        # If the response failed to retun fail this test...
+        assert q.response == None
