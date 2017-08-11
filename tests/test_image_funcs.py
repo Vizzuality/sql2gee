@@ -210,17 +210,17 @@ def test_ST_HISTOGRAM_with_area_restriction():
     """If a geojson argument is passed to SQL2GEE it should be converted into an Earth Engine Feature Collection.
     This should then be used to subset the area considered for results."""
     # Get a test geojson object by accessing Vizzuality's geostore
-    gstore = "http://staging-api.globalforestwatch.org/geostore/4531cca6a8ddcf01bccf302b3dd7ae3f"
+    gstore = "https://api.resourcewatch.org/v1/geostore/4f91a9a8af95148a7c962ffad6683e04"
     r = requests.get(gstore)
     j = r.json()
     j = j.get('data').get('attributes').get('geojson')
     # Initilise an SQL2GEE query object with geojson
     q = SQL2GEE("SELECT ST_HISTOGRAM(rast, 1, auto, true) FROM srtm90_v4", geojson=j)
     assert isinstance(q.geojson, ee.FeatureCollection), "Geojson data not converted to ee.FeatureCollection type"
-    assert len(q.response['elevation']) == 101, "Returned area-restricted histogram not equal to len of expected result"
+    assert len(q.response['elevation']) == 537, "Returned area-restricted histogram not equal to len of expected result"
     flist = [freq for x, freq in q.response['elevation']]
-    assert np.mean(flist) == 1168.6831683168316, "Values returned from histogram dont match expected"
-    assert q.response['elevation'][0] == [126.0, 8.0], "Returned bins don't match expected values"
+    assert np.mean(flist) == 4310.0093109869649, "Values returned from histogram dont match expected"
+    assert q.response['elevation'][0] == [175.0, 1.0], "Returned bins don't match expected values"
     return
 
 def test_limit_on_tables():
@@ -253,13 +253,13 @@ def test_STSUMMARYSTATS():
 
 def test_STSUMMARYSTATS_with_area_restriction_from_geojson_polygon():
     """First, I need to construct a simple polygon out of multipolygon data, and pass that to SQL2GEE"""
-    expected = {u'elevation': {'count': 99626,
-                               'max': 489,
-                               'mean': 345.39571999277297,
-                               'min': 194,
-                               'stdev': 64.2380798454734,
-                               'sum': 34410394.0}}
-    gstore = "http://staging-api.globalforestwatch.org/geostore/4531cca6a8ddcf01bccf302b3dd7ae3f"
+    expected = {u'elevation': {'count': 1207370,
+                               'max': 6578,
+                               'mean': 739.3035584541427,
+                               'min': -415,
+                               'stdev': 925.6313430936199,
+                               'sum': 877177731.5843003}}
+    gstore = "https://api.resourcewatch.org/v1/geostore/ca38fa80a4ffa9ac6217a7e0bf71e6df"
     r = requests.get(gstore)
     j = r.json()
     j = j.get('data').get('attributes').get('geojson')
@@ -275,13 +275,13 @@ def test_STSUMMARYSTATS_with_area_restriction_via_passing_geojson_multipolygon()
     """If a geojson argument is passed to SQL2GEE it should be converted into an Earth Engine Feature Collection.
     This should then be used to subset the area considered for results."""
     # Get a test geojson object by accessing Vizzuality's geostore
-    expected = {u'elevation': {'count': 118037,
-                                'max': 489,
-                                'mean': 326.5521573743826,
-                                'min': 126,
-                                'stdev': 75.69057079693977,
-                                'sum': 38545237.0}}
-    gstore = "http://staging-api.globalforestwatch.org/geostore/4531cca6a8ddcf01bccf302b3dd7ae3f"
+    expected = {u'elevation': {'count': 0,
+                               'max': None,
+                               'mean': None,
+                               'min': None,
+                               'stdev': None,
+                               'sum': 0.0}}
+    gstore = "https://api.resourcewatch.org/v1/geostore/ca38fa80a4ffa9ac6217a7e0bf71e6df"
     r = requests.get(gstore)
     j = r.json()
     j = j.get('data').get('attributes').get('geojson')
