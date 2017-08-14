@@ -1,5 +1,6 @@
 from __future__ import print_function, division
 from cached_property import cached_property
+
 import ee
 import re
 import ast
@@ -159,7 +160,11 @@ class SQL2GEE(object):
     @property
     def st_metadata(self):
         """The image property Metadata dictionary returned from Earth Engine."""
-        return self._metadata['properties']
+        metadata=self._metadata['properties'].copy()
+        metadata.update({"bands": self._metadata['bands']})
+        assert metadata != None, "No metadata available"
+        
+        return metadata
 
 
     def extract_postgis_arguments(self, argument_string, list_of_expected):
@@ -176,11 +181,13 @@ class SQL2GEE(object):
             if expected is 'raster':
                 return_values.append(str(argument.strip()))
             if expected is 'band_id':
-                try:
+                if str(argument.strip().strip("'")) in  self._band_names:
+                    nband = str(argument.strip().strip("'"))
+                    
+                else:
                     numband = int(argument.strip()) - 1  # a zero index for self._band_list
                     nband = self._band_names[numband]
-                except:
-                    nband = str(argument.strip())
+                        
                 assert nband in self._band_names, '{0} is not a valid band name in the requested data.'.format(nband)
                 return_values.append(nband)
             if expected is 'n_bins':
