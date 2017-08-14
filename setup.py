@@ -16,5 +16,5 @@ setup(name='sql2gee',
       package_data={'sql2gee': ['tests/*.py', ], },
       test_suite='tests',
       url='https://github.com/Vizzuality/sql2gee',
-      download_url='https://github.com/Vizzuality/sql2gee/tarball/0.1.1',
+      download_url='http://github.com/Vizzuality/sql2gee/tarball/0.1.1',
       zip_safe=False)
