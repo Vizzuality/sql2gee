@@ -9,7 +9,6 @@ from sqlparse.tokens import Keyword
 from sqlparse.sql import Identifier, IdentifierList, Function, Parenthesis, Comparison
 
 _default_geojson = {u'crs':'EPSG:4326',
-
                     u'features': [
                                     {u'geometry': dict(coordinates=[[[[1.40625,
                                                            85.1114157806266],
@@ -70,18 +69,10 @@ class SQL2GEE(object):
         (containing geojson data) convert it into a useable E.E. object."""
         if 'st_geomfromgeojson' in self._raw.lower():
             geojson = self.geojson_from_STGeomFromGeoJSON()
+        #print(geojson)
         if isinstance(geojson, dict):
             assert geojson.get('features') != None, "Expected key not found in item passed to geojoson"
-            ee_geoms = []
-            for feature in geojson.get('features'):
-                feature_type = feature.get("geometry").get('type').lower()
-                if feature_type == 'multipolygon':
-                    tmp = ee.Geometry.MultiPolygon(feature.get('geometry').get('coordinates'))
-                    ee_geoms.append(tmp)
-                else:
-                    tmp = ee.Geometry.Polygon(feature.get('geometry').get('coordinates'))
-                    ee_geoms.append(tmp)
-            return ee.FeatureCollection(ee_geoms)
+            return ee.FeatureCollection(geojson.get('features'))
         else:
             return None
 
@@ -97,10 +88,11 @@ class SQL2GEE(object):
         d_string = searchObj.group(0)
         d = ast.literal_eval(d_string)
         if int(crs_code) == 4326:
-            geojson['crs'] = 'EPSG:4326'
+            geojson[u'crs'] = u'EPSG:4326'
         else:
             assert False, ('{crs} currently unsupported'.format(crs=crs_code))
-        geojson['features'].append({u'geometry': d})
+        geojson['features'].append({u'type':u'Feature',u'properties':{},u'geometry': d})
+        
         return geojson
 
 
@@ -110,7 +102,7 @@ class SQL2GEE(object):
         be used to do this."""
         tmp = [r for r in re.split('[\(\*\)\s]', self._raw.lower()) if r != '']
         tmp = set(tmp)
-        image_keywords = {'st_histogram', 'st_metadata', 'st_summarystats', 'st_bandmetadata'}
+        image_keywords = {'st_histogram', 'st_metadata', 'st_summarystats', 'st_bandmetadata', 'st_valuecount'}
         intersect = tmp.intersection(image_keywords)
         if len(intersect) == 0:
             return False
@@ -174,20 +166,19 @@ class SQL2GEE(object):
         """
         assert len(argument_string) > 0, "No arguments passed to postgis function"
         value_list = argument_string.split(',')
-        assert len(value_list) == len(
-            list_of_expected), "argument string from postgis not equal to list of expected keys"
+        assert len(value_list) == len(list_of_expected), "argument string from postgis not equal to list of expected keys"
         return_values = []
         for expected, argument in zip(list_of_expected, value_list):
             if expected is 'raster':
                 return_values.append(str(argument.strip()))
             if expected is 'band_id':
                 if str(argument.strip().strip("'")) in  self._band_names:
-                    nband = str(argument.strip().strip("'"))
-                    
+                    nband = str(argument.strip().strip("'")) 
+                                       
                 else:
                     numband = int(argument.strip()) - 1  # a zero index for self._band_list
                     nband = self._band_names[numband]
-                        
+                    
                 assert nband in self._band_names, '{0} is not a valid band name in the requested data.'.format(nband)
                 return_values.append(nband)
             if expected is 'n_bins':
@@ -219,6 +210,32 @@ class SQL2GEE(object):
             if band.get('id') == nband:
                 tmp_meta = band
         return tmp_meta
+
+    @cached_property
+    def st_valuecount(self):
+        """Return only metadata for a specifically requested band, like postgis function"""
+        #tmp_dic = {}
+        for function in self.group_functions:
+            if function['function'].lower() == "st_valuecount":
+                values = function['value']
+                assert len(values) > 0, "raster string and bandnum integer (or band key string) must be provided"
+                _, band_of_interest, no_drop_no_data_val = self.extract_postgis_arguments(values, ['raster','band_id', 'bool'])
+        d = {}
+        d['reducer'] = ee.Reducer.frequencyHistogram().unweighted()
+        d['bestEffort'] = True
+        d['maxPixels'] =  9000000000
+        if self.geojson:
+            d['geometry'] = self.geojson
+        tmp_response = ee.Image(self.target_data).select(band_of_interest).reduceRegion(**d).getInfo()
+        if no_drop_no_data_val != True:
+            try:
+                del tmp_response[band_of_interest]['null']
+            except KeyError:
+                pass
+        #else:
+            
+            #tmp_dic[band_of_interest] = tmp_response[band_of_interest]
+        return tmp_response
 
     @cached_property
     def summary_stats(self):
@@ -360,6 +377,8 @@ class SQL2GEE(object):
                     return self.st_bandmetadata
                 if func["function"].lower() == 'st_summarystats':
                     return self.summary_stats
+                if func["function"].lower() == 'st_valuecount':
+                    return self.st_valuecount
 
     @cached_property
     def _feature_collection(self):
