@@ -1,0 +1,812 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>sql2gee.sql2gee &mdash; sql2gee 0.1.2 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../../genindex.html"/>
+        <link rel="search" title="Search" href="../../search.html"/>
+    <link rel="top" title="sql2gee 0.1.2 documentation" href="../../index.html"/>
+        <link rel="up" title="Module code" href="../index.html"/> 
+
+  
+  <script src="../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> sql2gee
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.1.2
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../supportedsyntax.html">Supported SQL and Postgis Syntax</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../gettingstarted.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../moreExamples.html">Detailed Examples of SQL2GEE’s use</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../sql2gee.html">The sql2gee Package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../support.html">Support</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">sql2gee</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>sql2gee.sql2gee</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for sql2gee.sql2gee</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span><span class="p">,</span> <span class="n">division</span>
+<span class="kn">from</span> <span class="nn">cached_property</span> <span class="k">import</span> <span class="n">cached_property</span>
+
+<span class="kn">import</span> <span class="nn">ee</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">import</span> <span class="nn">ast</span>
+<span class="kn">import</span> <span class="nn">sqlparse</span>
+<span class="kn">from</span> <span class="nn">sqlparse.tokens</span> <span class="k">import</span> <span class="n">Keyword</span>
+<span class="kn">from</span> <span class="nn">sqlparse.sql</span> <span class="k">import</span> <span class="n">Identifier</span><span class="p">,</span> <span class="n">IdentifierList</span><span class="p">,</span> <span class="n">Function</span><span class="p">,</span> <span class="n">Parenthesis</span><span class="p">,</span> <span class="n">Comparison</span>
+
+<span class="n">_default_geojson</span> <span class="o">=</span> <span class="p">{</span><span class="sa">u</span><span class="s1">&#39;crs&#39;</span><span class="p">:</span><span class="s1">&#39;EPSG:4326&#39;</span><span class="p">,</span>
+                    <span class="sa">u</span><span class="s1">&#39;features&#39;</span><span class="p">:</span> <span class="p">[</span>
+                                    <span class="p">{</span><span class="sa">u</span><span class="s1">&#39;geometry&#39;</span><span class="p">:</span> <span class="nb">dict</span><span class="p">(</span><span class="n">coordinates</span><span class="o">=</span><span class="p">[[[[</span><span class="mf">1.40625</span><span class="p">,</span>
+                                                           <span class="mf">85.1114157806266</span><span class="p">],</span>
+                                                          <span class="p">[</span><span class="mi">0</span><span class="p">,</span>
+                                                           <span class="o">-</span><span class="mf">84.99010018023479</span><span class="p">],</span>
+                                                          <span class="p">[</span><span class="o">-</span><span class="mi">180</span><span class="p">,</span>
+                                                           <span class="o">-</span><span class="mf">85.05112877980659</span><span class="p">],</span>
+                                                          <span class="p">[</span><span class="o">-</span><span class="mi">180</span><span class="p">,</span>
+                                                           <span class="mf">85.1114157806266</span><span class="p">]]],</span>
+                                                        <span class="p">[[[</span><span class="mf">179.296875</span><span class="p">,</span>
+                                                           <span class="mf">85.05112877980659</span><span class="p">],</span>
+                                                          <span class="p">[</span><span class="mf">1.40625</span><span class="p">,</span>
+                                                           <span class="mf">85.05112877980659</span><span class="p">],</span>
+                                                          <span class="p">[</span><span class="mf">0.703125</span><span class="p">,</span>
+                                                           <span class="o">-</span><span class="mf">84.99010018023479</span><span class="p">],</span>
+                                                          <span class="p">[</span><span class="mf">179.296875</span><span class="p">,</span>
+                                                           <span class="o">-</span><span class="mf">84.86578186731522</span><span class="p">]]]],</span>
+                                    <span class="n">evenOdd</span><span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+                                    <span class="nb">type</span><span class="o">=</span> <span class="sa">u</span><span class="s1">&#39;MultiPolygon&#39;</span><span class="p">),</span>
+                                    <span class="sa">u</span><span class="s1">&#39;type&#39;</span><span class="p">:</span> <span class="sa">u</span><span class="s1">&#39;Feature&#39;</span><span class="p">}</span>
+                                <span class="p">],</span>
+                    <span class="sa">u</span><span class="s1">&#39;type&#39;</span><span class="p">:</span> <span class="sa">u</span><span class="s1">&#39;FeatureCollection&#39;</span><span class="p">}</span>
+
+<div class="viewcode-block" id="SQL2GEE"><a class="viewcode-back" href="../../sql2gee.html#sql2gee.sql2gee.SQL2GEE">[docs]</a><span class="k">class</span> <span class="nc">SQL2GEE</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Takes an SQL-like query and relates it to Google&#39;s Earth Engine syntax (specifically the Python 2.7 GEE API).</span>
+<span class="sd">    Designed to perform operations on two types of geo-objects, Polygons (Feature Collections) or Rasters (Images).</span>
+<span class="sd">    For the rasters there are only a specific number of valid operations (retrieve metadata, histogram data, or get</span>
+<span class="sd">    summary statistics). We use postgis-like functions as the syntax to do this, and check to see if this is given in</span>
+<span class="sd">    the sql string to detect the user intention.</span>
+
+<span class="sd">    If geojson data is provided, we will assume that a user intends for us to subset an image, by these data.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sql</span><span class="p">,</span> <span class="n">geojson</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">flags</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_raw</span> <span class="o">=</span> <span class="n">sql</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_parsed</span> <span class="o">=</span> <span class="n">sqlparse</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">sql</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">geojson</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_geojson_to_featurecollection</span><span class="p">(</span><span class="n">geojson</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">flags</span> <span class="o">=</span> <span class="n">flags</span>  <span class="c1"># &lt;-- Will be used in a later version of the code</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_filters</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;&lt;&#39;</span><span class="p">:</span> <span class="n">ee</span><span class="o">.</span><span class="n">Filter</span><span class="p">()</span><span class="o">.</span><span class="n">lt</span><span class="p">,</span>
+            <span class="s1">&#39;&lt;=&#39;</span><span class="p">:</span> <span class="n">ee</span><span class="o">.</span><span class="n">Filter</span><span class="p">()</span><span class="o">.</span><span class="n">lte</span><span class="p">,</span>
+            <span class="s1">&#39;&gt;&#39;</span><span class="p">:</span> <span class="n">ee</span><span class="o">.</span><span class="n">Filter</span><span class="p">()</span><span class="o">.</span><span class="n">gt</span><span class="p">,</span>
+            <span class="s1">&#39;&gt;=&#39;</span><span class="p">:</span> <span class="n">ee</span><span class="o">.</span><span class="n">Filter</span><span class="p">()</span><span class="o">.</span><span class="n">gte</span><span class="p">,</span>
+            <span class="s1">&#39;&lt;&gt;&#39;</span><span class="p">:</span> <span class="n">ee</span><span class="o">.</span><span class="n">Filter</span><span class="p">()</span><span class="o">.</span><span class="n">neq</span><span class="p">,</span>
+            <span class="s1">&#39;=&#39;</span><span class="p">:</span> <span class="n">ee</span><span class="o">.</span><span class="n">Filter</span><span class="p">()</span><span class="o">.</span><span class="n">eq</span><span class="p">,</span>
+            <span class="s1">&#39;%LIKE%&#39;</span><span class="p">:</span> <span class="n">ee</span><span class="o">.</span><span class="n">Filter</span><span class="p">()</span><span class="o">.</span><span class="n">stringContains</span><span class="p">,</span>
+            <span class="s1">&#39;%LIKE&#39;</span><span class="p">:</span> <span class="n">ee</span><span class="o">.</span><span class="n">Filter</span><span class="p">()</span><span class="o">.</span><span class="n">stringEndsWith</span><span class="p">,</span>
+            <span class="s1">&#39;LIKE%&#39;</span><span class="p">:</span> <span class="n">ee</span><span class="o">.</span><span class="n">Filter</span><span class="p">()</span><span class="o">.</span><span class="n">stringStartsWith</span><span class="p">,</span>
+            <span class="s1">&#39;LIKE&#39;</span><span class="p">:</span> <span class="n">ee</span><span class="o">.</span><span class="n">Filter</span><span class="p">()</span><span class="o">.</span><span class="n">eq</span><span class="p">,</span>
+        <span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_comparisons</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;AND&#39;</span><span class="p">:</span> <span class="n">ee</span><span class="o">.</span><span class="n">Filter</span><span class="p">()</span><span class="o">.</span><span class="n">And</span><span class="p">,</span>
+            <span class="s1">&#39;OR&#39;</span><span class="p">:</span> <span class="n">ee</span><span class="o">.</span><span class="n">Filter</span><span class="p">()</span><span class="o">.</span><span class="n">Or</span>
+        <span class="p">}</span>
+
+    <span class="k">def</span> <span class="nf">_geojson_to_featurecollection</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">geojson</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;If Geojson kwarg is recieved or ST_GEOMFROMGEOJSON sql argument is used,</span>
+<span class="sd">        (containing geojson data) convert it into a useable E.E. object.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="s1">&#39;st_geomfromgeojson&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_raw</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
+            <span class="n">geojson</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">geojson_from_STGeomFromGeoJSON</span><span class="p">()</span>
+        <span class="c1">#print(geojson)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">geojson</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="k">assert</span> <span class="n">geojson</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;features&#39;</span><span class="p">)</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;Expected key not found in item passed to geojoson&quot;</span>
+            <span class="k">return</span> <span class="n">ee</span><span class="o">.</span><span class="n">FeatureCollection</span><span class="p">(</span><span class="n">geojson</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;features&#39;</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="SQL2GEE.geojson_from_STGeomFromGeoJSON"><a class="viewcode-back" href="../../sql2gee.html#sql2gee.sql2gee.SQL2GEE.geojson_from_STGeomFromGeoJSON">[docs]</a>    <span class="k">def</span> <span class="nf">geojson_from_STGeomFromGeoJSON</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Extract geojson dictionary, and crs code from a complex SQL command using Regex&quot;&quot;&quot;</span>
+        <span class="n">geojson</span> <span class="o">=</span> <span class="p">{</span><span class="sa">u</span><span class="s1">&#39;features&#39;</span><span class="p">:</span> <span class="p">[],</span>
+                   <span class="sa">u</span><span class="s1">&#39;type&#39;</span><span class="p">:</span> <span class="sa">u</span><span class="s1">&#39;FeatureCollection&#39;</span><span class="p">}</span>
+        <span class="n">matchObj</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;(.*) ST_INTERSECTS((.*))&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_raw</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">M</span> <span class="o">|</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">)</span>
+        <span class="n">codestring</span> <span class="o">=</span> <span class="n">matchObj</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+        <span class="n">crs_code</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;(\),.*\),)&#39;</span><span class="p">,</span> <span class="n">codestring</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">)</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">0</span><span class="p">)[</span><span class="mi">2</span><span class="p">:</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span>
+        <span class="k">assert</span> <span class="nb">int</span><span class="p">(</span><span class="n">crs_code</span><span class="p">)</span> <span class="o">==</span> <span class="mi">4326</span><span class="p">,</span> <span class="s2">&quot;Project </span><span class="si">{code}</span><span class="s2"> not yet supported&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">code</span><span class="o">=</span><span class="n">crs_code</span><span class="p">)</span>
+        <span class="n">searchObj</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;\{.*\}&#39;</span><span class="p">,</span> <span class="n">codestring</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">)</span>
+        <span class="n">d_string</span> <span class="o">=</span> <span class="n">searchObj</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="n">ast</span><span class="o">.</span><span class="n">literal_eval</span><span class="p">(</span><span class="n">d_string</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">int</span><span class="p">(</span><span class="n">crs_code</span><span class="p">)</span> <span class="o">==</span> <span class="mi">4326</span><span class="p">:</span>
+            <span class="n">geojson</span><span class="p">[</span><span class="sa">u</span><span class="s1">&#39;crs&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="sa">u</span><span class="s1">&#39;EPSG:4326&#39;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="kc">False</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;</span><span class="si">{crs}</span><span class="s1"> currently unsupported&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">crs</span><span class="o">=</span><span class="n">crs_code</span><span class="p">))</span>
+        <span class="n">geojson</span><span class="p">[</span><span class="s1">&#39;features&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="sa">u</span><span class="s1">&#39;type&#39;</span><span class="p">:</span><span class="sa">u</span><span class="s1">&#39;Feature&#39;</span><span class="p">,</span><span class="sa">u</span><span class="s1">&#39;properties&#39;</span><span class="p">:{},</span><span class="sa">u</span><span class="s1">&#39;geometry&#39;</span><span class="p">:</span> <span class="n">d</span><span class="p">})</span>
+        
+        <span class="k">return</span> <span class="n">geojson</span></div>
+
+
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span> <span class="nf">_is_image_request</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Detect if the user intends to use an image (True) or Feature collection (False). In the future a flag will</span>
+<span class="sd">        be used to do this.&quot;&quot;&quot;</span>
+        <span class="n">tmp</span> <span class="o">=</span> <span class="p">[</span><span class="n">r</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">re</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;[\(\*\)\s]&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_raw</span><span class="o">.</span><span class="n">lower</span><span class="p">())</span> <span class="k">if</span> <span class="n">r</span> <span class="o">!=</span> <span class="s1">&#39;&#39;</span><span class="p">]</span>
+        <span class="n">tmp</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">tmp</span><span class="p">)</span>
+        <span class="n">image_keywords</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;st_histogram&#39;</span><span class="p">,</span> <span class="s1">&#39;st_metadata&#39;</span><span class="p">,</span> <span class="s1">&#39;st_summarystats&#39;</span><span class="p">,</span> <span class="s1">&#39;st_bandmetadata&#39;</span><span class="p">,</span> <span class="s1">&#39;st_valuecount&#39;</span><span class="p">}</span>
+        <span class="n">intersect</span> <span class="o">=</span> <span class="n">tmp</span><span class="o">.</span><span class="n">intersection</span><span class="p">(</span><span class="n">image_keywords</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">intersect</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">intersect</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Found multiple image-type keywords. Unsure of action.&quot;</span><span class="p">)</span>
+
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span> <span class="nf">_band_names</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_image_request</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">ee</span><span class="o">.</span><span class="n">Image</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">target_data</span><span class="p">)</span><span class="o">.</span><span class="n">bandNames</span><span class="p">()</span><span class="o">.</span><span class="n">getInfo</span><span class="p">()</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">_reduce_image</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Construct a combined reducer dictionary and pass it to a ReduceRegion().getInfo() command.</span>
+<span class="sd">        If a geometry has been passed to SQL2GEE, it will be passed to ensure only a subset of the band is examined.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">d</span><span class="o">=</span><span class="p">{}</span>
+        <span class="n">d</span><span class="p">[</span><span class="s1">&#39;bestEffort&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">geojson</span><span class="p">:</span>
+            <span class="n">d</span><span class="p">[</span><span class="s1">&#39;geometry&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">geojson</span>
+        <span class="n">d</span><span class="p">[</span><span class="s1">&#39;reducer&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ee</span><span class="o">.</span><span class="n">Reducer</span><span class="o">.</span><span class="n">count</span><span class="p">()</span><span class="o">.</span><span class="n">combine</span><span class="p">(</span><span class="n">ee</span><span class="o">.</span><span class="n">Reducer</span><span class="o">.</span><span class="n">sum</span><span class="p">(),</span> <span class="n">outputPrefix</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">sharedInputs</span><span class="o">=</span><span class="kc">True</span>
+                        <span class="p">)</span><span class="o">.</span><span class="n">combine</span><span class="p">(</span><span class="n">ee</span><span class="o">.</span><span class="n">Reducer</span><span class="o">.</span><span class="n">mean</span><span class="p">(),</span> <span class="n">outputPrefix</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">sharedInputs</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">combine</span><span class="p">(</span>
+                        <span class="n">ee</span><span class="o">.</span><span class="n">Reducer</span><span class="o">.</span><span class="n">sampleStdDev</span><span class="p">(),</span> <span class="n">outputPrefix</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">sharedInputs</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">combine</span><span class="p">(</span><span class="n">ee</span><span class="o">.</span><span class="n">Reducer</span><span class="o">.</span><span class="n">min</span><span class="p">(),</span>
+                        <span class="n">outputPrefix</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">sharedInputs</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">combine</span><span class="p">(</span><span class="n">ee</span><span class="o">.</span><span class="n">Reducer</span><span class="o">.</span><span class="n">max</span><span class="p">(),</span> <span class="n">outputPrefix</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span>
+                        <span class="n">sharedInputs</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">combine</span><span class="p">(</span><span class="n">ee</span><span class="o">.</span><span class="n">Reducer</span><span class="o">.</span><span class="n">percentile</span><span class="p">([</span><span class="mi">25</span><span class="p">,</span> <span class="mi">75</span><span class="p">]),</span> <span class="n">outputPrefix</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">sharedInputs</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">ee</span><span class="o">.</span><span class="n">Image</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">target_data</span><span class="p">)</span><span class="o">.</span><span class="n">reduceRegion</span><span class="p">(</span><span class="o">**</span><span class="n">d</span><span class="p">)</span><span class="o">.</span><span class="n">getInfo</span><span class="p">()</span>
+
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span> <span class="nf">_band_IQR</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return a dictionary object with the InterQuartileRange (Q3 - Q1) per band.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_image_request</span><span class="p">:</span>
+            <span class="n">iqr</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="k">for</span> <span class="n">band</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_band_names</span><span class="p">:</span>
+                <span class="n">tmp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_reduce_image</span><span class="p">[</span><span class="n">band</span> <span class="o">+</span> <span class="s1">&#39;_p75&#39;</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_reduce_image</span><span class="p">[</span><span class="n">band</span> <span class="o">+</span> <span class="s1">&#39;_p25&#39;</span><span class="p">]</span>
+                <span class="n">iqr</span><span class="p">[</span><span class="n">band</span><span class="p">]</span> <span class="o">=</span> <span class="n">tmp</span>
+                <span class="k">del</span> <span class="n">tmp</span>
+            <span class="k">return</span> <span class="n">iqr</span>
+
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span> <span class="nf">_metadata</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Property that holds the Metadata dictionary returned from Earth Engine.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_image_request</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">ee</span><span class="o">.</span><span class="n">Image</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">target_data</span><span class="p">)</span><span class="o">.</span><span class="n">getInfo</span><span class="p">()</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">st_metadata</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The image property Metadata dictionary returned from Earth Engine.&quot;&quot;&quot;</span>
+        <span class="n">metadata</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_metadata</span><span class="p">[</span><span class="s1">&#39;properties&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">metadata</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s2">&quot;bands&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_metadata</span><span class="p">[</span><span class="s1">&#39;bands&#39;</span><span class="p">]})</span>
+        <span class="k">assert</span> <span class="n">metadata</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;No metadata available&quot;</span>
+        
+        <span class="k">return</span> <span class="n">metadata</span>
+
+
+<div class="viewcode-block" id="SQL2GEE.extract_postgis_arguments"><a class="viewcode-back" href="../../sql2gee.html#sql2gee.sql2gee.SQL2GEE.extract_postgis_arguments">[docs]</a>    <span class="k">def</span> <span class="nf">extract_postgis_arguments</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">argument_string</span><span class="p">,</span> <span class="n">list_of_expected</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Expects a string list of arguments passed to postgis function, and an ordered list of keys needed</span>
+<span class="sd">        In this way, we should be able to handle any postgis argument arrangements:</span>
+<span class="sd">        value_string, ordered keyword list: [&#39;raster&#39;, &#39;band_id&#39;, &#39;n_bins&#39;])</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">argument_string</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;No arguments passed to postgis function&quot;</span>
+        <span class="n">value_list</span> <span class="o">=</span> <span class="n">argument_string</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">value_list</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">list_of_expected</span><span class="p">),</span> <span class="s2">&quot;argument string from postgis not equal to list of expected keys&quot;</span>
+        <span class="n">return_values</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">expected</span><span class="p">,</span> <span class="n">argument</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">list_of_expected</span><span class="p">,</span> <span class="n">value_list</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">expected</span> <span class="ow">is</span> <span class="s1">&#39;raster&#39;</span><span class="p">:</span>
+                <span class="n">return_values</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">argument</span><span class="o">.</span><span class="n">strip</span><span class="p">()))</span>
+            <span class="k">if</span> <span class="n">expected</span> <span class="ow">is</span> <span class="s1">&#39;band_id&#39;</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">argument</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s2">&quot;&#39;&quot;</span><span class="p">))</span> <span class="ow">in</span>  <span class="bp">self</span><span class="o">.</span><span class="n">_band_names</span><span class="p">:</span>
+                    <span class="n">nband</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">argument</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s2">&quot;&#39;&quot;</span><span class="p">))</span> 
+                                       
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">numband</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">argument</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span> <span class="o">-</span> <span class="mi">1</span>  <span class="c1"># a zero index for self._band_list</span>
+                    <span class="n">nband</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_band_names</span><span class="p">[</span><span class="n">numband</span><span class="p">]</span>
+                    
+                <span class="k">assert</span> <span class="n">nband</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_band_names</span><span class="p">,</span> <span class="s1">&#39;</span><span class="si">{0}</span><span class="s1"> is not a valid band name in the requested data.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">nband</span><span class="p">)</span>
+                <span class="n">return_values</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">nband</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">expected</span> <span class="ow">is</span> <span class="s1">&#39;n_bins&#39;</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">bins</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">argument</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+                    <span class="k">assert</span> <span class="n">bins</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;Bin number for ST_HISTOGRAM() must be &gt; 0: bins = </span><span class="si">{0}</span><span class="s2"> passed.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">bins</span><span class="p">)</span>
+                <span class="k">except</span><span class="p">:</span>
+                    <span class="k">assert</span> <span class="n">argument</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;auto&#39;</span><span class="p">,</span><span class="s2">&quot;Either pass int number of desired bins, or auto&quot;</span>
+                    <span class="n">bins</span> <span class="o">=</span> <span class="kc">None</span>
+                <span class="n">return_values</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">bins</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">expected</span> <span class="ow">is</span> <span class="s1">&#39;bool&#39;</span><span class="p">:</span>
+                <span class="n">bool_arg</span> <span class="o">=</span> <span class="kc">None</span>
+                <span class="k">if</span> <span class="n">argument</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;true&#39;</span><span class="p">:</span> <span class="n">bool_arg</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="k">if</span> <span class="n">argument</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;false&#39;</span><span class="p">:</span> <span class="n">bool_arg</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">bool_arg</span><span class="p">,</span> <span class="nb">bool</span><span class="p">),</span> <span class="s2">&quot;Boolean not correctly set&quot;</span>
+                <span class="n">return_values</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">bool_arg</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">return_values</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">list_of_expected</span><span class="p">),</span><span class="s1">&#39;Failed to identify all keywords :(&#39;</span>
+        <span class="k">return</span> <span class="n">return_values</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">st_bandmetadata</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return only metadata for a specifically requested band, like postgis function&quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">function</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">group_functions</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">function</span><span class="p">[</span><span class="s1">&#39;function&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;st_bandmetadata&quot;</span><span class="p">:</span>
+                <span class="n">values</span> <span class="o">=</span> <span class="n">function</span><span class="p">[</span><span class="s1">&#39;value&#39;</span><span class="p">]</span>
+                <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">values</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;raster string and bandnum integer (or band key string) must be provided&quot;</span>
+                <span class="n">_</span><span class="p">,</span> <span class="n">nband</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">extract_postgis_arguments</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;raster&#39;</span><span class="p">,</span><span class="s1">&#39;band_id&#39;</span><span class="p">])</span>
+        <span class="k">for</span> <span class="n">band</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_metadata</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;bands&#39;</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">band</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;id&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="n">nband</span><span class="p">:</span>
+                <span class="n">tmp_meta</span> <span class="o">=</span> <span class="n">band</span>
+        <span class="k">return</span> <span class="n">tmp_meta</span>
+
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span> <span class="nf">st_valuecount</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return only metadata for a specifically requested band, like postgis function&quot;&quot;&quot;</span>
+        <span class="c1">#tmp_dic = {}</span>
+        <span class="k">for</span> <span class="n">function</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">group_functions</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">function</span><span class="p">[</span><span class="s1">&#39;function&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;st_valuecount&quot;</span><span class="p">:</span>
+                <span class="n">values</span> <span class="o">=</span> <span class="n">function</span><span class="p">[</span><span class="s1">&#39;value&#39;</span><span class="p">]</span>
+                <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">values</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;raster string and bandnum integer (or band key string) must be provided&quot;</span>
+                <span class="n">_</span><span class="p">,</span> <span class="n">band_of_interest</span><span class="p">,</span> <span class="n">no_drop_no_data_val</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">extract_postgis_arguments</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;raster&#39;</span><span class="p">,</span><span class="s1">&#39;band_id&#39;</span><span class="p">,</span> <span class="s1">&#39;bool&#39;</span><span class="p">])</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">d</span><span class="p">[</span><span class="s1">&#39;reducer&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ee</span><span class="o">.</span><span class="n">Reducer</span><span class="o">.</span><span class="n">frequencyHistogram</span><span class="p">()</span><span class="o">.</span><span class="n">unweighted</span><span class="p">()</span>
+        <span class="n">d</span><span class="p">[</span><span class="s1">&#39;bestEffort&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">d</span><span class="p">[</span><span class="s1">&#39;maxPixels&#39;</span><span class="p">]</span> <span class="o">=</span>  <span class="mi">9000000000</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">geojson</span><span class="p">:</span>
+            <span class="n">d</span><span class="p">[</span><span class="s1">&#39;geometry&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">geojson</span>
+        <span class="n">tmp_response</span> <span class="o">=</span> <span class="n">ee</span><span class="o">.</span><span class="n">Image</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">target_data</span><span class="p">)</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">band_of_interest</span><span class="p">)</span><span class="o">.</span><span class="n">reduceRegion</span><span class="p">(</span><span class="o">**</span><span class="n">d</span><span class="p">)</span><span class="o">.</span><span class="n">getInfo</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">no_drop_no_data_val</span> <span class="o">!=</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">del</span> <span class="n">tmp_response</span><span class="p">[</span><span class="n">band_of_interest</span><span class="p">][</span><span class="s1">&#39;null&#39;</span><span class="p">]</span>
+            <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+                <span class="k">pass</span>
+        <span class="c1">#else:</span>
+            
+            <span class="c1">#tmp_dic[band_of_interest] = tmp_response[band_of_interest]</span>
+        <span class="k">return</span> <span class="n">tmp_response</span>
+
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span> <span class="nf">summary_stats</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return a dictionary object of summary stats like the postgis function ST_SUMMARYSTATS().&quot;&quot;&quot;</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">band</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_band_names</span><span class="p">:</span>
+            <span class="n">d</span><span class="p">[</span><span class="n">band</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;count&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_reduce_image</span><span class="p">[</span><span class="n">band</span><span class="o">+</span><span class="s1">&#39;_count&#39;</span><span class="p">],</span>
+                       <span class="s1">&#39;sum&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_reduce_image</span><span class="p">[</span><span class="n">band</span><span class="o">+</span><span class="s1">&#39;_sum&#39;</span><span class="p">],</span>
+                       <span class="s1">&#39;mean&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_reduce_image</span><span class="p">[</span><span class="n">band</span><span class="o">+</span><span class="s1">&#39;_mean&#39;</span><span class="p">],</span>
+                       <span class="s1">&#39;stdev&#39;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">_reduce_image</span><span class="p">[</span><span class="n">band</span><span class="o">+</span><span class="s1">&#39;_stdDev&#39;</span><span class="p">],</span>
+                       <span class="s1">&#39;min&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_reduce_image</span><span class="p">[</span><span class="n">band</span><span class="o">+</span><span class="s1">&#39;_min&#39;</span><span class="p">],</span>
+                       <span class="s1">&#39;max&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_reduce_image</span><span class="p">[</span><span class="n">band</span><span class="o">+</span><span class="s1">&#39;_max&#39;</span><span class="p">]</span>
+                       <span class="p">}</span>
+        <span class="k">return</span> <span class="n">d</span>
+
+    <span class="k">def</span> <span class="nf">_default_histogram_inputs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">band_name</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return the optimum histogram min, max, bins, using Freedman-Diaconis method, to be used by default</span>
+<span class="sd">        band_name is the dictionary key (that relates to self._band_names)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">band_max</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_reduce_image</span><span class="p">[</span><span class="n">band_name</span> <span class="o">+</span><span class="s1">&#39;_max&#39;</span><span class="p">]</span>
+        <span class="n">band_count</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_reduce_image</span><span class="p">[</span><span class="n">band_name</span> <span class="o">+</span><span class="s1">&#39;_count&#39;</span><span class="p">]</span>
+        <span class="n">band_min</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_reduce_image</span><span class="p">[</span><span class="n">band_name</span> <span class="o">+</span><span class="s1">&#39;_min&#39;</span><span class="p">]</span>
+        <span class="n">band_iqr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_band_IQR</span><span class="p">[</span><span class="n">band_name</span><span class="p">]</span>
+        <span class="n">band_n</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_reduce_image</span><span class="p">[</span><span class="n">band_name</span> <span class="o">+</span><span class="s1">&#39;_count&#39;</span><span class="p">]</span>
+        <span class="n">bin_width</span> <span class="o">=</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">band_iqr</span> <span class="o">*</span> <span class="p">(</span><span class="n">band_n</span> <span class="o">**</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="o">/</span><span class="mi">3</span><span class="p">)))</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">num_bins</span> <span class="o">=</span> <span class="nb">int</span><span class="p">((</span><span class="n">band_max</span> <span class="o">-</span> <span class="n">band_min</span><span class="p">)</span> <span class="o">/</span> <span class="n">bin_width</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ZeroDivisionError</span><span class="p">:</span>
+            <span class="n">num_bins</span> <span class="o">=</span> <span class="n">band_count</span> <span class="o">**</span> <span class="mf">0.5</span>  <span class="c1"># as a last-resort, use the square root of the counts to set-bin size</span>
+        <span class="k">return</span> <span class="n">band_min</span><span class="p">,</span> <span class="n">band_max</span><span class="p">,</span> <span class="n">num_bins</span>
+
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span> <span class="nf">histogram</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Retrieve ST_HISTOGRAM()-like info. This will return a dictionary object with bands as keys, and for each</span>
+<span class="sd">        band a nested list of (2xn) for bin and frequency. If the user wants us to use the optimum bin number,</span>
+<span class="sd">        they can pass n-bins &#39;auto&#39; instead of an integer.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">tmp_dic</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">function</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">group_functions</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">function</span><span class="p">[</span><span class="s1">&#39;function&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;st_histogram&quot;</span><span class="p">:</span>
+                <span class="n">values</span> <span class="o">=</span> <span class="n">function</span><span class="p">[</span><span class="s1">&#39;value&#39;</span><span class="p">]</span>
+                <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">values</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;ST_Histogram must be called with arguments&quot;</span>
+        <span class="n">hist_args</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">extract_postgis_arguments</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;raster&#39;</span><span class="p">,</span><span class="s1">&#39;band_id&#39;</span><span class="p">,</span> <span class="s1">&#39;n_bins&#39;</span><span class="p">,</span> <span class="s1">&#39;bool&#39;</span><span class="p">])</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">band_of_interest</span><span class="p">,</span> <span class="n">input_bin_num</span><span class="p">,</span> <span class="n">dont_flip_order</span> <span class="o">=</span> <span class="n">hist_args</span>
+        <span class="n">input_min</span><span class="p">,</span> <span class="n">input_max</span><span class="p">,</span> <span class="n">auto_bins</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_default_histogram_inputs</span><span class="p">(</span><span class="n">band_of_interest</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">input_bin_num</span><span class="p">:</span>
+            <span class="n">input_bin_num</span> <span class="o">=</span> <span class="n">auto_bins</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">input_max</span> <span class="o">=</span> <span class="n">input_max</span> <span class="o">+</span> <span class="mi">1</span>  <span class="c1"># In EE counting the min -&gt; max range is exc. at max, so need to increment here.</span>
+        <span class="n">d</span><span class="p">[</span><span class="s1">&#39;reducer&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ee</span><span class="o">.</span><span class="n">Reducer</span><span class="o">.</span><span class="n">fixedHistogram</span><span class="p">(</span><span class="n">input_min</span><span class="p">,</span> <span class="n">input_max</span><span class="p">,</span> <span class="n">input_bin_num</span><span class="p">)</span>
+        <span class="n">d</span><span class="p">[</span><span class="s1">&#39;bestEffort&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">geojson</span><span class="p">:</span>
+            <span class="n">d</span><span class="p">[</span><span class="s1">&#39;geometry&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">geojson</span>
+        <span class="n">tmp_response</span> <span class="o">=</span> <span class="n">ee</span><span class="o">.</span><span class="n">Image</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">target_data</span><span class="p">)</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">band_of_interest</span><span class="p">)</span><span class="o">.</span><span class="n">reduceRegion</span><span class="p">(</span><span class="o">**</span><span class="n">d</span><span class="p">)</span><span class="o">.</span><span class="n">getInfo</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">dont_flip_order</span><span class="p">:</span>
+            <span class="n">tmp_dic</span><span class="p">[</span><span class="n">band_of_interest</span><span class="p">]</span> <span class="o">=</span> <span class="n">tmp_response</span><span class="p">[</span><span class="n">band_of_interest</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">tmp_dic</span><span class="p">[</span><span class="n">band_of_interest</span><span class="p">]</span> <span class="o">=</span> <span class="n">tmp_response</span><span class="p">[</span><span class="n">band_of_interest</span><span class="p">][:][::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">tmp_dic</span>
+
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">target_data</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Set target_data property using sql tokens, assuming it</span>
+<span class="sd">        is the first token of type Identifier after the &#39;FROM&#39; keyword</span>
+<span class="sd">        also of type Identifier. If not found, raise an Exception.&quot;&quot;&quot;</span>
+        <span class="n">from_seen</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">exception_1</span> <span class="o">=</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;Unable to determine dataset in SQL query statement.&#39;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parsed</span><span class="o">.</span><span class="n">tokens</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">from_seen</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">item</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">remove_quotes</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">item</span><span class="p">))</span>
+                <span class="k">elif</span> <span class="n">item</span><span class="o">.</span><span class="n">ttype</span> <span class="ow">is</span> <span class="n">Keyword</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">exception_1</span>
+            <span class="k">elif</span> <span class="n">item</span><span class="o">.</span><span class="n">ttype</span> <span class="ow">is</span> <span class="n">Keyword</span> <span class="ow">and</span> <span class="nb">str</span><span class="p">(</span><span class="n">item</span><span class="p">)</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;FROM&#39;</span><span class="p">:</span>
+                <span class="n">from_seen</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">raise</span> <span class="n">exception_1</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">fields</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;A list of all fields in SQL query. If the FROM keyword is</span>
+<span class="sd">        encountered the list is immediately returned.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">field_list</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parsed</span><span class="o">.</span><span class="n">tokens</span><span class="p">:</span>
+            <span class="n">is_keyword</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">ttype</span> <span class="ow">is</span> <span class="n">Keyword</span>
+            <span class="n">is_from</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">t</span><span class="p">)</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;FROM&#39;</span>
+            <span class="k">if</span> <span class="n">is_keyword</span> <span class="ow">and</span> <span class="n">is_from</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">field_list</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">Identifier</span><span class="p">):</span>
+                <span class="n">field_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">t</span><span class="p">))</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">IdentifierList</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">identity</span> <span class="ow">in</span> <span class="n">t</span><span class="o">.</span><span class="n">tokens</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">identity</span><span class="p">,</span> <span class="n">Identifier</span><span class="p">):</span>
+                        <span class="n">field_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">identity</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">field_list</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">group_functions</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns the group function with column names specified in the query:</span>
+<span class="sd">        e.g. from sql input of &#39;select count(pepe) from mytable&#39;, a dictionary of</span>
+<span class="sd">        {&#39;function&#39;: &#39;COUNT&#39;, &#39;value&#39;: &#39;pepe&#39;} should be returned by self.group_functions&quot;&quot;&quot;</span>
+        <span class="n">group_list</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parsed</span><span class="o">.</span><span class="n">tokens</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">t</span><span class="o">.</span><span class="n">ttype</span> <span class="ow">is</span> <span class="n">Keyword</span> <span class="ow">and</span> <span class="n">t</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;FROM&#39;</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">group_list</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">Function</span><span class="p">):</span>
+                <span class="n">group_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">token_to_dictionary</span><span class="p">(</span><span class="n">t</span><span class="p">))</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">IdentifierList</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">identity</span> <span class="ow">in</span> <span class="n">t</span><span class="o">.</span><span class="n">tokens</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">identity</span><span class="p">,</span> <span class="n">Function</span><span class="p">):</span>
+                        <span class="n">group_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">token_to_dictionary</span><span class="p">(</span><span class="n">identity</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">group_list</span>
+
+<div class="viewcode-block" id="SQL2GEE.token_to_dictionary"><a class="viewcode-back" href="../../sql2gee.html#sql2gee.sql2gee.SQL2GEE.token_to_dictionary">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">token_to_dictionary</span><span class="p">(</span><span class="n">token_list</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Receives a token e.g.(&#39;count(pepe)&#39;) and converts it into a dict</span>
+<span class="sd">        with key:values for function and value .&quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">token_list</span><span class="p">,</span> <span class="n">sqlparse</span><span class="o">.</span><span class="n">sql</span><span class="o">.</span><span class="n">Function</span><span class="p">),</span> <span class="s1">&#39;unexpected datatype&#39;</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">token_list</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">Identifier</span><span class="p">):</span>
+                <span class="n">d</span><span class="p">[</span><span class="s1">&#39;function&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">t</span><span class="p">)</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">Parenthesis</span><span class="p">):</span>
+                <span class="n">value</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;(&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;)&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+                <span class="n">d</span><span class="p">[</span><span class="s1">&#39;value&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+        <span class="k">return</span> <span class="n">d</span></div>
+
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span> <span class="nf">_image</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Performs a diffrent Image operation depending on sql request.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_image_request</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">func</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">group_functions</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">func</span><span class="p">[</span><span class="s2">&quot;function&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;st_histogram&#39;</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">histogram</span>
+                <span class="k">if</span> <span class="n">func</span><span class="p">[</span><span class="s2">&quot;function&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;st_metadata&#39;</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">st_metadata</span>
+                <span class="k">if</span> <span class="n">func</span><span class="p">[</span><span class="s2">&quot;function&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;st_bandmetadata&#39;</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">st_bandmetadata</span>
+                <span class="k">if</span> <span class="n">func</span><span class="p">[</span><span class="s2">&quot;function&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;st_summarystats&#39;</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">summary_stats</span>
+                <span class="k">if</span> <span class="n">func</span><span class="p">[</span><span class="s2">&quot;function&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;st_valuecount&#39;</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">st_valuecount</span>
+
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span> <span class="nf">_feature_collection</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return the G.E.E. FeatureCollection object with all filter, groups, and functions applied&quot;&quot;&quot;</span>
+        <span class="n">fc</span> <span class="o">=</span> <span class="n">ee</span><span class="o">.</span><span class="n">FeatureCollection</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">target_data</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">where</span><span class="p">:</span>
+            <span class="n">fc</span> <span class="o">=</span> <span class="n">fc</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">where</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">group_functions</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">group</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">group_functions</span><span class="p">:</span>
+                <span class="n">fc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">apply_group</span><span class="p">(</span><span class="n">fc</span><span class="p">,</span> <span class="n">group</span><span class="p">)</span>
+        <span class="n">select</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fields</span>
+        <span class="k">if</span> <span class="n">select</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">select</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">select</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;*&#39;</span><span class="p">:</span>
+            <span class="n">fc</span> <span class="o">=</span> <span class="n">fc</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">select</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">limit</span><span class="p">:</span>
+            <span class="n">fc</span> <span class="o">=</span> <span class="n">fc</span><span class="o">.</span><span class="n">limit</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">limit</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">fc</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">where</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns filter object obtained from where of the query in GEE format&quot;&quot;&quot;</span>
+        <span class="n">val</span><span class="p">,</span> <span class="n">tmp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parsed</span><span class="o">.</span><span class="n">token_next_by</span><span class="p">(</span><span class="n">i</span><span class="o">=</span><span class="n">sqlparse</span><span class="o">.</span><span class="n">sql</span><span class="o">.</span><span class="n">Where</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">tmp</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">parse_conditions</span><span class="p">(</span><span class="n">tmp</span><span class="o">.</span><span class="n">tokens</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">limit</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;If LIMIT keyword set, this returns an integer to limit the maximum return from a feature collection query&quot;&quot;&quot;</span>
+        <span class="n">watch_for_limit</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_parsed</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">i</span><span class="o">.</span><span class="n">ttype</span> <span class="ow">is</span> <span class="n">Keyword</span> <span class="ow">and</span> <span class="n">i</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;LIMIT&quot;</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
+                <span class="n">watch_for_limit</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="k">if</span> <span class="n">watch_for_limit</span> <span class="ow">and</span> <span class="n">i</span><span class="o">.</span><span class="n">ttype</span> <span class="ow">is</span> <span class="n">sqlparse</span><span class="o">.</span><span class="n">tokens</span><span class="o">.</span><span class="n">Literal</span><span class="o">.</span><span class="n">Number</span><span class="o">.</span><span class="n">Integer</span><span class="p">:</span>
+                <span class="n">limit_value</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">i</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+                <span class="k">assert</span> <span class="n">limit_value</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;Limit must be &gt;= 1&#39;</span>
+                <span class="k">return</span> <span class="n">limit_value</span>
+
+<div class="viewcode-block" id="SQL2GEE.apply_group"><a class="viewcode-back" href="../../sql2gee.html#sql2gee.sql2gee.SQL2GEE.apply_group">[docs]</a>    <span class="k">def</span> <span class="nf">apply_group</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fc</span><span class="p">,</span> <span class="n">group</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Given a fc (feature_collection) object and group operation, return a</span>
+<span class="sd">        new fc object, extended by a method of the feature grouping operation.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_image_request</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">group</span><span class="p">[</span><span class="s1">&#39;function&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;COUNT&#39;</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">fc</span><span class="o">.</span><span class="n">aggregate_count</span><span class="p">(</span><span class="n">group</span><span class="p">[</span><span class="s1">&#39;value&#39;</span><span class="p">])</span>
+            <span class="k">elif</span> <span class="n">group</span><span class="p">[</span><span class="s1">&#39;function&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;MAX&#39;</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">fc</span><span class="o">.</span><span class="n">aggregate_max</span><span class="p">(</span><span class="n">group</span><span class="p">[</span><span class="s1">&#39;value&#39;</span><span class="p">])</span>
+            <span class="k">elif</span> <span class="n">group</span><span class="p">[</span><span class="s1">&#39;function&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;MIN&#39;</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">fc</span><span class="o">.</span><span class="n">aggregate_min</span><span class="p">(</span><span class="n">group</span><span class="p">[</span><span class="s1">&#39;value&#39;</span><span class="p">])</span>
+            <span class="k">elif</span> <span class="n">group</span><span class="p">[</span><span class="s1">&#39;function&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;SUM&#39;</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">fc</span><span class="o">.</span><span class="n">aggregate_sum</span><span class="p">(</span><span class="n">group</span><span class="p">[</span><span class="s1">&#39;value&#39;</span><span class="p">])</span>
+            <span class="k">elif</span> <span class="n">group</span><span class="p">[</span><span class="s1">&#39;function&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;AVG&#39;</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">fc</span><span class="o">.</span><span class="n">aggregate_mean</span><span class="p">(</span><span class="n">group</span><span class="p">[</span><span class="s1">&#39;value&#39;</span><span class="p">])</span>
+            <span class="k">elif</span> <span class="n">group</span><span class="p">[</span><span class="s1">&#39;function&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;FIRST&#39;</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">fc</span><span class="o">.</span><span class="n">aggregate_first</span><span class="p">(</span><span class="n">group</span><span class="p">[</span><span class="s1">&#39;value&#39;</span><span class="p">])</span>
+            <span class="k">elif</span> <span class="n">group</span><span class="p">[</span><span class="s1">&#39;function&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;VAR&#39;</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">fc</span><span class="o">.</span><span class="n">aggregate_sample_var</span><span class="p">(</span><span class="n">group</span><span class="p">[</span><span class="s1">&#39;value&#39;</span><span class="p">])</span>
+            <span class="k">elif</span> <span class="n">group</span><span class="p">[</span><span class="s1">&#39;function&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;STDEV&#39;</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">fc</span><span class="o">.</span><span class="n">aggregate_sample_sd</span><span class="p">(</span><span class="n">group</span><span class="p">[</span><span class="s1">&#39;value&#39;</span><span class="p">])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Unknown group function attempted: &quot;</span><span class="p">,</span> <span class="n">group</span><span class="p">[</span><span class="s1">&#39;function&#39;</span><span class="p">])</span></div>
+
+<div class="viewcode-block" id="SQL2GEE.remove_quotes"><a class="viewcode-back" href="../../sql2gee.html#sql2gee.sql2gee.SQL2GEE.remove_quotes">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">remove_quotes</span><span class="p">(</span><span class="n">input_str</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Checks the first and last characters of an input_str to see if they are quotation marks [&#39; or &quot;], if so</span>
+<span class="sd">        the function will strip them and return the string.</span>
+<span class="sd">        :type input_str: str&quot;&quot;&quot;</span>
+        <span class="n">starts_with_quotation</span> <span class="o">=</span> <span class="n">input_str</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;&quot;&#39;</span><span class="p">,</span> <span class="s2">&quot;&#39;&quot;</span><span class="p">]</span>
+        <span class="n">ends_with_quotation</span> <span class="o">=</span> <span class="n">input_str</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;&quot;&#39;</span><span class="p">,</span> <span class="s2">&quot;&#39;&quot;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">starts_with_quotation</span> <span class="ow">and</span> <span class="n">ends_with_quotation</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">input_str</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">input_str</span></div>
+
+<div class="viewcode-block" id="SQL2GEE.parse_comparison"><a class="viewcode-back" href="../../sql2gee.html#sql2gee.sql2gee.SQL2GEE.parse_comparison">[docs]</a>    <span class="k">def</span> <span class="nf">parse_comparison</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">comparison</span><span class="p">):</span>
+        <span class="n">values</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">comparator</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">comparison</span><span class="o">.</span><span class="n">tokens</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">Identifier</span><span class="p">):</span>
+                <span class="n">values</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">remove_quotes</span><span class="p">(</span><span class="n">item</span><span class="o">.</span><span class="n">value</span><span class="p">))</span>
+            <span class="k">elif</span> <span class="n">item</span><span class="o">.</span><span class="n">ttype</span> <span class="ow">is</span> <span class="n">sqlparse</span><span class="o">.</span><span class="n">tokens</span><span class="o">.</span><span class="n">Comparison</span><span class="p">:</span>
+                <span class="n">comparator</span> <span class="o">=</span> <span class="n">item</span><span class="o">.</span><span class="n">value</span>
+            <span class="k">elif</span> <span class="ow">not</span> <span class="n">item</span><span class="o">.</span><span class="n">is_whitespace</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">item</span><span class="o">.</span><span class="n">ttype</span> <span class="ow">is</span> <span class="n">sqlparse</span><span class="o">.</span><span class="n">tokens</span><span class="o">.</span><span class="n">Number</span><span class="o">.</span><span class="n">Integer</span><span class="p">:</span>
+                    <span class="n">values</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">item</span><span class="o">.</span><span class="n">value</span><span class="p">))</span>
+                <span class="k">elif</span> <span class="n">item</span><span class="o">.</span><span class="n">ttype</span> <span class="ow">is</span> <span class="n">sqlparse</span><span class="o">.</span><span class="n">tokens</span><span class="o">.</span><span class="n">Number</span><span class="o">.</span><span class="n">Float</span><span class="p">:</span>
+                    <span class="n">values</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">item</span><span class="o">.</span><span class="n">value</span><span class="p">))</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">values</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">remove_quotes</span><span class="p">(</span><span class="n">item</span><span class="o">.</span><span class="n">value</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">comparator</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_filters</span><span class="p">[</span><span class="n">comparator</span><span class="p">](</span><span class="n">values</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">values</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span></div>
+
+<div class="viewcode-block" id="SQL2GEE.generate_like"><a class="viewcode-back" href="../../sql2gee.html#sql2gee.sql2gee.SQL2GEE.generate_like">[docs]</a>    <span class="k">def</span> <span class="nf">generate_like</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">left</span><span class="p">,</span> <span class="n">comp</span><span class="p">,</span> <span class="n">right</span><span class="p">,</span> <span class="n">exist_not</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">comp</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;LIKE&#39;</span><span class="p">:</span>
+            <span class="nb">filter</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">if</span> <span class="n">right</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;%&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">right</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;%&#39;</span><span class="p">):</span>
+                <span class="nb">filter</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_filters</span><span class="p">[</span><span class="s1">&#39;%&#39;</span> <span class="o">+</span> <span class="n">comp</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="o">+</span> <span class="s1">&#39;%&#39;</span><span class="p">](</span><span class="n">left</span><span class="p">,</span> <span class="n">right</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="nb">len</span><span class="p">(</span><span class="n">right</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">])</span>
+            <span class="k">elif</span> <span class="n">right</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;%&#39;</span><span class="p">):</span>
+                <span class="nb">filter</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_filters</span><span class="p">[</span><span class="s1">&#39;%&#39;</span> <span class="o">+</span> <span class="n">comp</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">upper</span><span class="p">()](</span><span class="n">left</span><span class="p">,</span> <span class="n">right</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="nb">len</span><span class="p">(</span><span class="n">right</span><span class="p">)])</span>
+            <span class="k">elif</span> <span class="n">right</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;%&#39;</span><span class="p">):</span>
+                <span class="nb">filter</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_filters</span><span class="p">[</span><span class="n">comp</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="o">+</span> <span class="s1">&#39;%&#39;</span><span class="p">](</span><span class="n">left</span><span class="p">,</span> <span class="n">right</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="nb">len</span><span class="p">(</span><span class="n">right</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="nb">filter</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_filters</span><span class="p">[</span><span class="n">comp</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">upper</span><span class="p">()](</span><span class="n">left</span><span class="p">,</span> <span class="n">right</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">exist_not</span><span class="p">:</span>
+                <span class="k">return</span> <span class="nb">filter</span><span class="o">.</span><span class="n">Not</span><span class="p">()</span>
+            <span class="k">return</span> <span class="nb">filter</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="n">comp</span><span class="o">.</span><span class="n">value</span> <span class="o">+</span> <span class="s1">&#39; not supported&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="SQL2GEE.generate_in"><a class="viewcode-back" href="../../sql2gee.html#sql2gee.sql2gee.SQL2GEE.generate_in">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">generate_in</span><span class="p">(</span><span class="n">left</span><span class="p">,</span> <span class="n">comp</span><span class="p">,</span> <span class="n">right</span><span class="p">,</span> <span class="n">exist_not</span><span class="p">):</span>
+        <span class="nb">filter</span> <span class="o">=</span> <span class="n">ee</span><span class="o">.</span><span class="n">Filter</span><span class="p">()</span><span class="o">.</span><span class="n">inList</span><span class="p">(</span><span class="n">left</span><span class="p">,</span> <span class="n">right</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">exist_not</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">filter</span><span class="o">.</span><span class="n">Not</span><span class="p">()</span>
+        <span class="k">return</span> <span class="nb">filter</span></div>
+
+<div class="viewcode-block" id="SQL2GEE.generate_is"><a class="viewcode-back" href="../../sql2gee.html#sql2gee.sql2gee.SQL2GEE.generate_is">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">generate_is</span><span class="p">(</span><span class="n">left</span><span class="p">,</span> <span class="n">comp</span><span class="p">,</span> <span class="n">right</span><span class="p">,</span> <span class="p">):</span>
+        <span class="k">if</span> <span class="n">right</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;NULL&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">ee</span><span class="o">.</span><span class="n">Filter</span><span class="p">()</span><span class="o">.</span><span class="n">eq</span><span class="p">(</span><span class="n">left</span><span class="p">,</span> <span class="s1">&#39;null&#39;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">right</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;NOT&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">right</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;NULL&#39;</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">ee</span><span class="o">.</span><span class="n">Filter</span><span class="p">()</span><span class="o">.</span><span class="n">neq</span><span class="p">(</span><span class="n">left</span><span class="p">,</span> <span class="s1">&#39;null&#39;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;IS only support NULL value&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="SQL2GEE.parse_list"><a class="viewcode-back" href="../../sql2gee.html#sql2gee.sql2gee.SQL2GEE.parse_list">[docs]</a>    <span class="k">def</span> <span class="nf">parse_list</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tokens</span><span class="p">):</span>
+        <span class="n">values</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">tokens</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">Identifier</span><span class="p">):</span>
+                <span class="n">values</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">remove_quotes</span><span class="p">(</span><span class="n">item</span><span class="o">.</span><span class="n">value</span><span class="p">))</span>
+            <span class="k">elif</span> <span class="ow">not</span> <span class="n">item</span><span class="o">.</span><span class="n">is_whitespace</span> <span class="ow">and</span> <span class="n">item</span><span class="o">.</span><span class="n">value</span> <span class="o">!=</span> <span class="s1">&#39;,&#39;</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">item</span><span class="o">.</span><span class="n">ttype</span> <span class="ow">is</span> <span class="n">sqlparse</span><span class="o">.</span><span class="n">tokens</span><span class="o">.</span><span class="n">Number</span><span class="o">.</span><span class="n">Integer</span><span class="p">:</span>
+                    <span class="n">values</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">item</span><span class="o">.</span><span class="n">value</span><span class="p">))</span>
+                <span class="k">elif</span> <span class="n">item</span><span class="o">.</span><span class="n">ttype</span> <span class="ow">is</span> <span class="n">sqlparse</span><span class="o">.</span><span class="n">tokens</span><span class="o">.</span><span class="n">Number</span><span class="o">.</span><span class="n">Float</span><span class="p">:</span>
+                    <span class="n">values</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">item</span><span class="o">.</span><span class="n">value</span><span class="p">))</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">values</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">remove_quotes</span><span class="p">(</span><span class="n">item</span><span class="o">.</span><span class="n">value</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">values</span></div>
+
+<div class="viewcode-block" id="SQL2GEE.parse_conditions"><a class="viewcode-back" href="../../sql2gee.html#sql2gee.sql2gee.SQL2GEE.parse_conditions">[docs]</a>    <span class="k">def</span> <span class="nf">parse_conditions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tokens</span><span class="p">):</span>
+        <span class="n">filters</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">comparison</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">sub_comparison</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">leftValue</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">exist_not</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">tokens</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">Comparison</span><span class="p">):</span>
+                <span class="nb">filter</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parse_comparison</span><span class="p">(</span><span class="n">item</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">exist_not</span><span class="p">:</span>
+                    <span class="nb">filter</span> <span class="o">=</span> <span class="nb">filter</span><span class="o">.</span><span class="n">Not</span><span class="p">()</span>
+                <span class="n">filters</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">filter</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">item</span><span class="o">.</span><span class="n">ttype</span> <span class="ow">is</span> <span class="n">Keyword</span> <span class="ow">and</span> <span class="p">(</span><span class="n">item</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;AND&#39;</span> <span class="ow">or</span> <span class="n">item</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;OR&#39;</span><span class="p">):</span>
+                <span class="n">comparison</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_comparisons</span><span class="p">[</span><span class="n">item</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">upper</span><span class="p">()]</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">Parenthesis</span><span class="p">):</span>
+                <span class="nb">filter</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parse_conditions</span><span class="p">(</span><span class="n">item</span><span class="o">.</span><span class="n">tokens</span><span class="p">)</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="nb">filter</span><span class="p">,</span> <span class="n">ee</span><span class="o">.</span><span class="n">Filter</span><span class="p">):</span>
+                    <span class="n">filters</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">filter</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="nb">type</span><span class="p">(</span><span class="nb">filter</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">list</span><span class="p">:</span>
+                    <span class="n">filters</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">generate_in</span><span class="p">(</span><span class="n">leftValue</span><span class="p">,</span> <span class="n">sub_comparison</span><span class="p">,</span> <span class="nb">filter</span><span class="p">,</span> <span class="n">exist_not</span><span class="p">))</span>
+                    <span class="n">leftValue</span> <span class="o">=</span> <span class="kc">None</span>
+                    <span class="n">sub_comparison</span> <span class="o">=</span> <span class="kc">None</span>
+                    <span class="n">exist_not</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="k">elif</span> <span class="n">item</span><span class="o">.</span><span class="n">ttype</span> <span class="ow">is</span> <span class="n">Keyword</span> <span class="ow">and</span> <span class="p">(</span><span class="n">item</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;LIKE&#39;</span> <span class="ow">or</span> <span class="n">item</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;IN&#39;</span> <span class="ow">or</span> <span class="n">item</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;IS&#39;</span><span class="p">):</span>
+                <span class="n">sub_comparison</span> <span class="o">=</span> <span class="n">item</span>
+            <span class="k">elif</span> <span class="n">item</span><span class="o">.</span><span class="n">ttype</span> <span class="ow">is</span> <span class="n">Keyword</span> <span class="ow">and</span> <span class="n">item</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;NOT&#39;</span><span class="p">:</span>
+                <span class="n">exist_not</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">IdentifierList</span><span class="p">):</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">parse_list</span><span class="p">(</span><span class="n">item</span><span class="o">.</span><span class="n">tokens</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">item</span><span class="o">.</span><span class="n">ttype</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="p">(</span><span class="n">item</span><span class="o">.</span><span class="n">ttype</span> <span class="ow">is</span> <span class="n">Keyword</span> <span class="ow">and</span> <span class="p">(</span><span class="n">item</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;NULL&#39;</span> <span class="ow">or</span> <span class="n">item</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;NOT&#39;</span><span class="p">))):</span>
+                <span class="k">if</span> <span class="n">leftValue</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">leftValue</span> <span class="o">=</span> <span class="n">item</span><span class="o">.</span><span class="n">value</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">sub_comparison</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;LIKE&#39;</span><span class="p">:</span>
+                        <span class="n">filters</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">generate_like</span><span class="p">(</span><span class="n">leftValue</span><span class="p">,</span> <span class="n">sub_comparison</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">remove_quotes</span><span class="p">(</span><span class="n">item</span><span class="o">.</span><span class="n">value</span><span class="p">),</span> <span class="n">exist_not</span><span class="p">))</span>
+                    <span class="k">elif</span> <span class="n">sub_comparison</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;IS&#39;</span><span class="p">:</span>
+                        <span class="n">filters</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">generate_is</span><span class="p">(</span><span class="n">leftValue</span><span class="p">,</span> <span class="n">sub_comparison</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">remove_quotes</span><span class="p">(</span><span class="n">item</span><span class="o">.</span><span class="n">value</span><span class="p">)))</span>
+                    <span class="n">sub_comparison</span> <span class="o">=</span> <span class="kc">None</span>
+                    <span class="n">leftValue</span> <span class="o">=</span> <span class="kc">None</span>
+                    <span class="n">exist_not</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="k">if</span> <span class="n">comparison</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">filters</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="n">statement</span> <span class="o">=</span> <span class="n">comparison</span><span class="p">(</span><span class="n">filters</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">filters</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="k">if</span> <span class="n">exist_not</span><span class="p">:</span>
+                    <span class="n">statement</span> <span class="o">=</span> <span class="n">statement</span><span class="o">.</span><span class="n">Not</span><span class="p">()</span>
+                    <span class="n">exist_not</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="n">filters</span> <span class="o">=</span> <span class="p">[</span><span class="n">statement</span><span class="p">]</span>
+                <span class="n">comparison</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="n">filters</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span></div>
+
+
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span> <span class="nf">response</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Execute the GEE object in GEE Server. This is the function that, when called, actually sends the SQL</span>
+<span class="sd">        request (which was converted to GEE-speak) to Google&#39;s servers for execution and returns the result.&quot;&quot;&quot;</span>
+        <span class="c1">## This logic will be changed to instead execute the self.r , which will be made up of base + modifiers,</span>
+        <span class="c1"># So it can be either and Image() or FeatureCollection() type function.</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_image_request</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_image</span>
+            <span class="k">except</span> <span class="n">ee</span><span class="o">.</span><span class="n">EEException</span><span class="p">:</span>
+                <span class="c1"># If we hit the image composite bug then add a global region to group the image together and try again</span>
+                <span class="k">return</span> <span class="n">SQL2GEE</span><span class="p">(</span><span class="n">sql</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_raw</span><span class="p">,</span> <span class="n">geojson</span><span class="o">=</span><span class="n">_default_geojson</span><span class="p">)</span><span class="o">.</span><span class="n">_image</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_feature_collection</span><span class="o">.</span><span class="n">getInfo</span><span class="p">()</span></div>
+</pre></div>
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Benjamin A. Laken.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../',
+            VERSION:'0.1.2',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

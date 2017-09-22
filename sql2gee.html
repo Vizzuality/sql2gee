@@ -1,0 +1,403 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>The sql2gee Package &mdash; sql2gee 0.1.2 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="genindex.html"/>
+        <link rel="search" title="Search" href="search.html"/>
+    <link rel="top" title="sql2gee 0.1.2 documentation" href="index.html"/>
+        <link rel="next" title="Support" href="support.html"/>
+        <link rel="prev" title="Detailed Examples of SQL2GEE’s use" href="moreExamples.html"/> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> sql2gee
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.1.2
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="supportedsyntax.html">Supported SQL and Postgis Syntax</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gettingstarted.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="moreExamples.html">Detailed Examples of SQL2GEE’s use</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">The sql2gee Package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-sql2gee.sql2gee">sql2gee.sql2gee module</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="support.html">Support</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">sql2gee</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>The sql2gee Package</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/sql2gee.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="the-sql2gee-package">
+<h1>The sql2gee Package<a class="headerlink" href="#the-sql2gee-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-sql2gee.sql2gee">
+<span id="sql2gee-sql2gee-module"></span><h2>sql2gee.sql2gee module<a class="headerlink" href="#module-sql2gee.sql2gee" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="sql2gee.sql2gee.SQL2GEE">
+<em class="property">class </em><code class="descclassname">sql2gee.sql2gee.</code><code class="descname">SQL2GEE</code><span class="sig-paren">(</span><em>sql</em>, <em>geojson=None</em>, <em>flags=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/sql2gee/sql2gee.html#SQL2GEE"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#sql2gee.sql2gee.SQL2GEE" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
+<p>Takes an SQL-like query and relates it to Google’s Earth Engine syntax (specifically the Python 2.7 GEE API).
+Designed to perform operations on two types of geo-objects, Polygons (Feature Collections) or Rasters (Images).
+For the rasters there are only a specific number of valid operations (retrieve metadata, histogram data, or get
+summary statistics). We use postgis-like functions as the syntax to do this, and check to see if this is given in
+the sql string to detect the user intention.</p>
+<p>If geojson data is provided, we will assume that a user intends for us to subset an image, by these data.</p>
+<dl class="method">
+<dt id="sql2gee.sql2gee.SQL2GEE.apply_group">
+<code class="descname">apply_group</code><span class="sig-paren">(</span><em>fc</em>, <em>group</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/sql2gee/sql2gee.html#SQL2GEE.apply_group"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#sql2gee.sql2gee.SQL2GEE.apply_group" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given a fc (feature_collection) object and group operation, return a
+new fc object, extended by a method of the feature grouping operation.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="sql2gee.sql2gee.SQL2GEE.extract_postgis_arguments">
+<code class="descname">extract_postgis_arguments</code><span class="sig-paren">(</span><em>argument_string</em>, <em>list_of_expected</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/sql2gee/sql2gee.html#SQL2GEE.extract_postgis_arguments"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#sql2gee.sql2gee.SQL2GEE.extract_postgis_arguments" title="Permalink to this definition">¶</a></dt>
+<dd><p>Expects a string list of arguments passed to postgis function, and an ordered list of keys needed
+In this way, we should be able to handle any postgis argument arrangements:
+value_string, ordered keyword list: [‘raster’, ‘band_id’, ‘n_bins’])</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="sql2gee.sql2gee.SQL2GEE.fields">
+<code class="descname">fields</code><a class="headerlink" href="#sql2gee.sql2gee.SQL2GEE.fields" title="Permalink to this definition">¶</a></dt>
+<dd><p>A list of all fields in SQL query. If the FROM keyword is
+encountered the list is immediately returned.</p>
+</dd></dl>
+
+<dl class="staticmethod">
+<dt id="sql2gee.sql2gee.SQL2GEE.generate_in">
+<em class="property">static </em><code class="descname">generate_in</code><span class="sig-paren">(</span><em>left</em>, <em>comp</em>, <em>right</em>, <em>exist_not</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/sql2gee/sql2gee.html#SQL2GEE.generate_in"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#sql2gee.sql2gee.SQL2GEE.generate_in" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="staticmethod">
+<dt id="sql2gee.sql2gee.SQL2GEE.generate_is">
+<em class="property">static </em><code class="descname">generate_is</code><span class="sig-paren">(</span><em>left</em>, <em>comp</em>, <em>right</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/sql2gee/sql2gee.html#SQL2GEE.generate_is"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#sql2gee.sql2gee.SQL2GEE.generate_is" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="sql2gee.sql2gee.SQL2GEE.generate_like">
+<code class="descname">generate_like</code><span class="sig-paren">(</span><em>left</em>, <em>comp</em>, <em>right</em>, <em>exist_not</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/sql2gee/sql2gee.html#SQL2GEE.generate_like"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#sql2gee.sql2gee.SQL2GEE.generate_like" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="sql2gee.sql2gee.SQL2GEE.geojson_from_STGeomFromGeoJSON">
+<code class="descname">geojson_from_STGeomFromGeoJSON</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/sql2gee/sql2gee.html#SQL2GEE.geojson_from_STGeomFromGeoJSON"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#sql2gee.sql2gee.SQL2GEE.geojson_from_STGeomFromGeoJSON" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extract geojson dictionary, and crs code from a complex SQL command using Regex</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="sql2gee.sql2gee.SQL2GEE.group_functions">
+<code class="descname">group_functions</code><a class="headerlink" href="#sql2gee.sql2gee.SQL2GEE.group_functions" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the group function with column names specified in the query:
+e.g. from sql input of ‘select count(pepe) from mytable’, a dictionary of
+{‘function’: ‘COUNT’, ‘value’: ‘pepe’} should be returned by self.group_functions</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="sql2gee.sql2gee.SQL2GEE.histogram">
+<code class="descname">histogram</code><a class="headerlink" href="#sql2gee.sql2gee.SQL2GEE.histogram" title="Permalink to this definition">¶</a></dt>
+<dd><p>Retrieve ST_HISTOGRAM()-like info. This will return a dictionary object with bands as keys, and for each
+band a nested list of (2xn) for bin and frequency. If the user wants us to use the optimum bin number,
+they can pass n-bins ‘auto’ instead of an integer.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="sql2gee.sql2gee.SQL2GEE.limit">
+<code class="descname">limit</code><a class="headerlink" href="#sql2gee.sql2gee.SQL2GEE.limit" title="Permalink to this definition">¶</a></dt>
+<dd><p>If LIMIT keyword set, this returns an integer to limit the maximum return from a feature collection query</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="sql2gee.sql2gee.SQL2GEE.parse_comparison">
+<code class="descname">parse_comparison</code><span class="sig-paren">(</span><em>comparison</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/sql2gee/sql2gee.html#SQL2GEE.parse_comparison"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#sql2gee.sql2gee.SQL2GEE.parse_comparison" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="sql2gee.sql2gee.SQL2GEE.parse_conditions">
+<code class="descname">parse_conditions</code><span class="sig-paren">(</span><em>tokens</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/sql2gee/sql2gee.html#SQL2GEE.parse_conditions"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#sql2gee.sql2gee.SQL2GEE.parse_conditions" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="sql2gee.sql2gee.SQL2GEE.parse_list">
+<code class="descname">parse_list</code><span class="sig-paren">(</span><em>tokens</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/sql2gee/sql2gee.html#SQL2GEE.parse_list"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#sql2gee.sql2gee.SQL2GEE.parse_list" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="staticmethod">
+<dt id="sql2gee.sql2gee.SQL2GEE.remove_quotes">
+<em class="property">static </em><code class="descname">remove_quotes</code><span class="sig-paren">(</span><em>input_str</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/sql2gee/sql2gee.html#SQL2GEE.remove_quotes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#sql2gee.sql2gee.SQL2GEE.remove_quotes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Checks the first and last characters of an input_str to see if they are quotation marks [‘ or “], if so
+the function will strip them and return the string.
+:type input_str: str</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="sql2gee.sql2gee.SQL2GEE.response">
+<code class="descname">response</code><a class="headerlink" href="#sql2gee.sql2gee.SQL2GEE.response" title="Permalink to this definition">¶</a></dt>
+<dd><p>Execute the GEE object in GEE Server. This is the function that, when called, actually sends the SQL
+request (which was converted to GEE-speak) to Google’s servers for execution and returns the result.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="sql2gee.sql2gee.SQL2GEE.st_bandmetadata">
+<code class="descname">st_bandmetadata</code><a class="headerlink" href="#sql2gee.sql2gee.SQL2GEE.st_bandmetadata" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return only metadata for a specifically requested band, like postgis function</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="sql2gee.sql2gee.SQL2GEE.st_metadata">
+<code class="descname">st_metadata</code><a class="headerlink" href="#sql2gee.sql2gee.SQL2GEE.st_metadata" title="Permalink to this definition">¶</a></dt>
+<dd><p>The image property Metadata dictionary returned from Earth Engine.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="sql2gee.sql2gee.SQL2GEE.st_valuecount">
+<code class="descname">st_valuecount</code><a class="headerlink" href="#sql2gee.sql2gee.SQL2GEE.st_valuecount" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return only metadata for a specifically requested band, like postgis function</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="sql2gee.sql2gee.SQL2GEE.summary_stats">
+<code class="descname">summary_stats</code><a class="headerlink" href="#sql2gee.sql2gee.SQL2GEE.summary_stats" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a dictionary object of summary stats like the postgis function ST_SUMMARYSTATS().</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="sql2gee.sql2gee.SQL2GEE.target_data">
+<code class="descname">target_data</code><a class="headerlink" href="#sql2gee.sql2gee.SQL2GEE.target_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set target_data property using sql tokens, assuming it
+is the first token of type Identifier after the ‘FROM’ keyword
+also of type Identifier. If not found, raise an Exception.</p>
+</dd></dl>
+
+<dl class="staticmethod">
+<dt id="sql2gee.sql2gee.SQL2GEE.token_to_dictionary">
+<em class="property">static </em><code class="descname">token_to_dictionary</code><span class="sig-paren">(</span><em>token_list</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/sql2gee/sql2gee.html#SQL2GEE.token_to_dictionary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#sql2gee.sql2gee.SQL2GEE.token_to_dictionary" title="Permalink to this definition">¶</a></dt>
+<dd><p>Receives a token e.g.(‘count(pepe)’) and converts it into a dict
+with key:values for function and value .</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="sql2gee.sql2gee.SQL2GEE.where">
+<code class="descname">where</code><a class="headerlink" href="#sql2gee.sql2gee.SQL2GEE.where" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns filter object obtained from where of the query in GEE format</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+</div>
+
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="support.html" class="btn btn-neutral float-right" title="Support" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="moreExamples.html" class="btn btn-neutral" title="Detailed Examples of SQL2GEE’s use" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Benjamin A. Laken.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'0.1.2',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

@@ -1,0 +1,802 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Tutorial &mdash; sql2gee 0.1.2 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="genindex.html"/>
+        <link rel="search" title="Search" href="search.html"/>
+    <link rel="top" title="sql2gee 0.1.2 documentation" href="index.html"/>
+        <link rel="next" title="Detailed Examples of SQL2GEE’s use" href="moreExamples.html"/>
+        <link rel="prev" title="Supported SQL and Postgis Syntax" href="supportedsyntax.html"/> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> sql2gee
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.1.2
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="supportedsyntax.html">Supported SQL and Postgis Syntax</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Tutorial</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#loading-and-authenticating">Loading and Authenticating</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#simple-queries-to-fusion-table-data">Simple Queries to Fusion Table data</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#using-the-limit-keyword">Using the LIMIT keyword</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#using-the-first-aggregator">Using the FIRST() aggregator</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#counting-rows-in-a-table">Counting rows in a table</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#restricting-queries-from-fusion-table-data">Restricting Queries from Fusion Table data</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#simple-where-statements">Simple WHERE Statements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#where-with-an-aggregator">WHERE with an aggregator</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#where-with-conditionals-and-an-aggregator">WHERE with conditionals and an aggregator</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#operations-on-image-data">Operations on Image Data</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#retrieve-image-property-metadata">Retrieve Image Property Metadata</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#find-band-names-of-an-image">Find Band Names of an Image</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#band-specific-image-metadata">Band-Specific Image Metadata</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#summary-statistics-over-an-image">Summary Statistics over an Image</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#histogram-information-over-an-image-band">Histogram information over an Image Band</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#area-restriction-of-rasters-via-geojson">Area restriction of rasters via geojson</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#passing-a-geojson-object-directly-as-a-kwarg">Passing a Geojson object directly as a kwarg</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#passing-a-geojson-via-sql">Passing a Geojson via SQL</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="moreExamples.html">Detailed Examples of SQL2GEE’s use</a></li>
+<li class="toctree-l1"><a class="reference internal" href="sql2gee.html">The sql2gee Package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="support.html">Support</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">sql2gee</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>Tutorial</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/gettingstarted.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="tutorial">
+<h1>Tutorial<a class="headerlink" href="#tutorial" title="Permalink to this headline">¶</a></h1>
+<p>This is intended as a quick-start guide to using the sql2gee library.</p>
+<div class="section" id="loading-and-authenticating">
+<h2>Loading and Authenticating<a class="headerlink" href="#loading-and-authenticating" title="Permalink to this headline">¶</a></h2>
+<p>To use this library you must be able to make Earth Engine requests. To do this, you must be able to authenticate your
+session with Google. To set this up, follow <a class="reference external" href="https://developers.google.com/earth-engine/python_install">Google’s guide</a>.</p>
+<p>Assuming that you are running Python 2.7, have installed sql2gee, and are able to authenticate a session with Earth Engine,
+the following examples should work.</p>
+<p>First, load sql2gee and the Earth Engine libraries.</p>
+<div class="highlight-python"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre>1
+2
+3</pre></div></td><td class="code"><div class="highlight"><pre><span></span> <span class="kn">import</span> <span class="nn">ee</span>
+ <span class="kn">from</span> <span class="nn">sql2gee</span> <span class="kn">import</span> <span class="n">SQL2GEE</span>
+ <span class="n">ee</span><span class="o">.</span><span class="n">Initialize</span><span class="p">()</span>
+</pre></div>
+</td></tr></table></div>
+</div>
+<div class="section" id="simple-queries-to-fusion-table-data">
+<h2>Simple Queries to Fusion Table data<a class="headerlink" href="#simple-queries-to-fusion-table-data" title="Permalink to this headline">¶</a></h2>
+<p>After loading the libraries, you may create SQL queries against either Features (vector data) or rasters (image data).
+For example, we may use a public Fusion Table dataset by passing it’s ID as a table argument
+(e.g. <a class="reference external" href="https://fusiontables.google.com/data?docid=1qpKIcYQMBsXLA9RLWCaV9D0Hus2cMQHhI-ViKHo#rows:id=1">Panoramic Photos and locations from San Francisco</a>).</p>
+<div class="section" id="using-the-limit-keyword">
+<h3>Using the LIMIT keyword<a class="headerlink" href="#using-the-limit-keyword" title="Permalink to this headline">¶</a></h3>
+<p>We may obtain the first entry in the Fusion table using the LIMIT keyword.</p>
+<div class="highlight-python"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre> 1
+ 2
+ 3
+ 4
+ 5
+ 6
+ 7
+ 8
+ 9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27</pre></div></td><td class="code"><div class="highlight"><pre><span></span> <span class="n">sql</span> <span class="o">=</span> <span class="s1">&#39;select * from &quot;ft:1qpKIcYQMBsXLA9RLWCaV9D0Hus2cMQHhI-ViKHo&quot; LIMIT 1&#39;</span>
+ <span class="n">q</span> <span class="o">=</span> <span class="n">SQL2GEE</span><span class="p">(</span><span class="n">sql</span><span class="p">)</span>
+ <span class="n">q</span><span class="o">.</span><span class="n">response</span>
+ <span class="p">{</span><span class="sa">u</span><span class="s1">&#39;columns&#39;</span><span class="p">:</span> <span class="p">{</span><span class="sa">u</span><span class="s1">&#39;date&#39;</span><span class="p">:</span> <span class="sa">u</span><span class="s1">&#39;Number&#39;</span><span class="p">,</span>
+               <span class="sa">u</span><span class="s1">&#39;height&#39;</span><span class="p">:</span> <span class="sa">u</span><span class="s1">&#39;Number&#39;</span><span class="p">,</span>
+               <span class="sa">u</span><span class="s1">&#39;lng&#39;</span><span class="p">:</span> <span class="sa">u</span><span class="s1">&#39;Number&#39;</span><span class="p">,</span>
+               <span class="sa">u</span><span class="s1">&#39;title&#39;</span><span class="p">:</span> <span class="sa">u</span><span class="s1">&#39;String&#39;</span><span class="p">,</span>
+               <span class="sa">u</span><span class="s1">&#39;url&#39;</span><span class="p">:</span> <span class="sa">u</span><span class="s1">&#39;String&#39;</span><span class="p">,</span>
+               <span class="sa">u</span><span class="s1">&#39;user_id&#39;</span><span class="p">:</span> <span class="sa">u</span><span class="s1">&#39;Number&#39;</span><span class="p">,</span>
+               <span class="sa">u</span><span class="s1">&#39;user_name&#39;</span><span class="p">:</span> <span class="sa">u</span><span class="s1">&#39;String&#39;</span><span class="p">,</span>
+               <span class="sa">u</span><span class="s1">&#39;width&#39;</span><span class="p">:</span> <span class="sa">u</span><span class="s1">&#39;Number&#39;</span><span class="p">},</span>
+  <span class="sa">u</span><span class="s1">&#39;features&#39;</span><span class="p">:</span> <span class="p">[{</span><span class="sa">u</span><span class="s1">&#39;geometry&#39;</span><span class="p">:</span> <span class="p">{</span><span class="sa">u</span><span class="s1">&#39;coordinates&#39;</span><span class="p">:</span> <span class="p">[</span><span class="o">-</span><span class="mf">122.199705</span><span class="p">,</span> <span class="mf">37.808411</span><span class="p">],</span>
+                               <span class="sa">u</span><span class="s1">&#39;geodesic&#39;</span><span class="p">:</span> <span class="bp">True</span><span class="p">,</span>
+                               <span class="sa">u</span><span class="s1">&#39;type&#39;</span><span class="p">:</span> <span class="sa">u</span><span class="s1">&#39;Point&#39;</span><span class="p">},</span>
+                 <span class="sa">u</span><span class="s1">&#39;id&#39;</span><span class="p">:</span> <span class="sa">u</span><span class="s1">&#39;2&#39;</span><span class="p">,</span>
+                 <span class="sa">u</span><span class="s1">&#39;properties&#39;</span><span class="p">:</span> <span class="p">{</span><span class="sa">u</span><span class="s1">&#39;date&#39;</span><span class="p">:</span> <span class="mi">1169596800000</span><span class="p">,</span>
+                                 <span class="sa">u</span><span class="s1">&#39;height&#39;</span><span class="p">:</span> <span class="mf">375.0</span><span class="p">,</span>
+                                 <span class="sa">u</span><span class="s1">&#39;lng&#39;</span><span class="p">:</span> <span class="o">-</span><span class="mf">122.199705</span><span class="p">,</span>
+                                 <span class="sa">u</span><span class="s1">&#39;title&#39;</span><span class="p">:</span> <span class="sa">u</span><span class="s1">&#39;Oakland California LDS Temple&#39;</span><span class="p">,</span>
+                                 <span class="sa">u</span><span class="s1">&#39;url&#39;</span><span class="p">:</span> <span class="sa">u</span><span class="s1">&#39;http://mw2.google.com/mw-panoramio/photos/medium/551255.jpg&#39;</span><span class="p">,</span>
+                                 <span class="sa">u</span><span class="s1">&#39;user_id&#39;</span><span class="p">:</span> <span class="mf">99249.0</span><span class="p">,</span>
+                                 <span class="sa">u</span><span class="s1">&#39;user_name&#39;</span><span class="p">:</span> <span class="sa">u</span><span class="s1">&#39;shaunikadearman&#39;</span><span class="p">,</span>
+                                 <span class="sa">u</span><span class="s1">&#39;width&#39;</span><span class="p">:</span> <span class="mf">500.0</span><span class="p">},</span>
+                 <span class="sa">u</span><span class="s1">&#39;type&#39;</span><span class="p">:</span> <span class="sa">u</span><span class="s1">&#39;Feature&#39;</span><span class="p">}],</span>
+  <span class="sa">u</span><span class="s1">&#39;properties&#39;</span><span class="p">:</span> <span class="p">{</span><span class="sa">u</span><span class="s1">&#39;DocID&#39;</span><span class="p">:</span> <span class="sa">u</span><span class="s1">&#39;1qpKIcYQMBsXLA9RLWCaV9D0Hus2cMQHhI-ViKHo&#39;</span><span class="p">,</span>
+                  <span class="sa">u</span><span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="sa">u</span><span class="s1">&#39;SF Panoramio Photos +ID&#39;</span><span class="p">},</span>
+  <span class="sa">u</span><span class="s1">&#39;type&#39;</span><span class="p">:</span> <span class="sa">u</span><span class="s1">&#39;FeatureCollection&#39;</span><span class="p">}</span>
+</pre></div>
+</td></tr></table></div>
+<p>Note that the actual response to our query is returned via the <code class="docutils literal"><span class="pre">response</span></code> property, and it is possible to both
+instantiate a class instance and call this property in a single argument, e.g.
+<code class="docutils literal"><span class="pre">SQL&#64;GEE('select</span> <span class="pre">*</span> <span class="pre">from</span> <span class="pre">&quot;ft:1qpKIcYQMBsXLA9RLWCaV9D0Hus2cMQHhI-ViKHo&quot;</span> <span class="pre">LIMIT</span> <span class="pre">1').response</span></code>.</p>
+</div>
+<div class="section" id="using-the-first-aggregator">
+<h3>Using the FIRST() aggregator<a class="headerlink" href="#using-the-first-aggregator" title="Permalink to this headline">¶</a></h3>
+<p>These data have a column called <strong>lng</strong>, each row of ‘which contains a value for Longitude where a photo was taken.</p>
+<p>We may request the first value from the <strong>lng</strong> column from the table as follows.</p>
+<div class="highlight-python"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre>1
+2
+3
+4</pre></div></td><td class="code"><div class="highlight"><pre><span></span> <span class="n">sql</span> <span class="o">=</span> <span class="s1">&#39;SELECT FIRST(lng) from &quot;ft:1qpKIcYQMBsXLA9RLWCaV9D0Hus2cMQHhI-ViKHo&quot;&#39;</span>
+ <span class="n">q</span> <span class="o">=</span> <span class="n">SQL2GEE</span><span class="p">(</span><span class="n">sql</span><span class="p">)</span>
+ <span class="n">q</span><span class="o">.</span><span class="n">response</span>
+ <span class="o">-</span><span class="mf">122.199705</span>
+</pre></div>
+</td></tr></table></div>
+</div>
+<div class="section" id="counting-rows-in-a-table">
+<h3>Counting rows in a table<a class="headerlink" href="#counting-rows-in-a-table" title="Permalink to this headline">¶</a></h3>
+<p>We may count the number of rows of <strong>lng</strong> data in the table with the COUNT() aggregator function as follows.</p>
+<div class="highlight-python"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre>1
+2
+3
+4</pre></div></td><td class="code"><div class="highlight"><pre><span></span> <span class="n">sql</span> <span class="o">=</span> <span class="s1">&#39;SELECT COUNT(lng) from &quot;ft:1qpKIcYQMBsXLA9RLWCaV9D0Hus2cMQHhI-ViKHo&quot;&#39;</span>
+ <span class="n">q</span> <span class="o">=</span> <span class="n">SQL2GEE</span><span class="p">(</span><span class="n">sql</span><span class="p">)</span>
+ <span class="n">q</span><span class="o">.</span><span class="n">response</span>
+ <span class="mi">1919</span>
+</pre></div>
+</td></tr></table></div>
+</div>
+</div>
+<div class="section" id="restricting-queries-from-fusion-table-data">
+<h2>Restricting Queries from Fusion Table data<a class="headerlink" href="#restricting-queries-from-fusion-table-data" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="simple-where-statements">
+<h3>Simple WHERE Statements<a class="headerlink" href="#simple-where-statements" title="Permalink to this headline">¶</a></h3>
+<p>Increasing the complexity, we can ask to return all columns of data from our Fusion Table, where the row matches a specific column value,
+in our case, we will use the example of returning data where the <strong>user_name</strong> is equal to <strong>Adnew</strong>.</p>
+<div class="highlight-python"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre> 1
+ 2
+ 3
+ 4
+ 5
+ 6
+ 7
+ 8
+ 9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40</pre></div></td><td class="code"><div class="highlight"><pre><span></span> <span class="n">sql</span> <span class="o">=</span> <span class="s1">&#39;SELECT * from &quot;ft:1qpKIcYQMBsXLA9RLWCaV9D0Hus2cMQHhI-ViKHo&quot; WHERE user_name =Adnew&#39;</span>
+ <span class="n">q</span> <span class="o">=</span> <span class="n">SQL2GEE</span><span class="p">(</span><span class="n">sql</span><span class="p">)</span>
+ <span class="n">q</span><span class="o">.</span><span class="n">response</span>
+ <span class="p">{</span><span class="sa">u</span><span class="s1">&#39;columns&#39;</span><span class="p">:</span> <span class="p">{</span><span class="sa">u</span><span class="s1">&#39;date&#39;</span><span class="p">:</span> <span class="sa">u</span><span class="s1">&#39;Number&#39;</span><span class="p">,</span>
+               <span class="sa">u</span><span class="s1">&#39;height&#39;</span><span class="p">:</span> <span class="sa">u</span><span class="s1">&#39;Number&#39;</span><span class="p">,</span>
+               <span class="sa">u</span><span class="s1">&#39;lng&#39;</span><span class="p">:</span> <span class="sa">u</span><span class="s1">&#39;Number&#39;</span><span class="p">,</span>
+               <span class="sa">u</span><span class="s1">&#39;title&#39;</span><span class="p">:</span> <span class="sa">u</span><span class="s1">&#39;String&#39;</span><span class="p">,</span>
+               <span class="sa">u</span><span class="s1">&#39;url&#39;</span><span class="p">:</span> <span class="sa">u</span><span class="s1">&#39;String&#39;</span><span class="p">,</span>
+               <span class="sa">u</span><span class="s1">&#39;user_id&#39;</span><span class="p">:</span> <span class="sa">u</span><span class="s1">&#39;Number&#39;</span><span class="p">,</span>
+               <span class="sa">u</span><span class="s1">&#39;user_name&#39;</span><span class="p">:</span> <span class="sa">u</span><span class="s1">&#39;String&#39;</span><span class="p">,</span>
+               <span class="sa">u</span><span class="s1">&#39;width&#39;</span><span class="p">:</span> <span class="sa">u</span><span class="s1">&#39;Number&#39;</span><span class="p">},</span>
+  <span class="sa">u</span><span class="s1">&#39;features&#39;</span><span class="p">:</span> <span class="p">[{</span><span class="sa">u</span><span class="s1">&#39;geometry&#39;</span><span class="p">:</span> <span class="p">{</span><span class="sa">u</span><span class="s1">&#39;coordinates&#39;</span><span class="p">:</span> <span class="p">[</span><span class="o">-</span><span class="mf">122.478504</span><span class="p">,</span> <span class="mf">37.825853</span><span class="p">],</span>
+                               <span class="sa">u</span><span class="s1">&#39;geodesic&#39;</span><span class="p">:</span> <span class="bp">True</span><span class="p">,</span>
+                               <span class="sa">u</span><span class="s1">&#39;type&#39;</span><span class="p">:</span> <span class="sa">u</span><span class="s1">&#39;Point&#39;</span><span class="p">},</span>
+                 <span class="sa">u</span><span class="s1">&#39;id&#39;</span><span class="p">:</span> <span class="sa">u</span><span class="s1">&#39;1053&#39;</span><span class="p">,</span>
+                 <span class="sa">u</span><span class="s1">&#39;properties&#39;</span><span class="p">:</span> <span class="p">{</span><span class="sa">u</span><span class="s1">&#39;date&#39;</span><span class="p">:</span> <span class="mi">1210377600000</span><span class="p">,</span>
+                                 <span class="sa">u</span><span class="s1">&#39;height&#39;</span><span class="p">:</span> <span class="mf">332.0</span><span class="p">,</span>
+                                 <span class="sa">u</span><span class="s1">&#39;lng&#39;</span><span class="p">:</span> <span class="o">-</span><span class="mf">122.478504</span><span class="p">,</span>
+                                 <span class="sa">u</span><span class="s1">&#39;title&#39;</span><span class="p">:</span> <span class="sa">u</span><span class="s1">&#39;San Francisco -  - Golden Gate Bridge&#39;</span><span class="p">,</span>
+                                 <span class="sa">u</span><span class="s1">&#39;url&#39;</span><span class="p">:</span> <span class="sa">u</span><span class="s1">&#39;http://mw2.google.com/mw-panoramio/photos/medium/10085769.jpg&#39;</span><span class="p">,</span>
+                                 <span class="sa">u</span><span class="s1">&#39;user_id&#39;</span><span class="p">:</span> <span class="mf">949501.0</span><span class="p">,</span>
+                                 <span class="sa">u</span><span class="s1">&#39;user_name&#39;</span><span class="p">:</span> <span class="sa">u</span><span class="s1">&#39;Adnew&#39;</span><span class="p">,</span>
+                                 <span class="sa">u</span><span class="s1">&#39;width&#39;</span><span class="p">:</span> <span class="mf">500.0</span><span class="p">},</span>
+                 <span class="sa">u</span><span class="s1">&#39;type&#39;</span><span class="p">:</span> <span class="sa">u</span><span class="s1">&#39;Feature&#39;</span><span class="p">},</span>
+                <span class="p">{</span><span class="sa">u</span><span class="s1">&#39;geometry&#39;</span><span class="p">:</span> <span class="p">{</span><span class="sa">u</span><span class="s1">&#39;coordinates&#39;</span><span class="p">:</span> <span class="p">[</span><span class="o">-</span><span class="mf">122.386322</span><span class="p">,</span> <span class="mf">37.798798</span><span class="p">],</span>
+                               <span class="sa">u</span><span class="s1">&#39;geodesic&#39;</span><span class="p">:</span> <span class="bp">True</span><span class="p">,</span>
+                               <span class="sa">u</span><span class="s1">&#39;type&#39;</span><span class="p">:</span> <span class="sa">u</span><span class="s1">&#39;Point&#39;</span><span class="p">},</span>
+                 <span class="sa">u</span><span class="s1">&#39;id&#39;</span><span class="p">:</span> <span class="sa">u</span><span class="s1">&#39;1340&#39;</span><span class="p">,</span>
+                 <span class="sa">u</span><span class="s1">&#39;properties&#39;</span><span class="p">:</span> <span class="p">{</span><span class="sa">u</span><span class="s1">&#39;date&#39;</span><span class="p">:</span> <span class="mi">1300147200000</span><span class="p">,</span>
+                                 <span class="sa">u</span><span class="s1">&#39;height&#39;</span><span class="p">:</span> <span class="mf">358.0</span><span class="p">,</span>
+                                 <span class="sa">u</span><span class="s1">&#39;lng&#39;</span><span class="p">:</span> <span class="o">-</span><span class="mf">122.386322</span><span class="p">,</span>
+                                 <span class="sa">u</span><span class="s1">&#39;title&#39;</span><span class="p">:</span> <span class="sa">u</span><span class="s1">&#39;Oakland-Bay-Bridge&#39;</span><span class="p">,</span>
+                                 <span class="sa">u</span><span class="s1">&#39;url&#39;</span><span class="p">:</span> <span class="sa">u</span><span class="s1">&#39;http://mw2.google.com/mw-panoramio/photos/medium/49518296.jpg&#39;</span><span class="p">,</span>
+                                 <span class="sa">u</span><span class="s1">&#39;user_id&#39;</span><span class="p">:</span> <span class="mf">949501.0</span><span class="p">,</span>
+                                 <span class="sa">u</span><span class="s1">&#39;user_name&#39;</span><span class="p">:</span> <span class="sa">u</span><span class="s1">&#39;Adnew&#39;</span><span class="p">,</span>
+                                 <span class="sa">u</span><span class="s1">&#39;width&#39;</span><span class="p">:</span> <span class="mf">500.0</span><span class="p">},</span>
+                 <span class="sa">u</span><span class="s1">&#39;type&#39;</span><span class="p">:</span> <span class="sa">u</span><span class="s1">&#39;Feature&#39;</span><span class="p">}],</span>
+  <span class="sa">u</span><span class="s1">&#39;properties&#39;</span><span class="p">:</span> <span class="p">{</span><span class="sa">u</span><span class="s1">&#39;DocID&#39;</span><span class="p">:</span> <span class="sa">u</span><span class="s1">&#39;1qpKIcYQMBsXLA9RLWCaV9D0Hus2cMQHhI-ViKHo&#39;</span><span class="p">,</span>
+                  <span class="sa">u</span><span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="sa">u</span><span class="s1">&#39;SF Panoramio Photos +ID&#39;</span><span class="p">},</span>
+  <span class="sa">u</span><span class="s1">&#39;type&#39;</span><span class="p">:</span> <span class="sa">u</span><span class="s1">&#39;FeatureCollection&#39;</span><span class="p">}</span>
+</pre></div>
+</td></tr></table></div>
+<p>Note that the request returned a Python dictionary object.</p>
+</div>
+<div class="section" id="where-with-an-aggregator">
+<h3>WHERE with an aggregator<a class="headerlink" href="#where-with-an-aggregator" title="Permalink to this headline">¶</a></h3>
+<p>We can also apply an aggregator to the restricted query, e.g. to count the number of rows in the <strong>date</strong> column for entries
+of a given <strong>user_name</strong>.</p>
+<div class="highlight-python"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre>1
+2
+3
+4</pre></div></td><td class="code"><div class="highlight"><pre><span></span> <span class="n">sql</span> <span class="o">=</span> <span class="s1">&#39;SELECT COUNT(date) from &quot;ft:1qpKIcYQMBsXLA9RLWCaV9D0Hus2cMQHhI-ViKHo&quot; WHERE user_name = Alfred Mueller&#39;</span>
+ <span class="n">q</span> <span class="o">=</span> <span class="n">SQL2GEE</span><span class="p">(</span><span class="n">sql</span><span class="p">)</span>
+ <span class="n">q</span><span class="o">.</span><span class="n">response</span>
+ <span class="mi">6</span>
+</pre></div>
+</td></tr></table></div>
+</div>
+<div class="section" id="where-with-conditionals-and-an-aggregator">
+<h3>WHERE with conditionals and an aggregator<a class="headerlink" href="#where-with-conditionals-and-an-aggregator" title="Permalink to this headline">¶</a></h3>
+<p>Restrictions can also use comparison operators. For example, we could return the first row from the <strong>url</strong> column where
+the <strong>height</strong> of photos was great-than-or-equal-to (&gt;=) 500 pixels.</p>
+<div class="highlight-python"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre>1
+2
+3
+4</pre></div></td><td class="code"><div class="highlight"><pre><span></span> <span class="n">sql</span> <span class="o">=</span> <span class="s1">&#39;SELECT FIRST(url) from &quot;ft:1qpKIcYQMBsXLA9RLWCaV9D0Hus2cMQHhI-ViKHo&quot; WHERE height &gt;= 500&#39;</span>
+ <span class="n">q</span> <span class="o">=</span> <span class="n">SQL2GEE</span><span class="p">(</span><span class="n">sql</span><span class="p">)</span>
+ <span class="n">q</span><span class="o">.</span><span class="n">response</span>
+ <span class="sa">u</span><span class="s1">&#39;http://mw2.google.com/mw-panoramio/photos/medium/1529603.jpg&#39;</span>
+</pre></div>
+</td></tr></table></div>
+<p>Restrictions can be compounded into quite complex statements. For example, we can return the average (AVG) longitude
+value from the <strong>lng</strong> column, where the <strong>height</strong> of photos was greater than (&gt;) 400 pixels, and the <strong>width</strong> was
+greater-than 400 pixels.</p>
+<div class="highlight-python"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre>1
+2
+3
+4</pre></div></td><td class="code"><div class="highlight"><pre><span></span> <span class="n">sql</span> <span class="o">=</span> <span class="s1">&#39;SELECT AVG(lng) from &quot;ft:1qpKIcYQMBsXLA9RLWCaV9D0Hus2cMQHhI-ViKHo&quot; WHERE height &gt; 400 AND width &gt; 400&#39;</span>
+ <span class="n">q</span> <span class="o">=</span> <span class="n">SQL2GEE</span><span class="p">(</span><span class="n">sql</span><span class="p">)</span>
+ <span class="n">q</span><span class="o">.</span><span class="n">response</span>
+ <span class="o">-</span><span class="mf">122.36732296666668</span>
+</pre></div>
+</td></tr></table></div>
+</div>
+</div>
+<div class="section" id="operations-on-image-data">
+<h2>Operations on Image Data<a class="headerlink" href="#operations-on-image-data" title="Permalink to this headline">¶</a></h2>
+<p>Sql2gee supports Postgis-like operations on raster (image) data that is publicly accessible in Google’s Earth Engine.
+Our functions include the ability to subset (clip) images by <a class="reference external" href="http://geojson.org">geojson</a> data.
+If successful, the response of these objects will be a dictionary.</p>
+<p>We will demonstrate performing these operations on both a single-band image, <strong>strm90_v4</strong> (which contains 90m
+elevation data globally), and <strong>LC81412332013146LGN00</strong> (a multi-band Landasat-8 tile).</p>
+<div class="section" id="retrieve-image-property-metadata">
+<h3>Retrieve Image Property Metadata<a class="headerlink" href="#retrieve-image-property-metadata" title="Permalink to this headline">¶</a></h3>
+<p>To retrieve image metadata, use the ST_METADATA() function. (A refrence to the Postgis version of this operation is
+<a class="reference external" href="http://postgis.net/docs/RT_ST_MetaData.html">here</a>.) Note, the POSTGIS function requires that a string defining the
+name of the raster is provided as an argument. In our case, it does not matter if it is given or not, but we have
+included it below (as <cite>rast</cite>) to be more postgis-like.</p>
+<div class="highlight-python"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre>1
+2
+3
+4
+5
+6</pre></div></td><td class="code"><div class="highlight"><pre><span></span> <span class="n">sql</span> <span class="o">=</span> <span class="s1">&#39;SELECT ST_METADATA(rast) from srtm90_v4&#39;</span>
+ <span class="n">q</span> <span class="o">=</span> <span class="n">SQL2GEE</span><span class="p">(</span><span class="n">sql</span><span class="p">)</span>
+ <span class="n">q</span><span class="o">.</span><span class="n">response</span>
+ <span class="p">{</span><span class="sa">u</span><span class="s1">&#39;system:asset_size&#39;</span><span class="p">:</span> <span class="mi">18827626666</span><span class="p">,</span>
+  <span class="sa">u</span><span class="s1">&#39;system:time_end&#39;</span><span class="p">:</span> <span class="mi">951177600000</span><span class="p">,</span>
+  <span class="sa">u</span><span class="s1">&#39;system:time_start&#39;</span><span class="p">:</span> <span class="mi">950227200000</span><span class="p">}</span>
+</pre></div>
+</td></tr></table></div>
+</div>
+<div class="section" id="find-band-names-of-an-image">
+<h3>Find Band Names of an Image<a class="headerlink" href="#find-band-names-of-an-image" title="Permalink to this headline">¶</a></h3>
+<p>If you don’t know the band names of an image, you may use integer values as an index. Alternatively, you may get
+the keys of the bands (band names) as shown below.</p>
+<div class="highlight-python"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre> 1
+ 2
+ 3
+ 4
+ 5
+ 6
+ 7
+ 8
+ 9
+10
+11
+12
+13
+14
+15
+16
+17</pre></div></td><td class="code"><div class="highlight"><pre><span></span> <span class="n">sql</span> <span class="o">=</span> <span class="s2">&quot;SELECT ST_METADATA(rast) FROM LC81412332013146LGN00&quot;</span>
+ <span class="n">q</span> <span class="o">=</span> <span class="n">SQL2GEE</span><span class="p">(</span><span class="n">sql</span><span class="p">)</span>
+ <span class="n">q</span><span class="o">.</span><span class="n">response</span>
+ <span class="k">for</span> <span class="n">band</span> <span class="ow">in</span> <span class="n">q</span><span class="o">.</span><span class="n">_band_names</span><span class="p">:</span>
+     <span class="k">print</span><span class="p">(</span><span class="n">band</span><span class="p">)</span>
+ <span class="n">B1</span>
+ <span class="n">B2</span>
+ <span class="n">B3</span>
+ <span class="n">B4</span>
+ <span class="n">B5</span>
+ <span class="n">B6</span>
+ <span class="n">B7</span>
+ <span class="n">B8</span>
+ <span class="n">B9</span>
+ <span class="n">B10</span>
+ <span class="n">B11</span>
+ <span class="n">BQA</span>
+</pre></div>
+</td></tr></table></div>
+</div>
+<div class="section" id="band-specific-image-metadata">
+<h3>Band-Specific Image Metadata<a class="headerlink" href="#band-specific-image-metadata" title="Permalink to this headline">¶</a></h3>
+<p>To retrieve a dictionary providing information relating to specific bands of data use the ST_BANDMETADATA(), a
+<a class="reference external" href="http://postgis.net/docs/manual-dev/RT_ST_BandMetaData.html">POSTGIS-like</a> function.
+This requires a raster string to be passed, like in POSTGIS, although in our case it does nothing (we call it
+rast below), and a band number (or string identifier). We call the first band with the integer 1, but, if we knew in
+advance that the band name was <em>elevation</em>, we could have also used this string to reference the band.</p>
+<div class="highlight-python"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre> 1
+ 2
+ 3
+ 4
+ 5
+ 6
+ 7
+ 8
+ 9
+10
+11
+12
+13
+14
+15
+16</pre></div></td><td class="code"><div class="highlight"><pre><span></span> <span class="n">sql</span> <span class="o">=</span> <span class="s1">&#39;SELECT ST_BANDMETADATA(rast, 1) from srtm90_v4&#39;</span> <span class="c1"># could use either 1 or the name of the band (elevation)</span>
+ <span class="n">q</span> <span class="o">=</span> <span class="n">SQL2GEE</span><span class="p">(</span><span class="n">sql</span><span class="p">)</span>
+ <span class="n">q</span><span class="o">.</span><span class="n">response</span>
+ <span class="p">{</span><span class="sa">u</span><span class="s1">&#39;crs&#39;</span><span class="p">:</span> <span class="sa">u</span><span class="s1">&#39;EPSG:4326&#39;</span><span class="p">,</span>
+  <span class="sa">u</span><span class="s1">&#39;crs_transform&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.000833333333333</span><span class="p">,</span>
+                     <span class="mf">0.0</span><span class="p">,</span>
+                     <span class="o">-</span><span class="mf">180.0</span><span class="p">,</span>
+                     <span class="mf">0.0</span><span class="p">,</span>
+                     <span class="o">-</span><span class="mf">0.000833333333333</span><span class="p">,</span>
+                     <span class="mf">60.0</span><span class="p">],</span>
+  <span class="sa">u</span><span class="s1">&#39;data_type&#39;</span><span class="p">:</span> <span class="p">{</span><span class="sa">u</span><span class="s1">&#39;max&#39;</span><span class="p">:</span> <span class="mi">32767</span><span class="p">,</span>
+                 <span class="sa">u</span><span class="s1">&#39;min&#39;</span><span class="p">:</span> <span class="o">-</span><span class="mi">32768</span><span class="p">,</span>
+                 <span class="sa">u</span><span class="s1">&#39;precision&#39;</span><span class="p">:</span> <span class="sa">u</span><span class="s1">&#39;int&#39;</span><span class="p">,</span>
+                 <span class="sa">u</span><span class="s1">&#39;type&#39;</span><span class="p">:</span> <span class="sa">u</span><span class="s1">&#39;PixelType&#39;</span><span class="p">},</span>
+  <span class="sa">u</span><span class="s1">&#39;dimensions&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">432000</span><span class="p">,</span> <span class="mi">144000</span><span class="p">],</span>
+  <span class="sa">u</span><span class="s1">&#39;id&#39;</span><span class="p">:</span> <span class="sa">u</span><span class="s1">&#39;elevation&#39;</span><span class="p">}</span>
+</pre></div>
+</td></tr></table></div>
+</div>
+<div class="section" id="summary-statistics-over-an-image">
+<h3>Summary Statistics over an Image<a class="headerlink" href="#summary-statistics-over-an-image" title="Permalink to this headline">¶</a></h3>
+<p>Summary statistics can be retrieved per-band of Images in the Earth Engine data catalouge via the use of the postgis-like
+<a class="reference external" href="http://postgis.net/docs/RT_ST_SummaryStats.html">ST_SUMMARYSTATS()</a> function, as shown below.</p>
+<div class="highlight-python"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre>1
+2
+3
+4
+5
+6
+7
+8
+9</pre></div></td><td class="code"><div class="highlight"><pre><span></span> <span class="n">sql</span> <span class="o">=</span> <span class="s1">&#39;SELECT ST_SUMMARYSTATS() from srtm90_v4&#39;</span>
+ <span class="n">q</span> <span class="o">=</span> <span class="n">SQL2GEE</span><span class="p">(</span><span class="n">sql</span><span class="p">)</span>
+ <span class="n">q</span><span class="o">.</span><span class="n">response</span>
+ <span class="p">{</span><span class="sa">u</span><span class="s1">&#39;elevation&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;count&#39;</span><span class="p">:</span> <span class="mi">2747198</span><span class="p">,</span>
+                 <span class="s1">&#39;max&#39;</span><span class="p">:</span> <span class="mi">7159</span><span class="p">,</span>
+                 <span class="s1">&#39;mean&#39;</span><span class="p">:</span> <span class="mf">689.8474833769903</span><span class="p">,</span>
+                 <span class="s1">&#39;min&#39;</span><span class="p">:</span> <span class="o">-</span><span class="mi">415</span><span class="p">,</span>
+                 <span class="s1">&#39;stdev&#39;</span><span class="p">:</span> <span class="mf">865.9582784994756</span><span class="p">,</span>
+                 <span class="s1">&#39;sum&#39;</span><span class="p">:</span> <span class="mf">1859471136.0274282</span><span class="p">}}</span>
+</pre></div>
+</td></tr></table></div>
+</div>
+<div class="section" id="histogram-information-over-an-image-band">
+<h3>Histogram information over an Image Band<a class="headerlink" href="#histogram-information-over-an-image-band" title="Permalink to this headline">¶</a></h3>
+<p>To return the data required to produce a histogram (bin position and frequency), the postgis-like <a class="reference external" href="http://postgis.net/docs/manual-dev/RT_ST_Histogram.html">ST_HISTOTRAM()</a> method can be used.
+Again, SQL2GEE can be passed a geojson if desired, as in the previous example, to restrict the results to only a specific region (or regions). ST_HISTOGRAM must be passed four (Postgis-like) arguments
+described below.</p>
+<div class="highlight-python"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre> 1
+ 2
+ 3
+ 4
+ 5
+ 6
+ 7
+ 8
+ 9
+10
+11</pre></div></td><td class="code"><div class="highlight"><pre><span></span> <span class="n">sql</span> <span class="o">=</span> <span class="s2">&quot;SELECT ST_HISTOGRAM(rast, 1, auto, true) FROM srtm90_v4&quot;</span>
+ <span class="n">q</span> <span class="o">=</span> <span class="n">SQL2GEE</span><span class="p">(</span><span class="n">sql</span><span class="p">)</span>
+ <span class="n">q</span><span class="o">.</span><span class="n">response</span>
+ <span class="p">{</span><span class="sa">u</span><span class="s1">&#39;elevation&#39;</span><span class="p">:</span> <span class="p">[[</span><span class="o">-</span><span class="mf">415.0</span><span class="p">,</span> <span class="mf">14.0</span><span class="p">],</span>
+                 <span class="p">[</span><span class="o">-</span><span class="mf">404.94156706507306</span><span class="p">,</span> <span class="mf">6.0</span><span class="p">],</span>
+                 <span class="p">[</span><span class="o">-</span><span class="mf">394.88313413014606</span><span class="p">,</span> <span class="mf">3.0</span><span class="p">],</span>
+                 <span class="p">[</span><span class="o">-</span><span class="mf">384.8247011952191</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">],</span>
+                 <span class="o">...</span>
+                 <span class="p">[</span><span class="mf">7128.824701195219</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span>
+                 <span class="p">[</span><span class="mf">7138.883134130146</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span>
+                 <span class="p">[</span><span class="mf">7148.941567065073</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">]]}</span>
+</pre></div>
+</td></tr></table></div>
+<p>By default, the returned dictionary contains a key for the first band of the specified image. This holds a 2D list, of [(x, y)…n], where n = number of bins.
+The x position in the returned list gives the left bin corner, while the y position gives the frequency (counts) for that bin. By default, the
+bin number is calculated via the <a class="reference external" href="https://en.wikipedia.org/wiki/Freedman–Diaconis_rule">Freedman-Diaconis rule</a>.
+However, <a class="reference external" href="http://postgis.net/docs/manual-dev/RT_ST_Histogram.html">ST_HISTOGRAM()</a> must be called with arguments, like the POSTGIS version of the function. Currently, the effect of these arguments
+is to specify the <em>band</em> a user wishes to retrieve, the number of <em>bins</em> a user wishes to use in their histogram, and whether or not the user wishes to invert the order
+of the returned bins (i.e. return them from largest <strong>bin value</strong> to smallest, instead of smallest-to-largest). Due to imitating the postgis-like nature of these functions,
+keyword assignment is not supported, and therefore requests must include all arguments. Additionally, a string <cite>raster</cite> (with no whitespace or commas) must also be given as a first argument. However,
+this string does not have any affect on the program: we reccomend simply calling it <cite>raster</cite>, without quotation marks (as in the below example).
+As in the POSTGIS documentation the arguments for ST_HISTOGRAM are as follows: ST_Histogram(<em>raster</em> <strong>rast</strong>, <em>integer</em> <strong>nband</strong> or <em>string</em> , <em>integer</em> <strong>bins</strong> or <strong>auto</strong> , <em>boolean</em> <strong>right</strong>).</p>
+<p>Put another way, you must call the ST_HISTOGRAM function with exactly four arguments. These are as follows:</p>
+<ol class="arabic simple">
+<li>A string (with no spaces or commas), that is ignored.</li>
+<li>A band ID, as either an integer index (counting from 1), or a the band key (string).</li>
+<li>The desired number of bins in the histogram, as an integer. Or, alternatively, you can pass the string <cite>auto</cite>, to use automatically computed bins.</li>
+<li>A boolean (true or false) to indicate whether or not to invert the histogram. True returns bins from low to high, false inverts the histogram bins, returning them from high to low.</li>
+</ol>
+<p>For example, we may retrieve histogram information for <cite>B2</cite> of a Landast-8 tile, divided into 10 bins, ordered from lowest bin value to largest, as follows:</p>
+<div class="highlight-python"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre> 1
+ 2
+ 3
+ 4
+ 5
+ 6
+ 7
+ 8
+ 9
+10
+11
+12
+13</pre></div></td><td class="code"><div class="highlight"><pre><span></span> <span class="n">sql</span> <span class="o">=</span> <span class="s2">&quot;SELECT ST_HISTOGRAM(raster, B2, 10, true) FROM LC81412332013146LGN00&quot;</span>
+ <span class="n">q</span> <span class="o">=</span> <span class="n">SQL2GEE</span><span class="p">(</span><span class="n">sql</span><span class="p">)</span>
+ <span class="n">q</span><span class="o">.</span><span class="n">response</span>
+ <span class="p">{</span><span class="s1">&#39;B2&#39;</span><span class="p">:</span> <span class="p">[[</span><span class="mf">6146.0</span><span class="p">,</span> <span class="mf">1811731.7647058824</span><span class="p">],</span>
+         <span class="p">[</span><span class="mf">7033.9</span><span class="p">,</span> <span class="mf">1631439.6901960785</span><span class="p">],</span>
+         <span class="p">[</span><span class="mf">7921.8</span><span class="p">,</span> <span class="mf">2552924.3843137254</span><span class="p">],</span>
+         <span class="p">[</span><span class="mf">8809.7</span><span class="p">,</span> <span class="mf">3739584.364705882</span><span class="p">],</span>
+         <span class="p">[</span><span class="mf">9697.6</span><span class="p">,</span> <span class="mf">157919.0</span><span class="p">],</span>
+         <span class="p">[</span><span class="mf">10585.5</span><span class="p">,</span> <span class="mf">60484.25882352941</span><span class="p">],</span>
+         <span class="p">[</span><span class="mf">11473.4</span><span class="p">,</span> <span class="mf">28978.003921568627</span><span class="p">],</span>
+         <span class="p">[</span><span class="mf">12361.3</span><span class="p">,</span> <span class="mf">10498.752941176472</span><span class="p">],</span>
+         <span class="p">[</span><span class="mf">13249.2</span><span class="p">,</span> <span class="mf">2731.4980392156863</span><span class="p">],</span>
+         <span class="p">[</span><span class="mf">14137.099999999999</span><span class="p">,</span> <span class="mf">465.0</span><span class="p">]]}</span>
+</pre></div>
+</td></tr></table></div>
+</div>
+</div>
+<div class="section" id="area-restriction-of-rasters-via-geojson">
+<h2>Area restriction of rasters via geojson<a class="headerlink" href="#area-restriction-of-rasters-via-geojson" title="Permalink to this headline">¶</a></h2>
+<p>It is possible to add an area-restriction to the image queries by passing a geojson polygon or multipolygon object, or by using
+the <strong>ST_GeomFromGeoJSON</strong> POSTGIS argument. Both of these approaches are demonstrated in the following section. If a geojson
+is passed, any aggregations (summary statistics) or histogram operations on the rasters are only processed over the area of the
+raster which intersects the passed geojson.</p>
+<div class="section" id="passing-a-geojson-object-directly-as-a-kwarg">
+<h3>Passing a Geojson object directly as a kwarg<a class="headerlink" href="#passing-a-geojson-object-directly-as-a-kwarg" title="Permalink to this headline">¶</a></h3>
+<p>It is possible to pass a geojson to SQL2GEE via the geojson keyword argument, as shown below.</p>
+<p>Note, in the below example we call a geojson object using a geostore API and the
+<a class="reference external" href="http://docs.python-requests.org/en/master/">Python Requests library</a>, but if you happen-to-have a geojson handy, then
+you could simply pass that instead and skip lines 1-5.</p>
+<div class="highlight-python"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre> 1
+ 2
+ 3
+ 4
+ 5
+ 6
+ 7
+ 8
+ 9
+10
+11
+12
+13
+14</pre></div></td><td class="code"><div class="highlight"><pre><span></span> <span class="kn">import</span> <span class="nn">requests</span>
+ <span class="n">gstore</span> <span class="o">=</span> <span class="s2">&quot;http://staging-api.globalforestwatch.org/geostore/4531cca6a8ddcf01bccf302b3dd7ae3f&quot;</span>
+ <span class="n">r</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">gstore</span><span class="p">)</span>
+ <span class="n">j</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
+ <span class="n">j</span> <span class="o">=</span> <span class="n">j</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;data&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;attributes&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;geojson&#39;</span><span class="p">)</span>
+
+ <span class="n">sql</span> <span class="o">=</span> <span class="s2">&quot;SELECT ST_SUMMARYSTATS() FROM srtm90_v4&quot;</span>
+ <span class="n">q</span> <span class="o">=</span> <span class="n">SQL2GEE</span><span class="p">(</span><span class="n">sql</span><span class="p">,</span> <span class="n">geojson</span><span class="o">=</span><span class="n">j</span><span class="p">)</span>
+ <span class="p">{</span><span class="sa">u</span><span class="s1">&#39;elevation&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;count&#39;</span><span class="p">:</span> <span class="mi">118037</span><span class="p">,</span>
+                 <span class="s1">&#39;max&#39;</span><span class="p">:</span> <span class="mi">489</span><span class="p">,</span>
+                 <span class="s1">&#39;mean&#39;</span><span class="p">:</span> <span class="mf">326.5521573743826</span><span class="p">,</span>
+                 <span class="s1">&#39;min&#39;</span><span class="p">:</span> <span class="mi">126</span><span class="p">,</span>
+                 <span class="s1">&#39;stdev&#39;</span><span class="p">:</span> <span class="mf">75.69057079693977</span><span class="p">,</span>
+                 <span class="s1">&#39;sum&#39;</span><span class="p">:</span> <span class="mf">38545237.0</span><span class="p">}}</span>
+</pre></div>
+</td></tr></table></div>
+</div>
+<div class="section" id="passing-a-geojson-via-sql">
+<h3>Passing a Geojson via SQL<a class="headerlink" href="#passing-a-geojson-via-sql" title="Permalink to this headline">¶</a></h3>
+<p>Geojson can be created directly using POSTGIS-like functions via <strong>ST_GeomFromGeoJSON</strong>, as shown below.
+Currently, SQL2GEE only supports arguments in the form of ST_INTERSECTS(ST_SetSRID(ST_GeomFromGeoJSON(<em>[args]*</em>),
+and only for EPSG:4326.</p>
+<div class="highlight-python"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre> 1
+ 2
+ 3
+ 4
+ 5
+ 6
+ 7
+ 8
+ 9
+10
+11
+12
+13
+14
+15
+16
+17
+18</pre></div></td><td class="code"><div class="highlight"><pre><span></span> <span class="n">sql</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="s2">&quot;SELECT ST_SUMMARYSTATS() FROM &#39;srtm90_v4&#39;&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;WHERE ST_INTERSECTS(ST_SetSRID(ST_GeomFromGeoJSON(&quot;</span><span class="p">,</span>
+                <span class="s1">&#39;{&quot;type&quot;:&quot;Polygon&quot;,&#39;</span><span class="p">,</span>
+                 <span class="s1">&#39;&quot;coordinates&quot;:[[[-43.39599609375,-4.740675384778361],&#39;</span>
+                 <span class="s1">&#39;[-43.39599609375,-4.959615024698014],&#39;</span>
+                 <span class="s1">&#39;[-43.17626953125,-4.806364708499984],&#39;</span>
+                 <span class="s1">&#39;[-43.39599609375,-4.740675384778361]]]}&#39;</span>
+                 <span class="s2">&quot;),4326), the_geom)&quot;</span><span class="p">])</span>
+ <span class="k">print</span><span class="p">(</span><span class="n">sql</span><span class="p">)</span>
+ <span class="n">SELECT</span> <span class="n">ST_SUMMARYSTATS</span><span class="p">()</span> <span class="n">FROM</span> <span class="s1">&#39;srtm90_v4&#39;</span><span class="n">WHERE</span> <span class="n">ST_INTERSECTS</span><span class="p">(</span><span class="n">ST_SetSRID</span><span class="p">(</span><span class="n">ST_GeomFromGeoJSON</span><span class="p">({</span><span class="s2">&quot;type&quot;</span><span class="p">:</span><span class="s2">&quot;Polygon&quot;</span><span class="p">,</span><span class="s2">&quot;coordinates&quot;</span><span class="p">:[[[</span><span class="o">-</span><span class="mf">43.39599609375</span><span class="p">,</span><span class="o">-</span><span class="mf">4.740675384778361</span><span class="p">],[</span><span class="o">-</span><span class="mf">43.39599609375</span><span class="p">,</span><span class="o">-</span><span class="mf">4.959615024698014</span><span class="p">],[</span><span class="o">-</span><span class="mf">43.17626953125</span><span class="p">,</span><span class="o">-</span><span class="mf">4.806364708499984</span><span class="p">],[</span><span class="o">-</span><span class="mf">43.39599609375</span><span class="p">,</span><span class="o">-</span><span class="mf">4.740675384778361</span><span class="p">]]]}),</span><span class="mi">4326</span><span class="p">),</span> <span class="n">the_geom</span><span class="p">)</span>
+ <span class="n">q</span> <span class="o">=</span> <span class="n">SQL2GEE</span><span class="p">(</span><span class="n">sql</span><span class="p">)</span>
+ <span class="n">q</span><span class="o">.</span><span class="n">response</span>
+ <span class="p">{</span><span class="s1">&#39;elevation&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;count&#39;</span><span class="p">:</span> <span class="mi">34591</span><span class="p">,</span>
+                 <span class="s1">&#39;max&#39;</span><span class="p">:</span> <span class="mi">168</span><span class="p">,</span>
+                 <span class="s1">&#39;mean&#39;</span><span class="p">:</span> <span class="mf">100.04986846289498</span><span class="p">,</span>
+                 <span class="s1">&#39;min&#39;</span><span class="p">:</span> <span class="mi">52</span><span class="p">,</span>
+                 <span class="s1">&#39;stdev&#39;</span><span class="p">:</span> <span class="mf">21.884540897513183</span><span class="p">,</span>
+                 <span class="s1">&#39;sum&#39;</span><span class="p">:</span> <span class="mf">3460825.0</span><span class="p">}}</span>
+</pre></div>
+</td></tr></table></div>
+</div>
+</div>
+</div>
+
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="moreExamples.html" class="btn btn-neutral float-right" title="Detailed Examples of SQL2GEE’s use" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="supportedsyntax.html" class="btn btn-neutral" title="Supported SQL and Postgis Syntax" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Benjamin A. Laken.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'0.1.2',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>
