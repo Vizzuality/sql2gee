@@ -6,3 +6,4 @@ class Image(object):
     
   def response():
     pass
+    # Image.<filters>.<functions>.<imageReducers>.getInfo().<sorts>.limit()

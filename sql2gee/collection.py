@@ -1,14 +1,6 @@
-from feature_collection import FeatureCollection
-from image_collection import ImageCollection
-
 class Collection(object):
   """docstring for Collection"""
-  def __init__(self, type):
+  def __init__(self, arg):
     super(Collection, self).__init__()
-    self.type = type
-    
-  def response():
-    if self.type == 'ImageCollection':
-      return ImageCollection().response()
-    elif self.type == 'FeatureCollection':
-      return FeatureCollection().response()
+    self.arg = arg
+  

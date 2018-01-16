@@ -12,3 +12,26 @@ class SQL2GEE(object):
 
   def response(self):
     return GeeFactory(self.json_sql, self.geojson, self.flags).response()
+
+
+#############################
+
+sql="""
+SELECT cc, sum(iso_num) AS x, avg(cc) AS xm, min(avg_vis) AS x,'ddd' as d, avg_vis
+FROM 'USDOS/LSIB/2013'
+WHERE ST_INTERSECTS(ST_SetSRID(ST_GeomFromGeoJSON('{\"type\":\"Polygon\",\"coordinates\":[[[-5.273512601852417,42.81137220349083],[-5.273512601852417,42.811803118457306],[-5.272732079029083,42.811803118457306],[-5.272732079029083,42.81137220349083],[-5.273512601852417,42.81137220349083]]]}'), 4326), the_geom) 
+and iso_num > 2 
+and iso_num < 10 
+or iso_num = 2
+order by y asc
+GROUP BY x 
+LIMIT 1
+"""
+
+json = JsonSql(sql).to_json()
+
+print(
+  GeeFactory(json).response()
+)
+
+

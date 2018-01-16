@@ -1,7 +1,7 @@
 import requests
 
 class JsonSql(object):
-  """docstring for JsonSql"""
+  """Takes a string of SQL and converts it to JSON"""
   def __init__(self, sql):
     super(JsonSql, self).__init__()
     self.sql = sql

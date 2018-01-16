@@ -1,7 +1,7 @@
-import json
 import ee
-from collection import Collection
 from image import Image
+from image_collection import ImageCollection
+from feature_collection import FeatureCollection
 
 ee.Initialize()
 
@@ -12,43 +12,8 @@ class GeeFactory(object):
     self.json = json
     self._asset_id = json['data']['attributes']['jsonSql']['from'].strip("'")
     self.type = self.metadata()['type']
-    self._parsed = json['data']['attributes']['jsonSql']
-    self.geojson = self._geojson_to_featurecollection(geojson)
+    self.geojson = geojson
     self.flags = flags  # <-- Will be used in a later version of the code
-
-  def _geo_extraction(self, json_input):
-    lookup_key = 'type'
-    lookup_value = 'function'
-    Sqlfunction = 'ST_GeomFromGeoJSON'
-
-    if isinstance(json_input, dict):
-      for k, v in json_input.items():
-        if k == lookup_key and v == lookup_value and json_input['value'] == Sqlfunction:
-          yield json_input['arguments'][0]['value'].strip("'")
-        else:
-          for child_val in self._geo_extraction(v):
-            yield child_val
-    elif isinstance(json_input, list):
-      for item in json_input:
-        for item_val in self._geo_extraction(item):
-          yield item_val
-
-  def _geojson_to_featurecollection(self, geojson):
-    """If Geojson kwarg is recieved or ST_GEOMFROMGEOJSON sql argument is used,
-    (containing geojson data) convert it into a useable E.E. object."""
-    geometries = [json.loads(x) for x in self._geo_extraction(self._parsed)]
-
-    if geometries:
-      geojson = {
-        u'features': geometries,
-        u'type': u'FeatureCollection'
-      }
-
-    if isinstance(geojson, dict):
-      assert geojson.get('features') != None, "Expected key not found in item passed to geojoson"
-      return ee.FeatureCollection(geojson.get('features'))
-    else:
-      return None
 
   def metadata(self):
     """Property that holds the Metadata dictionary returned from Earth Engine."""
@@ -79,5 +44,7 @@ class GeeFactory(object):
   def response(self):
     if self.type == 'Image':
       return Image().response()
-    else:
-      return Collection(self.type).response()
+    elif self.type == 'ImageCollection':
+      return ImageCollection().response()
+    elif self.type == 'FeatureCollection':
+      return FeatureCollection(self.json, self.geojson).response()
