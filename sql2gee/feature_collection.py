@@ -4,13 +4,14 @@ from collection import Collection
 
 ee.Initialize()
 
-class FeatureCollection(object):
+class FeatureCollection(Collection):
   """docstring for FeatureCollection"""
-  def __init__(self, json, geojson=None):
-    super(FeatureCollection, self).__init__()
+  def __init__(self, json, asset_id, geojson=None):
     self.json = json
+    self.asset_id = asset_id
     self._parsed = json['data']['attributes']['jsonSql']
     self.geojson = self._geojson_to_featurecollection(geojson)
+    Collection.__init__(self, self._parsed, self.asset_id, 'FeatureCollection', self.geojson)
 
   def _geo_extraction(self, json_input):
     lookup_key = 'type'
@@ -47,5 +48,6 @@ class FeatureCollection(object):
       return None
 
   def response(self):
-    return self.geojson
+    return self._where().getInfo()
+    # FeatureCollection.<filters>.<functions>.<sorts>.limit(n).getInfo()
     

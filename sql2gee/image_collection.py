@@ -1,11 +1,13 @@
 from collection import Collection
 
-class ImageCollection(object):
+class ImageCollection(Collection):
   """docstring for ImageCollection"""
-  def __init__(self, arg):
-    super(ImageCollection, self).__init__()
-    self.arg = arg
+  def __init__(self, json, asset_id):
+    self.json = json
+    self.asset_id = asset_id
+    self._parsed = json['data']['attributes']['jsonSql']
+    Collection.__init__(self, self._parsed, self.asset_id, 'FeatureCollection')
     
-  def response():
-    pass
+  def response(self):
+    return self._where().getInfo()
     # ImageCollection.<filters>.<functions>.<sorts>.<imageReducers>.limit(n).getInfo()

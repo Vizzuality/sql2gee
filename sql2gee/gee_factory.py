@@ -45,6 +45,6 @@ class GeeFactory(object):
     if self.type == 'Image':
       return Image().response()
     elif self.type == 'ImageCollection':
-      return ImageCollection().response()
+      return ImageCollection(self.json, self._asset_id).response()
     elif self.type == 'FeatureCollection':
-      return FeatureCollection(self.json, self.geojson).response()
+      return FeatureCollection(self.json, self._asset_id, self.geojson).response()
