@@ -6,6 +6,27 @@ from feature_collection import FeatureCollection
 
 ee.Initialize()
 
+_default_geojson = {
+  u'crs':'EPSG:4326',
+  u'features': [
+    {
+      u'geometry': dict(coordinates=[[[
+          [1.40625,85.1114157806266],
+          [0,-84.99010018023479],
+          [-180,-85.05112877980659],
+          [-180,85.1114157806266]]],
+          [[[179.296875,85.05112877980659],
+          [1.40625,85.05112877980659],
+          [0.703125,-84.99010018023479],
+          [179.296875,-84.86578186731522]]]],
+        evenOdd= True,
+        type= u'MultiPolygon'),
+      u'type': u'Feature'
+    }
+  ],
+  u'type': u'FeatureCollection'
+}
+
 class GeeFactory(object):
   """docstring for GeeFactory"""
   def __init__(self, sql, geojson=None, flags=None):
@@ -45,7 +66,11 @@ class GeeFactory(object):
     
   def response(self):
     if self.type == 'Image':
-      return Image(self.sql, self.json).response()
+      try:
+        return Image(self.sql, self.json, self.geojson).response()
+      except ee.EEException:
+        # If we hit the image composite bug then add a global region to group the image together and try again
+        return GeeFactory(self.sql, _default_geojson).response()
     elif self.type == 'ImageCollection':
       return ImageCollection(self.json, self._asset_id).response()
     elif self.type == 'FeatureCollection':

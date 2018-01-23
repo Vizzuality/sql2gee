@@ -4,10 +4,11 @@ from sqlparse.sql import Identifier, IdentifierList, Function, Parenthesis, Comp
 
 class Image(object):
   """docstring for Image"""
-  def __init__(self, sql, json):
+  def __init__(self, sql, json, geojson=None):
     super(Image, self).__init__()
     self.sql = sql
     self.json = json
+    self.geojson = geojson
     self._parsed = sqlparse.parse(sql)[0]
 
   @property
@@ -237,6 +238,3 @@ class Image(object):
         return self.summary_stats
       if func["function"].lower() == 'st_valuecount':
         return self.st_valuecount
-    # except ee.EEException:
-    #   # If we hit the image composite bug then add a global region to group the image together and try again
-    #   return SQL2GEE(sql=self._raw, geojson=_default_geojson)._image
