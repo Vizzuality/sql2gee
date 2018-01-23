@@ -1,5 +1,6 @@
 import ee
 from image import Image
+from json_sql import JsonSql
 from image_collection import ImageCollection
 from feature_collection import FeatureCollection
 
@@ -7,11 +8,11 @@ ee.Initialize()
 
 class GeeFactory(object):
   """docstring for GeeFactory"""
-  def __init__(self, sql, json, geojson=None, flags=None):
+  def __init__(self, sql, geojson=None, flags=None):
     super(GeeFactory, self).__init__()
     self.sql = sql
-    self.json = json
-    self._asset_id = json['data']['attributes']['jsonSql']['from'].strip("'")
+    self.json = JsonSql(sql).to_json()
+    self._asset_id = self.json['data']['attributes']['jsonSql']['from'].strip("'")
     self.type = self.metadata()['type']
     self.geojson = geojson
     self.flags = flags  # <-- Will be used in a later version of the code

@@ -1,4 +1,3 @@
-from json_sql import JsonSql
 from gee_factory import GeeFactory
 
 class SQL2GEE(object):
@@ -6,12 +5,11 @@ class SQL2GEE(object):
   def __init__(self, sql, geojson=None, flags=None):
     super(SQL2GEE, self).__init__()
     self.sql = sql
-    self.json_sql = JsonSql(sql).to_json()
     self.geojson = geojson
     self.flags = flags  # <-- Will be used in a later version of the code
 
   def response(self):
-    return GeeFactory(self.sql, self.json_sql, self.geojson, self.flags).response()
+    return GeeFactory(self.sql, self.geojson, self.flags).response()
 
 
 #############################
@@ -30,14 +28,9 @@ class SQL2GEE(object):
 
 sql = "SELECT ST_HISTOGRAM(raster, lossyear, 15, true) FROM 'UMD/hansen/global_forest_change_2015'"
 
-json = JsonSql(sql).to_json()
 
 print(
   SQL2GEE(sql).response()
 )
-
-# print(
-#   GeeFactory(json).response()
-# )
 
 
