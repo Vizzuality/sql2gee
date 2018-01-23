@@ -11,22 +11,24 @@ class SQL2GEE(object):
     self.flags = flags  # <-- Will be used in a later version of the code
 
   def response(self):
-    return GeeFactory(self.json_sql, self.geojson, self.flags).response()
+    return GeeFactory(self.sql, self.json_sql, self.geojson, self.flags).response()
 
 
 #############################
 
-sql="""
-SELECT cc, sum(iso_num) AS x, avg(cc) AS xm, min(avg_vis) AS x,'ddd' as d, avg_vis
-FROM 'NOAA/DMSP-OLS/NIGHTTIME_LIGHTS'
-WHERE ST_INTERSECTS(ST_SetSRID(ST_GeomFromGeoJSON('{\"type\":\"Polygon\",\"coordinates\":[[[-5.273512601852417,42.81137220349083],[-5.273512601852417,42.811803118457306],[-5.272732079029083,42.811803118457306],[-5.272732079029083,42.81137220349083],[-5.273512601852417,42.81137220349083]]]}'), 4326), the_geom) 
-and iso_num > 2 
-and iso_num < 10 
-or iso_num = 2
-order by y asc
-GROUP BY x 
-LIMIT 1
-"""
+# sql="""
+# SELECT cc, sum(iso_num) AS x, avg(cc) AS xm, min(avg_vis) AS x,'ddd' as d, avg_vis
+# FROM 'NOAA/DMSP-OLS/NIGHTTIME_LIGHTS/F182012'
+# WHERE ST_INTERSECTS(ST_SetSRID(ST_GeomFromGeoJSON('{\"type\":\"Polygon\",\"coordinates\":[[[-5.273512601852417,42.81137220349083],[-5.273512601852417,42.811803118457306],[-5.272732079029083,42.811803118457306],[-5.272732079029083,42.81137220349083],[-5.273512601852417,42.81137220349083]]]}'), 4326), the_geom) 
+# and iso_num > 2 
+# and iso_num < 10 
+# or iso_num = 2
+# order by y asc
+# GROUP BY x 
+# LIMIT 1
+# """
+
+sql = "SELECT ST_HISTOGRAM(raster, lossyear, 15, true) FROM 'UMD/hansen/global_forest_change_2015'"
 
 json = JsonSql(sql).to_json()
 

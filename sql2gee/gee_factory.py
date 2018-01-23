@@ -7,8 +7,9 @@ ee.Initialize()
 
 class GeeFactory(object):
   """docstring for GeeFactory"""
-  def __init__(self, json, geojson=None, flags=None):
+  def __init__(self, sql, json, geojson=None, flags=None):
     super(GeeFactory, self).__init__()
+    self.sql = sql
     self.json = json
     self._asset_id = json['data']['attributes']['jsonSql']['from'].strip("'")
     self.type = self.metadata()['type']
@@ -43,7 +44,7 @@ class GeeFactory(object):
     
   def response(self):
     if self.type == 'Image':
-      return Image().response()
+      return Image(self.sql, self.json).response()
     elif self.type == 'ImageCollection':
       return ImageCollection(self.json, self._asset_id).response()
     elif self.type == 'FeatureCollection':
