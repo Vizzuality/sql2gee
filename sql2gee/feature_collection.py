@@ -48,6 +48,7 @@ class FeatureCollection(Collection):
       return None
 
   def response(self):
-    return self._where().getInfo()
+    return self._where().sort(self._sort()).limit(self._limit()).getInfo()
+
     # FeatureCollection.<filters>.<functions>.<sorts>.limit(n).getInfo()
     

@@ -92,3 +92,16 @@ class Collection(object):
       return self._asset.filter(_filters)
 
     return 0
+
+  def _sort(self):
+    return self._parsed['orderBy'][0]['value']
+
+    # sort_params = self._parsed['orderBy'][0]
+
+    # return {
+    #   'direction': sort_params['direction'],
+    #   'value': sort_params['value']
+    # }
+
+  def _limit(self):
+    return self._parsed['limit']

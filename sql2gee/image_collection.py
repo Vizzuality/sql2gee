@@ -9,5 +9,6 @@ class ImageCollection(Collection):
     Collection.__init__(self, self._parsed, self.asset_id, 'FeatureCollection')
     
   def response(self):
-    return self._where().getInfo()
+    return self._where().sort(self._sort()).limit(self._limit()).getInfo()
+
     # ImageCollection.<filters>.<functions>.<sorts>.<imageReducers>.limit(n).getInfo()
