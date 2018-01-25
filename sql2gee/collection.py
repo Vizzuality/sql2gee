@@ -10,7 +10,7 @@ class Collection(object):
     self.geojson = geojson
     self.type = type
     self._asset_id = asset_id
-    self._asset =self._getAsset()
+    self._asset = self._getAsset()
     self._filters = {
       '<': ee.Filter.lt,
       '<=': ee.Filter.lte,
