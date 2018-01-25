@@ -94,7 +94,11 @@ class Collection(object):
     return 0
 
   def _sort(self):
-    return self._parsed['orderBy'][0]['value']
+    _direction={
+    'asc':True,
+    'desc':False
+    }
+    return self._parsed['orderBy'][0]['value'], _direction[self._parsed['orderBy'][0]['direction']]
 
     # sort_params = self._parsed['orderBy'][0]
 
@@ -105,3 +109,4 @@ class Collection(object):
 
   def _limit(self):
     return self._parsed['limit']
+

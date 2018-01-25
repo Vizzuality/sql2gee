@@ -6,28 +6,8 @@ from feature_collection import FeatureCollection
 
 ee.Initialize()
 
-_default_geojson = {
-  u'crs':'EPSG:4326',
-  u'features': [
-    {
-      u'geometry': dict(coordinates=[[[
-          [1.40625,85.1114157806266],
-          [0,-84.99010018023479],
-          [-180,-85.05112877980659],
-          [-180,85.1114157806266]]],
-          [[[179.296875,85.05112877980659],
-          [1.40625,85.05112877980659],
-          [0.703125,-84.99010018023479],
-          [179.296875,-84.86578186731522]]]],
-        evenOdd= True,
-        type= u'MultiPolygon'),
-      u'type': u'Feature'
-    }
-  ],
-  u'type': u'FeatureCollection'
-}
-
 class GeeFactory(object):
+
   """docstring for GeeFactory"""
   def __init__(self, sql, geojson=None, flags=None):
     super(GeeFactory, self).__init__()
@@ -37,6 +17,27 @@ class GeeFactory(object):
     self.type = self.metadata()['type']
     self.geojson = geojson
     self.flags = flags  # <-- Will be used in a later version of the code
+
+  _default_geojson = {
+    u'crs':'EPSG:4326',
+    u'features': [
+      {
+        u'geometry': dict(coordinates=[[[
+            [1.40625,85.1114157806266],
+            [0,-84.99010018023479],
+            [-180,-85.05112877980659],
+            [-180,85.1114157806266]]],
+            [[[179.296875,85.05112877980659],
+            [1.40625,85.05112877980659],
+            [0.703125,-84.99010018023479],
+            [179.296875,-84.86578186731522]]]],
+          evenOdd= True,
+          type= u'MultiPolygon'),
+        u'type': u'Feature'
+      }
+    ],
+    u'type': u'FeatureCollection'
+  }
 
   def metadata(self):
     """Property that holds the Metadata dictionary returned from Earth Engine."""
