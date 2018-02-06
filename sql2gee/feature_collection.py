@@ -6,17 +6,18 @@ ee.Initialize()
 
 class FeatureCollection(Collection):
   """docstring for FeatureCollection"""
-  def __init__(self, json, asset_id, geojson=None):
+  def __init__(self, json, asset_id, geometry=None):
     self.json = json
-    self.asset_id = asset_id
-    self._parsed = json['data']['attributes']['jsonSql']
-    self.geojson = self._geojson_to_featurecollection(geojson)
-    Collection.__init__(self, self._parsed, self.asset_id, 'FeatureCollection', self.geojson)
+    super().__init__(json['data']['attributes']['jsonSql'], asset_id, 'FeatureCollection', geometry)
 
-  def 
+  
+  def _groupBy(self):
+    
+    return self
 
   def response(self):
-    return self._where().sort(self._sort()).limit(self._limit()).getInfo()
+    
+    return self._where()._sort()._limit()._getInfo()
 
     # FeatureCollection.<filters>.<functions>.<sorts>.limit(n).getInfo()
     

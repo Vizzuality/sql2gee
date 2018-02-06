@@ -2,13 +2,21 @@ from collection import Collection
 
 class ImageCollection(Collection):
   """docstring for ImageCollection"""
-  def __init__(self, json, asset_id):
-    self.json = json
-    self.asset_id = asset_id
-    self._parsed = json['data']['attributes']['jsonSql']
-    Collection.__init__(self, self._parsed, self.asset_id, 'FeatureCollection')
+  def __init__(self, json, asset_id, geometry):
+  	self.json = json
+  	super().__init__(json['data']['attributes']['jsonSql'], asset_id, 'ImageCollection', geometry)
     
-  def response(self):
-  	return self._where().sort(self._sort()[0],self._sort()[1]).limit(self._limit()).getInfo()
+    
+  def _groupBy(self):
+    return self
 
-    # ImageCollection.<filters>.<functions>.<sorts>.<imageReducers>.limit(n).getInfo().limit(1)
+  def response(self):
+  	"""
+	this will produce the next function in GEE:
+	# ImageCollection.<filters>.<functions>.<sorts>.<imageReducers>.limit(n).getInfo().limit(1)
+  	"""
+  	return self._where()._groupBy()._sort()._limit()._getInfo()
+
+  	
+  	
+    

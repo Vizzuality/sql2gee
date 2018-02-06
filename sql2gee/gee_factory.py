@@ -1,6 +1,7 @@
 import ee
+import json
 from image import Image
-from json_sql import JsonSql
+#from json_sql import JsonSql
 from image_collection import ImageCollection
 from feature_collection import FeatureCollection
 
@@ -8,31 +9,11 @@ ee.Initialize()
 
 class GeeFactory(object):
 
-  _default_geojson = {
-    u'crs':'EPSG:4326',
-    u'features': [
-      {
-        u'geometry': dict(coordinates=[[[
-            [1.40625,85.1114157806266],
-            [0,-84.99010018023479],
-            [-180,-85.05112877980659],
-            [-180,85.1114157806266]]],
-            [[[179.296875,85.05112877980659],
-            [1.40625,85.05112877980659],
-            [0.703125,-84.99010018023479],
-            [179.296875,-84.86578186731522]]]],
-          evenOdd= True,
-          type= u'MultiPolygon'),
-        u'type': u'Feature'
-      }
-    ],
-    u'type': u'FeatureCollection'
-  }
   """docstring for GeeFactory"""
-  def __init__(self, sql, geojson=None, flags=None):
-    super(GeeFactory, self).__init__()
-    self.sql = sql
-    self.json = JsonSql(sql).to_json()
+  def __init__(self, sqlscheme, geojson=None, flags=None):
+    self.json = sqlscheme
+    self._parsed = self.json['data']['attributes']['jsonSql']
+    self.sql = self.json['data']['attributes']['query']
     self._asset_id = self.json['data']['attributes']['jsonSql']['from'].strip("'")
     self.type = self.metadata()['type']
     self.geojson = geojson 
@@ -57,7 +38,7 @@ class GeeFactory(object):
 
   def _geojson_to_featurecollection(self, geojson):
     """If Geojson kwarg is recieved or ST_GEOMFROMGEOJSON sql argument is used,
-    (containing geojson data) convert it into a useable E.E. object."""
+    (convert it into a useable E.E. object.ontaining geojson data) c"""
     geometries = [json.loads(x) for x in self._geo_extraction(self._parsed)]
 
     if geometries:
@@ -99,14 +80,36 @@ class GeeFactory(object):
     return info
     
   def response(self):
+    _default_geojson = {
+    u'crs':'EPSG:4326',
+    u'features': [
+        {
+          u'geometry': dict(coordinates=[[[
+              [1.40625,85.1114157806266],
+              [0,-84.99010018023479],
+              [-180,-85.05112877980659],
+              [-180,85.1114157806266]]],
+              [[[179.296875,85.05112877980659],
+              [1.40625,85.05112877980659],
+              [0.703125,-84.99010018023479],
+              [179.296875,-84.86578186731522]]]],
+            evenOdd= True,
+            type= u'MultiPolygon'),
+          u'type': u'Feature'
+        }
+      ],
+      u'type': u'FeatureCollection'
+    }
+    imGeom = self.geojson if self.geojson else _default_geojson # To avoid the image composite bug we add a global region to group the image together.
+    collGeom = self._geojson_to_featurecollection(self.geojson)
     fnResponse={
-    'Image': Image(self.sql, self.json, self.geojson if self.geojson else _default_geojson).response(),
-    'ImageCollection': ImageCollection(self.json, self._asset_id,, self.geojson).response(),
-    'FeatureCollection': FeatureCollection(self.json, self._asset_id, self.geojson).response()
+    'Image': Image(self.sql, self.json, imGeom).response,
+    'ImageCollection': ImageCollection(self.json, self._asset_id, collGeom).response,
+    'FeatureCollection': FeatureCollection(self.json, self._asset_id, collGeom).response
     }
     
     try:
-      return fnResponse[self.type]
+      return fnResponse[self.type]()
     except ee.EEException:
         # raise Error
         print('GEEFactory Exception: ')

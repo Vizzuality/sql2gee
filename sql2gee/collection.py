@@ -4,13 +4,13 @@ ee.Initialize()
 
 class Collection(object):
   """docstring for Collection"""
-  def __init__(self, parsed, asset_id, type, geojson=None):
-    super(Collection, self).__init__()
+  def __init__(self, parsed, asset_id, dType, geometry=None):
     self._parsed = parsed
-    self.geojson = geojson
-    self.type = type
+    self.geometry = geometry
+    self.type = dType
     self._asset_id = asset_id
-    self._asset =self._getAsset()
+    self._asset=self._asset()
+    
     self._filters = {
       '<': ee.Filter.lt,
       '<=': ee.Filter.lte,
@@ -43,14 +43,6 @@ class Collection(object):
       'min': ee.Reducer.count,
     }
 
-  def _getAsset(self):
-    _data = {
-      'FeatureCollection':ee.FeatureCollection(self._asset_id),
-      'ImageCollection':ee.ImageCollection(self._asset_id)
-    }
-
-    return _data[self.type]
-
   def _filterGen(self, data, parents=[]):
     left = None
     right = None
@@ -81,25 +73,38 @@ class Collection(object):
 
     return result ########----------------------------------- Return result in:[[ee.Filter.eq('month','historical'),ee.Filter.eq('model','historical'),...],...]
   
+  def _asset(self):
+    _data = {
+      'FeatureCollection': ee.FeatureCollection,
+      'ImageCollection': ee.ImageCollection
+    }
+    return _data[self.type](self._asset_id)
+  
+  
   def _where(self):
     # It gets *where* conditions and converts them in the proper filters.
     # self.asset.filter(ee.Filter([ee.Filter.eq('scenario','historical'), ee.Filter.date('1996-01-01','1997-01-01')])).filterBounds(geometry)
-    _filters=self._filterGen(self._parsed['where'])
+    
+    if self._parsed['where']:
+      _filters=self._filterGen(self._parsed['where'])
+      if self.geometry:
+        self._asset = self._asset.filter(_filters).filterBounds(self.geometry)
+      else:
+        self._asset =  self._asset.filter(_filters)
+    return self
+   
 
-    if self.geojson:
-      return self._asset.filter(_filters).filterBounds(self.geojson)
-    else:
-      return self._asset.filter(_filters)
-
-    return 0
-
+  
   def _sort(self):
     _direction={
     'asc':True,
     'desc':False
     }
-    return self._parsed['orderBy'][0]['value'], _direction[self._parsed['orderBy'][0]['direction']]
-
+    if self._parsed['orderBy']:
+      self._asset = self._asset.sort(self._parsed['orderBy'][0]['value'], _direction[self._parsed['orderBy'][0]['direction']])
+    
+    return self
+    
     # sort_params = self._parsed['orderBy'][0]
 
     # return {
@@ -108,5 +113,10 @@ class Collection(object):
     # }
 
   def _limit(self):
-    return self._parsed['limit']
+    if self._parsed['limit']:
+      self._asset = self._asset.limit(self._parsed['limit'])
+    return self
+
+  def _getInfo(self):
+    return self._asset.getInfo()
 
