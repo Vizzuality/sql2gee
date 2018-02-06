@@ -40,7 +40,7 @@ class Collection(object):
       'mean': ee.Reducer.mean,
       'max': ee.Reducer.max,
       'min': ee.Reducer.min,
-      'min': ee.Reducer.min,
+      'min': ee.Reducer.count,
     }
 
   def _getAsset(self):

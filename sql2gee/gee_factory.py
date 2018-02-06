@@ -8,16 +8,6 @@ ee.Initialize()
 
 class GeeFactory(object):
 
-  """docstring for GeeFactory"""
-  def __init__(self, sql, geojson=None, flags=None):
-    super(GeeFactory, self).__init__()
-    self.sql = sql
-    self.json = JsonSql(sql).to_json()
-    self._asset_id = self.json['data']['attributes']['jsonSql']['from'].strip("'")
-    self.type = self.metadata()['type']
-    self.geojson = geojson
-    self.flags = flags  # <-- Will be used in a later version of the code
-
   _default_geojson = {
     u'crs':'EPSG:4326',
     u'features': [
@@ -38,6 +28,49 @@ class GeeFactory(object):
     ],
     u'type': u'FeatureCollection'
   }
+  """docstring for GeeFactory"""
+  def __init__(self, sql, geojson=None, flags=None):
+    super(GeeFactory, self).__init__()
+    self.sql = sql
+    self.json = JsonSql(sql).to_json()
+    self._asset_id = self.json['data']['attributes']['jsonSql']['from'].strip("'")
+    self.type = self.metadata()['type']
+    self.geojson = geojson 
+    self.flags = flags  # <-- Will be used in a later version of the code
+
+  def _geo_extraction(self, json_input):
+    lookup_key = 'type'
+    lookup_value = 'function'
+    Sqlfunction = 'ST_GeomFromGeoJSON'
+
+    if isinstance(json_input, dict):
+      for k, v in json_input.items():
+        if k == lookup_key and v == lookup_value and json_input['value'] == Sqlfunction:
+          yield json_input['arguments'][0]['value'].strip("'")
+        else:
+          for child_val in self._geo_extraction(v):
+            yield child_val
+    elif isinstance(json_input, list):
+      for item in json_input:
+        for item_val in self._geo_extraction(item):
+          yield item_val
+
+  def _geojson_to_featurecollection(self, geojson):
+    """If Geojson kwarg is recieved or ST_GEOMFROMGEOJSON sql argument is used,
+    (containing geojson data) convert it into a useable E.E. object."""
+    geometries = [json.loads(x) for x in self._geo_extraction(self._parsed)]
+
+    if geometries:
+      geojson = {
+        u'features': geometries,
+        u'type': u'FeatureCollection'
+      }
+
+    if isinstance(geojson, dict):
+      assert geojson.get('features') != None, "Expected key not found in item passed to geojoson"
+      return ee.FeatureCollection(geojson.get('features'))
+    else:
+      return None
 
   def metadata(self):
     """Property that holds the Metadata dictionary returned from Earth Engine."""
@@ -66,13 +99,17 @@ class GeeFactory(object):
     return info
     
   def response(self):
-    if self.type == 'Image':
-      try:
-        return Image(self.sql, self.json, self.geojson).response()
-      except ee.EEException:
-        # If we hit the image composite bug then add a global region to group the image together and try again
-        return GeeFactory(self.sql, _default_geojson).response()
-    elif self.type == 'ImageCollection':
-      return ImageCollection(self.json, self._asset_id).response()
-    elif self.type == 'FeatureCollection':
-      return FeatureCollection(self.json, self._asset_id, self.geojson).response()
+    fnResponse={
+    'Image': Image(self.sql, self.json, self.geojson if self.geojson else _default_geojson).response(),
+    'ImageCollection': ImageCollection(self.json, self._asset_id,, self.geojson).response(),
+    'FeatureCollection': FeatureCollection(self.json, self._asset_id, self.geojson).response()
+    }
+    
+    try:
+      return fnResponse[self.type]
+    except ee.EEException:
+        # raise Error
+        print('GEEFactory Exception: ')
+        raise
+        
+    
