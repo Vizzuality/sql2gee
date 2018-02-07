@@ -1,16 +1,49 @@
 import sqlparse
+import ee
 from sqlparse.tokens import Keyword
 from sqlparse.sql import Identifier, IdentifierList, Function, Parenthesis, Comparison
+from cached_property import cached_property
+
 
 class Image(object):
   """docstring for Image"""
-  def __init__(self, sql, json, geojson=None):
+  def __init__(self, sql, json, _asset_id, geojson=None):
     super(Image, self).__init__()
     self.sql = sql
     self.json = json
     self.geojson = geojson
     self._parsed = sqlparse.parse(sql)[0]
+    self.target_data=_asset_id
 
+  @cached_property
+  def _band_names(self):
+      return ee.Image(self.target_data).bandNames().getInfo()
+
+  @property
+  def _reduce_image(self):
+      """ Construct a combined reducer dictionary and pass it to a ReduceRegion().getInfo() command.
+      If a geometry has been passed to SQL2GEE, it will be passed to ensure only a subset of the band is examined.
+      """
+      d={}
+      d['bestEffort'] = True
+      if self.geojson:
+          d['geometry'] = self.geojson
+      d['reducer'] = ee.Reducer.count().combine(ee.Reducer.sum(), outputPrefix='', sharedInputs=True
+                      ).combine(ee.Reducer.mean(), outputPrefix='', sharedInputs=True).combine(
+                      ee.Reducer.sampleStdDev(), outputPrefix='', sharedInputs=True).combine(ee.Reducer.min(),
+                      outputPrefix='', sharedInputs=True).combine(ee.Reducer.max(), outputPrefix='',
+                      sharedInputs=True).combine(ee.Reducer.percentile([25, 75]), outputPrefix='', sharedInputs=True)
+      return ee.Image(self.target_data).reduceRegion(**d).getInfo()
+
+  @cached_property
+  def _band_IQR(self):
+    """Return a dictionary object with the InterQuartileRange (Q3 - Q1) per band."""
+    iqr = {}
+    for band in self._band_names:
+        tmp = self._reduce_image[band + '_p75'] - self._reduce_image[band + '_p25']
+        iqr[band] = tmp
+        del tmp
+    return iqr
   @property
   def group_functions(self):
     """Returns the group function with column names specified in the query:
@@ -45,7 +78,7 @@ class Image(object):
         d['value'] = value
 
     return d
-
+  @cached_property
   def histogram(self):
     """Retrieve ST_HISTOGRAM()-like info. This will return a dictionary object with bands as keys, and for each
     band a nested list of (2xn) for bin and frequency. If the user wants us to use the optimum bin number,
@@ -82,6 +115,7 @@ class Image(object):
       
     return tmp_dic
 
+  @property
   def st_metadata(self):
     """The image property Metadata dictionary returned from Earth Engine."""
     metadata=self._metadata['properties'].copy()
@@ -90,20 +124,7 @@ class Image(object):
 
     return metadata
 
-    def st_bandmetadata(self):
-      """Return only metadata for a specifically requested band, like postgis function"""
-      for function in self.group_functions:
-        if function['function'].lower() == "st_bandmetadata":
-          values = function['value']
-          assert len(values) > 0, "raster string and bandnum integer (or band key string) must be provided"
-          _, nband = self.extract_postgis_arguments(values, ['raster','band_id'])
-
-      for band in self._metadata.get('bands'):
-        if band.get('id') == nband:
-          tmp_meta = band
-
-      return tmp_meta
-
+  @property
   def st_bandmetadata(self):
     """Return only metadata for a specifically requested band, like postgis function"""
     for function in self.group_functions:
@@ -118,6 +139,7 @@ class Image(object):
             
     return tmp_meta
 
+  @cached_property
   def summary_stats(self):
     """Return a dictionary object of summary stats like the postgis function ST_SUMMARYSTATS()."""
     d = {}
@@ -130,7 +152,7 @@ class Image(object):
                  'max': self._reduce_image[band+'_max']
                  }
     return d
-
+  @cached_property
   def st_valuecount(self):
     """Return only metadata for a specifically requested band, like postgis function"""
     #tmp_dic = {}

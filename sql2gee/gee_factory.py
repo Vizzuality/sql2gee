@@ -103,7 +103,7 @@ class GeeFactory(object):
     imGeom = self.geojson if self.geojson else _default_geojson # To avoid the image composite bug we add a global region to group the image together.
     collGeom = self._geojson_to_featurecollection(self.geojson)
     fnResponse={
-    'Image': Image(self.sql, self.json, imGeom).response,
+    'Image': Image(self.sql, self.json, self._asset_id, imGeom).response,
     'ImageCollection': ImageCollection(self.json, self._asset_id, collGeom).response,
     'FeatureCollection': FeatureCollection(self.json, self._asset_id, collGeom).response
     }

@@ -105,12 +105,7 @@ class Collection(object):
     
     return self
     
-    # sort_params = self._parsed['orderBy'][0]
-
-    # return {
-    #   'direction': sort_params['direction'],
-    #   'value': sort_params['value']
-    # }
+    
 
   def _limit(self):
     if self._parsed['limit']:

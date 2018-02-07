@@ -5,7 +5,11 @@ class ImageCollection(Collection):
   def __init__(self, json, asset_id, geometry):
   	self.json = json
   	super().__init__(json['data']['attributes']['jsonSql'], asset_id, 'ImageCollection', geometry)
+  
+
+  def _aggFunctions(self):
     
+    return self 
     
   def _groupBy(self):
     return self
