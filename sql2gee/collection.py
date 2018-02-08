@@ -54,7 +54,7 @@ class Collection(object):
       right = data['right']
       dparents=[data['value']]
     elif 'type' in [*data] and data['type']=='operator': ########------------------------------------------- Latests leaf we will want to return  
-      return self._filters[data['value']](data['left']['value'], data['right']['value'])
+      return self._filters[data['value']](data['left']['value'], data['right']['value'].strip("'"))
       #return {data['value']:[data['left']['value'], data['right']['value']]}
 
     if left and right: ########-------------------------------------- leaf group iteration
@@ -85,8 +85,9 @@ class Collection(object):
     # It gets *where* conditions and converts them in the proper filters.
     # self.asset.filter(ee.Filter([ee.Filter.eq('scenario','historical'), ee.Filter.date('1996-01-01','1997-01-01')])).filterBounds(geometry)
     
-    if self._parsed['where']:
+    if 'where' in self._parsed and self._parsed['where']:
       _filters=self._filterGen(self._parsed['where'])
+      print(_filters)
       if self.geometry:
         self._asset = self._asset.filter(_filters).filterBounds(self.geometry)
       else:
@@ -99,14 +100,14 @@ class Collection(object):
     'asc':True,
     'desc':False
     }
-    if self._parsed['orderBy']:
+    if 'orderBy' in self._parsed and self._parsed['orderBy']:
       self._asset = self._asset.sort(self._parsed['orderBy'][0]['value'], _direction[self._parsed['orderBy'][0]['direction']])
     
     return self
     
     
   def _limit(self):
-    if self._parsed['limit']:
+    if 'limit' in self._parsed and self._parsed['limit']:
       self._asset = self._asset.limit(self._parsed['limit'])
     return self
 
