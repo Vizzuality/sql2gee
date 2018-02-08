@@ -4,7 +4,7 @@ ee.Initialize()
 
 class Collection(object):
   """docstring for Collection"""
-  def __init__(self, parsed, asset_id, dType, geometry=None):
+  def __init__(self, parsed, select, asset_id, dType, geometry=None):
     self._parsed = parsed
     self.geometry = geometry
     self.type = dType

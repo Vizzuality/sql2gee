@@ -122,14 +122,12 @@ class GeeFactory(object):
                 raise NameError('column/band name not valid: {0}'.format(a['value']))
             
         elif a['type']=='function':
-            print(a)
             # This will retrieve the columns and bands for our dataset and extend the cols/bands to select if they already hasn't being selected
             response['functions'].append(a)
             if '_init_cols' in info:
               selected['_init_cols'].extend([args['value'] for args in a['arguments'] if args['type']=='literal' and args['value'] in info['_init_cols']])
             if '_init_bands' in info:
               selected['_init_bands'].extend([args['value'] for args in a['arguments'] if args['type']=='literal'and args['value'] in info['_init_bands']])
-            
             if '_init_bands' in info and '_init_cols' in info:
               f = [args['value'] for args in a['arguments'] if args['type']=='literal'and args['value'] not in info['_init_bands'] and args['value'] not in info['_init_cols']]
             elif '_init_bands' in info:
@@ -162,10 +160,11 @@ class GeeFactory(object):
     _default_geojson = json.loads('{"features": [{"geometry": {"coordinates": [[[-90, -180],[-90, -180], [-90, -180 ], [-90, -180], [-90, -180]]], "geodesic":true, "type":"Polygon"}, "type": "Feature"} ], "type": "FeatureCollection"}')
     imGeom = self.geojson if self.geojson else _default_geojson # To avoid the image composite bug we add a global region to group the image together.
     collGeom = self._geojson_to_featurecollection(self.geojson)
+    
     fnResponse={
-    'Image': Image(self.sql, self.json, self._asset_id, imGeom).response,
-    'ImageCollection': ImageCollection(self.json, self._asset_id, collGeom).response,
-    'FeatureCollection': FeatureCollection(self.json, self._asset_id, collGeom).response
+    'Image': Image(self.sql, self.json,self._select, self._asset_id, imGeom).response,
+    'ImageCollection': ImageCollection(self.json, self._select, self._asset_id, collGeom).response,
+    'FeatureCollection': FeatureCollection(self.json, self._select, self._asset_id, collGeom).response
     }
     
     try:

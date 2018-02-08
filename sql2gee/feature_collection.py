@@ -6,9 +6,9 @@ ee.Initialize()
 
 class FeatureCollection(Collection):
   """docstring for FeatureCollection"""
-  def __init__(self, json, asset_id, geometry=None):
+  def __init__(self, json, select, asset_id, geometry=None):
     self.json = json
-    super().__init__(json['data']['attributes']['jsonSql'], asset_id, 'FeatureCollection', geometry)
+    super().__init__(json['data']['attributes']['jsonSql'], select, asset_id, 'FeatureCollection', geometry)
 
   def _aggFunctions(self):
     

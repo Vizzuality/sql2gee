@@ -2,9 +2,9 @@ from collection import Collection
 
 class ImageCollection(Collection):
   """docstring for ImageCollection"""
-  def __init__(self, json, asset_id, geometry):
+  def __init__(self, json, select, asset_id, geometry):
   	self.json = json
-  	super().__init__(json['data']['attributes']['jsonSql'], asset_id, 'ImageCollection', geometry)
+  	super().__init__(json['data']['attributes']['jsonSql'], select, asset_id, 'ImageCollection', geometry)
   
 
   def _aggFunctions(self):

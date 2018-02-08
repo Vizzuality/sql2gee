@@ -7,8 +7,7 @@ from cached_property import cached_property
 
 class Image(object):
   """docstring for Image"""
-  def __init__(self, sql, json, _asset_id, geojson=None):
-    super(Image, self).__init__()
+  def __init__(self, sql, json, select, _asset_id, geojson=None):
     self.sql = sql
     self.json = json
     self.geojson = geojson

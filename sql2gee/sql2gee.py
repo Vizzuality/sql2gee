@@ -10,7 +10,7 @@ class SQL2GEE(object):
     self.metadata = self.factory.metadata
   
   def response(self):
-  	print(self.factory._select)
+
   	return self.factory.response()
 
 
