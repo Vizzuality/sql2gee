@@ -15,13 +15,14 @@ import pdb; pdb.set_trace()
 #LIMIT 1 
 #"""
 
-sql = "SELECT ST_HISTOGRAM(raster, lossyear, 15, true) FROM 'UMD/hansen/global_forest_change_2015'"
+sql = "select sum(pr), avg(tmmn) from 'IDAHO_EPSCOR/GRIDMET' where system:time_start > 284191200000 order by system:time_start asc limit 10"
 
 myQuery = SQL2GEE(JsonSql(sql).to_json())
 
-
-pdb.run('myQuery.response()')
+#pdb.run('myQuery.response()')
 print(myQuery.response())
+
+
 
 
 
@@ -47,3 +48,7 @@ print(myQuery.response())
 # select * from 'GLIMS/2016' where anlys_time limit 10
 # select sum(area) from 'GLIMS/2016' where min_elev < 1000
 # select sum(area), anlys_time from 'GLIMS/2016'  group by anlys_time order by anlys_time asc limit 10
+# 
+#--- Image 'UMD/hansen/global_forest_change_2015'
+# SELECT ST_HISTOGRAM(raster, lossyear, 15, true) FROM 'UMD/hansen/global_forest_change_2015'
+#

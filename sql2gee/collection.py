@@ -54,8 +54,10 @@ class Collection(object):
       right = data['right']
       dparents=[data['value']]
     elif 'type' in [*data] and data['type']=='operator': ########------------------------------------------- Latests leaf we will want to return  
-      return self._filters[data['value']](data['left']['value'], data['right']['value'].strip("'"))
-      #return {data['value']:[data['left']['value'], data['right']['value']]}
+      if data['right']['type']=='string':
+        return self._filters[data['value']](data['left']['value'], data['right']['value'].strip("'"))
+      else:
+        return self._filters[data['value']](data['left']['value'], data['right']['value'])
 
     if left and right: ########-------------------------------------- leaf group iteration
       #for l in left:
@@ -87,7 +89,6 @@ class Collection(object):
     
     if 'where' in self._parsed and self._parsed['where']:
       _filters=self._filterGen(self._parsed['where'])
-      print(_filters)
       if self.geometry:
         self._asset = self._asset.filter(_filters).filterBounds(self.geometry)
       else:
@@ -108,7 +109,7 @@ class Collection(object):
     
   def _limit(self):
     if 'limit' in self._parsed and self._parsed['limit']:
-      self._asset = self._asset.limit(self._parsed['limit'])
+      self._asset = self._asset.limit(self._parsed['limit']).toList(self._parsed['limit'])
     return self
 
   def _getInfo(self):
