@@ -146,8 +146,9 @@ class GeeFactory(object):
         else:
             response['others'].append(a)
     
-    for key, value in info.items():
-      assert self._findDup(value), 'we cannot have 2 columns with the same alias'.format()
+    for key, value in response.items():
+      if key in ['columns','bands']:
+        assert self._findDup(value), 'we cannot have 2 columns with the same alias'.format()
     
     response['_columns'] =list(set([a['value'] for a in response['columns']]).union(selected['_init_cols']))
     response['_bands']=list(set([a['value'] for a in response['bands']]).union(selected['_init_bands']))
@@ -162,7 +163,7 @@ class GeeFactory(object):
     collGeom = self._geojson_to_featurecollection(self.geojson)
     
     fnResponse={
-    'Image': Image(self.sql, self.json,self._select, self._asset_id, imGeom).response,
+    'Image': Image(self.sql, self.json, self._select, self._asset_id, imGeom).response,
     'ImageCollection': ImageCollection(self.json, self._select, self._asset_id, collGeom).response,
     'FeatureCollection': FeatureCollection(self.json, self._select, self._asset_id, collGeom).response
     }
