@@ -93,8 +93,7 @@ class Collection(object):
         self._asset =  self._asset.filter(_filters)
     return self
    
-
-  
+ 
   def _sort(self):
     _direction={
     'asc':True,
@@ -106,7 +105,6 @@ class Collection(object):
     return self
     
     
-
   def _limit(self):
     if self._parsed['limit']:
       self._asset = self._asset.limit(self._parsed['limit'])

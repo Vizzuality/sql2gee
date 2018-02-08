@@ -7,9 +7,10 @@ class SQL2GEE(object):
     self.factory = GeeFactory(sqlscheme, geojson, flags)
     self._asset_id = self.factory._asset_id
     self.type = self.factory.type
-    self.metadata = self.factory.metadata()
+    self.metadata = self.factory.metadata
   
   def response(self):
+  	print(self.factory._select)
   	return self.factory.response()
 
 

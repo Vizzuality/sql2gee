@@ -11,8 +11,13 @@ class ImageCollection(Collection):
     
     return self 
     
-  def _groupBy(self):
+  def _groupBy(self):		
     return self
+
+  
+  def query(self):
+  	self._where()._groupBy()._sort()._limit()
+
 
   def response(self):
   	"""
