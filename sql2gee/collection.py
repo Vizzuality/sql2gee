@@ -6,6 +6,7 @@ class Collection(object):
   """docstring for Collection"""
   def __init__(self, parsed, select, asset_id, dType, geometry=None):
     self._parsed = parsed
+    self.select = select
     self.geometry = geometry
     self.type = dType
     self._asset_id = asset_id
@@ -82,7 +83,6 @@ class Collection(object):
     }
     return _data[self.type](self._asset_id)
   
-  
   def _where(self):
     # It gets *where* conditions and converts them in the proper filters.
     # self.asset.filter(ee.Filter([ee.Filter.eq('scenario','historical'), ee.Filter.date('1996-01-01','1997-01-01')])).filterBounds(geometry)
@@ -94,8 +94,7 @@ class Collection(object):
       else:
         self._asset =  self._asset.filter(_filters)
     return self
-   
- 
+
   def _sort(self):
     _direction={
     'asc':True,
@@ -105,8 +104,7 @@ class Collection(object):
       self._asset = self._asset.sort(self._parsed['orderBy'][0]['value'], _direction[self._parsed['orderBy'][0]['direction']])
     
     return self
-    
-    
+
   def _limit(self):
     if 'limit' in self._parsed and self._parsed['limit']:
       self._asset = self._asset.limit(self._parsed['limit']).toList(self._parsed['limit'])
@@ -114,4 +112,64 @@ class Collection(object):
 
   def _getInfo(self):
     return self._asset.getInfo()
+
+  def reduceGen(self):
+    selectFunctions = self.select['functions']
+    groupBy = self._parsed['group']
+
+    _agFunctions = {
+            'avg': ee.Reducer.mean,
+            'max': ee.Reducer.max,
+            'min': ee.Reducer.min,
+            'count': ee.Reducer.count,
+            'sum': ee.Reducer.sum
+    }
+
+    reducers = {
+        'reduceRegion': {},
+        'reduceColumns': {},
+        'reduceImage':   {}
+    }
+
+    presentReducers = []
+    reducerFunctions = []
+    result = []
+    functionKeys = list(_agFunctions.keys())
+
+    for functionKey in functionKeys:
+        if any(function['value'] == functionKey for function in selectFunctions):
+            quantity = sum(function['value'] == functionKey for function in selectFunctions)
+            reducer = _agFunctions[functionKey]().repeat(quantity)
+            presentReducers.append(_agFunctions[functionKey]())
+            reducerFunctions.append(reducer)
+
+    for reducer in reducerFunctions:
+        for group in groupBy:
+            reducer = reducer.group(**{'groupField': 1,'groupName':group['value']})
+            if group == groupBy[-1]:
+                result.append(reducer)
+
+    if len(reducerFunctions) == 1:
+        reducers['reduceColumns']['reducer'] = reducerFunctions[0]
+    else:
+        reducers['reduceColumns']['reducer'] = combineReducers(reducerFunctions[0], reducerFunctions[1:])
+
+    simpleReducersCombined = combineReducers(presentReducers[0], presentReducers[1:])
+
+    reducers['reduceColumns']['selectors'] = [function['arguments'][0]['value'] for function in selectFunctions]
+    reducers['reduceRegion']['reducer'] = simpleReducersCombined
+    reducers['reduceRegion']['geometry'] = self.geometry
+    reducers['reduceRegion']['bestEffort'] = True
+    reducers['reduceRegion']['tileScale'] = 4
+    reducers['reduceRegion']['scale'] = 90
+    reducers['reduceImage']['reducer'] = simpleReducersCombined
+    reducers['reduceImage']['parallelScale'] = 4
+
+    return reducers
+
+def combineReducers(reducer, reducerFunctions):
+    if len(reducerFunctions)==0:
+        return reducer
+    else:
+        return combineReducers(reducer.combine(reducerFunctions[0]), reducerFunctions[1:])
 
