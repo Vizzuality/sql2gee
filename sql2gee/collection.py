@@ -115,6 +115,7 @@ class Collection(object):
 
   def reduceGen(self):
     selectFunctions = self.select['functions']
+
     groupBy = None
     if 'group' in self._parsed:
       groupBy = self._parsed['group']
@@ -155,7 +156,9 @@ class Collection(object):
 
     simpleReducersCombined = self.combineReducers(presentReducers[0], presentReducers[1:])
 
-    reducers['reduceColumns']['selectors'] = [function['arguments'][0]['value'] for function in selectFunctions].extend(groupBy)
+    reducers['reduceColumns']['selectors'] = [function['arguments'][0]['value'] for function in selectFunctions]
+    if groupBy != None:
+      reducers['reduceColumns']['selectors'].append(groupBy[0]['value'])
     reducers['reduceRegion']['reducer'] = simpleReducersCombined
     reducers['reduceRegion']['geometry'] = self.geometry
     reducers['reduceRegion']['bestEffort'] = True
@@ -174,12 +177,14 @@ class Collection(object):
               reducer = {'groupField': 1,'groupName':group['value']}
               if group == groupBy[-1]:
                   result.append(reducer)
+
+    print('--------> HERE = groupGen! ',result[::-1])
     return result[::-1]
 
   def _group(self, reducer, groups):
     for group in groups:
       reducer=reducer.group(**group)
-
+    print('--------> HERE = _group! ', reducer.getInfo())
     return reducer
 
   def combineReducers(self, reducer, reducerFunctions):

@@ -24,8 +24,8 @@ class FeatureCollection(Collection):
         select = list with column id you want to count/sum
         groups = list containing the columns you wish to group by,
                     starting with the coarse grouping, ending with fine grouping"""
-    print(self.reduceGen()['reduceColumns'])
     
+    print('--------> HERE = FEATURE COL 2! ',self.reduceGen()['reduceColumns'])
     self._asset = self._asset.reduceColumns(**self.reduceGen()['reduceColumns'])
     
     return self
