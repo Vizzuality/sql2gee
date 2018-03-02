@@ -15,7 +15,7 @@ import pdb; pdb.set_trace()
 #LIMIT 1 
 #"""
 
-sql = "select sum(pr), avg(tmmn) from 'IDAHO_EPSCOR/GRIDMET' where system:time_start > 284191200000 order by system:time_start asc limit 10"
+sql = "select sum(mean_elev), glac_name from 'GLIMS/2016' group by glac_name limit 10"
 
 myQuery = SQL2GEE(JsonSql(sql).to_json())
 

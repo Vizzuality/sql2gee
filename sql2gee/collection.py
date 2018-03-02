@@ -115,7 +115,9 @@ class Collection(object):
 
   def reduceGen(self):
     selectFunctions = self.select['functions']
-    groupBy = self._parsed['group']
+    groupBy = None
+    if 'group' in self._parsed:
+      groupBy = self._parsed['group']
 
     _agFunctions = {
             'avg': ee.Reducer.mean,
@@ -133,7 +135,6 @@ class Collection(object):
 
     presentReducers = []
     reducerFunctions = []
-    result = []
     functionKeys = list(_agFunctions.keys())
 
     for functionKey in functionKeys:
@@ -143,20 +144,18 @@ class Collection(object):
             presentReducers.append(_agFunctions[functionKey]())
             reducerFunctions.append(reducer)
 
-    for reducer in reducerFunctions:
-        for group in groupBy:
-            reducer = reducer.group(**{'groupField': 1,'groupName':group['value']})
-            if group == groupBy[-1]:
-                result.append(reducer)
-
+    
     if len(reducerFunctions) == 1:
         reducers['reduceColumns']['reducer'] = reducerFunctions[0]
     else:
-        reducers['reduceColumns']['reducer'] = combineReducers(reducerFunctions[0], reducerFunctions[1:])
+        reducers['reduceColumns']['reducer'] = self.combineReducers(reducerFunctions[0], reducerFunctions[1:])
+    if groupBy != None:
+      groups=self._groupGen(reducerFunctions, groupBy)
+      reducers['reduceColumns']['reducer'] = self._group(reducers['reduceColumns']['reducer'], groups)
 
-    simpleReducersCombined = combineReducers(presentReducers[0], presentReducers[1:])
+    simpleReducersCombined = self.combineReducers(presentReducers[0], presentReducers[1:])
 
-    reducers['reduceColumns']['selectors'] = [function['arguments'][0]['value'] for function in selectFunctions]
+    reducers['reduceColumns']['selectors'] = [function['arguments'][0]['value'] for function in selectFunctions].extend(groupBy)
     reducers['reduceRegion']['reducer'] = simpleReducersCombined
     reducers['reduceRegion']['geometry'] = self.geometry
     reducers['reduceRegion']['bestEffort'] = True
@@ -167,9 +166,25 @@ class Collection(object):
 
     return reducers
 
-def combineReducers(reducer, reducerFunctions):
-    if len(reducerFunctions)==0:
-        return reducer
-    else:
-        return combineReducers(reducer.combine(reducerFunctions[0]), reducerFunctions[1:])
+
+  def _groupGen(self, reducerFunctions, groupBy):
+    result = []
+    for reducer in reducerFunctions:
+          for group in groupBy:
+              reducer = {'groupField': 1,'groupName':group['value']}
+              if group == groupBy[-1]:
+                  result.append(reducer)
+    return result[::-1]
+
+  def _group(self, reducer, groups):
+    for group in groups:
+      reducer=reducer.group(**group)
+
+    return reducer
+
+  def combineReducers(self, reducer, reducerFunctions):
+      if len(reducerFunctions)==0:
+          return reducer
+      else:
+          return combineReducers(reducer.combine(reducerFunctions[0]), reducerFunctions[1:])
 
