@@ -106,8 +106,9 @@ class Collection(object):
     return self
 
   def _limit(self):
-    if 'limit' in self._parsed and self._parsed['limit']:
-      self._asset = self._asset.limit(self._parsed['limit']).toList(self._parsed['limit'])
+    # This method works only for grouped data. Need alternatives for SORT, SELECT, etc
+    if 'limit' in self._parsed and self._parsed['limit'] and 'group' in self._parsed and self._parsed['group']:
+      self._asset = ee.Dictionary.fromLists(['groups'],[ee.List(self._asset.get('groups')).slice(0,10)])
     return self
 
   def _getInfo(self):
@@ -177,14 +178,11 @@ class Collection(object):
               reducer = {'groupField': 1,'groupName':group['value']}
               if group == groupBy[-1]:
                   result.append(reducer)
-
-    print('--------> HERE = groupGen! ',result[::-1])
     return result[::-1]
 
   def _group(self, reducer, groups):
     for group in groups:
       reducer=reducer.group(**group)
-    print('--------> HERE = _group! ', reducer.getInfo())
     return reducer
 
   def combineReducers(self, reducer, reducerFunctions):

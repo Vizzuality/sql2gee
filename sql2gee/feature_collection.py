@@ -20,19 +20,11 @@ class FeatureCollection(Collection):
     return self
     
   def _groupBy(self):
-    """ data = feature collection
-        select = list with column id you want to count/sum
-        groups = list containing the columns you wish to group by,
-                    starting with the coarse grouping, ending with fine grouping"""
-    
-    print('--------> HERE = FEATURE COL 2! ',self.reduceGen()['reduceColumns'])
     self._asset = self._asset.reduceColumns(**self.reduceGen()['reduceColumns'])
-    
     return self
 
   def response(self):
-    return self._initSelect()._where()._groupBy()._sort()._getInfo()
-    #return self._initSelect()._where()._groupBy()._sort()._limit()._getInfo()
+    return self._initSelect()._where()._groupBy()._sort()._limit()._getInfo()
 
     # FeatureCollection.<filters>.<functions>.<sorts>.limit(n).getInfo()
     
