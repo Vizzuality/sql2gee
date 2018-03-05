@@ -106,9 +106,13 @@ class Collection(object):
     return self
 
   def _limit(self):
-    # This method works only for grouped data. Need alternatives for SORT, SELECT, etc
-    if 'limit' in self._parsed and self._parsed['limit'] and 'group' in self._parsed and self._parsed['group']:
-      self._asset = ee.Dictionary.fromLists(['groups'],[ee.List(self._asset.get('groups')).slice(0,10)])
+    if 'limit' in self._parsed and self._parsed['limit']:
+      if 'group' in self._parsed and self._parsed['group']:
+        self._asset = ee.Dictionary.fromLists(['groups'],[ee.List(self._asset.get('groups')).slice(0,self._parsed['limit'])])
+      else:
+        #Works for simple SELECT queries with no functions
+        self._asset = self._asset.limit(self._parsed['limit'])
+
     return self
 
   def _getInfo(self):
@@ -149,23 +153,27 @@ class Collection(object):
     
     if len(reducerFunctions) == 1:
         reducers['reduceColumns']['reducer'] = reducerFunctions[0]
-    else:
+    elif len(reducerFunctions) > 1:
         reducers['reduceColumns']['reducer'] = self.combineReducers(reducerFunctions[0], reducerFunctions[1:])
+        simpleReducersCombined = self.combineReducers(presentReducers[0], presentReducers[1:])
+        reducers['reduceRegion']['reducer'] = simpleReducersCombined
+        reducers['reduceImage']['reducer'] = simpleReducersCombined
+        
     if groupBy != None:
       groups=self._groupGen(reducerFunctions, groupBy)
       reducers['reduceColumns']['reducer'] = self._group(reducers['reduceColumns']['reducer'], groups)
 
-    simpleReducersCombined = self.combineReducers(presentReducers[0], presentReducers[1:])
+    # simpleReducersCombined = self.combineReducers(presentReducers[0], presentReducers[1:])
 
     reducers['reduceColumns']['selectors'] = [function['arguments'][0]['value'] for function in selectFunctions]
     if groupBy != None:
       reducers['reduceColumns']['selectors'].append(groupBy[0]['value'])
-    reducers['reduceRegion']['reducer'] = simpleReducersCombined
+    # reducers['reduceRegion']['reducer'] = simpleReducersCombined
     reducers['reduceRegion']['geometry'] = self.geometry
     reducers['reduceRegion']['bestEffort'] = True
     reducers['reduceRegion']['tileScale'] = 4
     reducers['reduceRegion']['scale'] = 90
-    reducers['reduceImage']['reducer'] = simpleReducersCombined
+    # reducers['reduceImage']['reducer'] = simpleReducersCombined
     reducers['reduceImage']['parallelScale'] = 4
 
     return reducers

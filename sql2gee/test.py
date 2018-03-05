@@ -15,17 +15,14 @@ import pdb; pdb.set_trace()
 #LIMIT 1 
 #"""
 
-sql = "select sum(mean_elev), glac_name from 'GLIMS/2016' group by glac_name limit 10"
+# sql = "select sum(mean_elev), glac_name from 'GLIMS/2016' group by glac_name limit 10"
+sql = "select sum(mean_elev) from 'GLIMS/2016' LIMIT 10"
+# sql = "select mean_elev, glac_name from 'GLIMS/2016' limit 10"
 
 myQuery = SQL2GEE(JsonSql(sql).to_json())
 
 #pdb.run('myQuery.response()')
 print(myQuery.response())
-
-
-
-
-
 
 
 

@@ -20,7 +20,8 @@ class FeatureCollection(Collection):
     return self
     
   def _groupBy(self):
-    self._asset = self._asset.reduceColumns(**self.reduceGen()['reduceColumns'])
+    if 'group' in self._parsed:
+      self._asset = self._asset.reduceColumns(**self.reduceGen()['reduceColumns'])
     return self
 
   def response(self):
