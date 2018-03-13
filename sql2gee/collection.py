@@ -1,6 +1,5 @@
 import ee
-
-ee.Initialize()
+from utils.reduce import _reducers
 
 class Collection(object):
   """docstring for Collection"""
@@ -10,8 +9,7 @@ class Collection(object):
     self.geometry = geometry
     self.type = dType
     self._asset_id = asset_id
-    self._asset=self._asset()
-    
+    self._asset=self._assetInit() 
     self._filters = {
       '<': ee.Filter.lt,
       '<=': ee.Filter.lte,
@@ -32,19 +30,28 @@ class Collection(object):
       'or': ee.Filter.Or
     }
     self._agFunctions = {
-      'mean': ee.Reducer.mean,
+      'avg': ee.Reducer.mean,
       'max': ee.Reducer.max,
       'min': ee.Reducer.min,
       'count': ee.Reducer.count,
+      'sum': ee.Reducer.sum
+      }
+
+  def _assetInit(self):
+    """
+    Selects and retrieves the correct asset type
+    """
+    _data = {
+      'FeatureCollection': ee.FeatureCollection,
+      'ImageCollection': ee.ImageCollection
     }
-    self._agTFunctions = {
-      'mean': ee.Reducer.mean,
-      'max': ee.Reducer.max,
-      'min': ee.Reducer.min,
-      'min': ee.Reducer.count,
-    }
+    return _data[self.type](self._asset_id)
 
   def _filterGen(self, data, parents=[]):
+    """
+    Recursive function that will generate the proper filters that we will apply to the collections to filter them.
+    Response like: ee.Filter([ee.Filter.eq('scenario','historical'), ee.Filter.date('1996-01-01','1997-01-01')])
+    """
     left = None
     right = None
     result =[]
@@ -76,16 +83,11 @@ class Collection(object):
 
     return result ########----------------------------------- Return result in:[[ee.Filter.eq('month','historical'),ee.Filter.eq('model','historical'),...],...]
   
-  def _asset(self):
-    _data = {
-      'FeatureCollection': ee.FeatureCollection,
-      'ImageCollection': ee.ImageCollection
-    }
-    return _data[self.type](self._asset_id)
-  
   def _where(self):
-    # It gets *where* conditions and converts them in the proper filters.
-    # self.asset.filter(ee.Filter([ee.Filter.eq('scenario','historical'), ee.Filter.date('1996-01-01','1997-01-01')])).filterBounds(geometry)
+    """
+    It gets *where* conditions and converts them in the proper filters.
+    self.asset.filter(ee.Filter([ee.Filter.eq('scenario','historical'), ee.Filter.date('1996-01-01','1997-01-01')])).filterBounds(geometry)
+    """
     
     if 'where' in self._parsed and self._parsed['where']:
       _filters=self._filterGen(self._parsed['where'])
@@ -96,100 +98,47 @@ class Collection(object):
     return self
 
   def _sort(self):
+    """
+    This will sort the result over the first condition as gee doesn't allow multisort
+    """
     _direction={
     'asc':True,
     'desc':False
     }
     if 'orderBy' in self._parsed and self._parsed['orderBy']:
-      self._asset = self._asset.sort(self._parsed['orderBy'][0]['value'], _direction[self._parsed['orderBy'][0]['direction']])
+      if isinstance(self._asset, ee.computedobject.ComputedObject):
+        pass #### ToDo, should we implement an special algorithm for sortin to map the preresult dict 
+      elif isinstance(self._asset, ee.Collection):
+        self._asset = self._asset.sort(self._parsed['orderBy'][0]['value'], _direction[self._parsed['orderBy'][0]['direction']])
     
     return self
 
   def _limit(self):
+    """
+    This will limit  the answer if limit exist. 
+    if the object is a collection it will use the built in function for it. 
+    If instead the anwer is a dictionary, it will linit the output due the selected limit.
+    """
     if 'limit' in self._parsed and self._parsed['limit']:
-      self._asset = self._asset.limit(self._parsed['limit']).toList(self._parsed['limit'])
+      if isinstance(self._asset, ee.computedobject.ComputedObject):
+        self._asset=self._asset.slice(0, self._parsed['limit'])
+      elif isinstance(self._asset, ee.Collection):
+        self._asset = self._asset.limit(self._parsed['limit']).toList(self._parsed['limit'])
+      else:
+        raise type(self._asset)
     return self
 
   def _getInfo(self):
     return self._asset.getInfo()
 
+  @property
   def reduceGen(self):
-    selectFunctions = self.select['functions']
-
     groupBy = None
     if 'group' in self._parsed:
       groupBy = self._parsed['group']
 
-    _agFunctions = {
-            'avg': ee.Reducer.mean,
-            'max': ee.Reducer.max,
-            'min': ee.Reducer.min,
-            'count': ee.Reducer.count,
-            'sum': ee.Reducer.sum
-    }
-
-    reducers = {
-        'reduceRegion': {},
-        'reduceColumns': {},
-        'reduceImage':   {}
-    }
-
-    presentReducers = []
-    reducerFunctions = []
-    functionKeys = list(_agFunctions.keys())
-
-    for functionKey in functionKeys:
-        if any(function['value'] == functionKey for function in selectFunctions):
-            quantity = sum(function['value'] == functionKey for function in selectFunctions)
-            reducer = _agFunctions[functionKey]().repeat(quantity)
-            presentReducers.append(_agFunctions[functionKey]())
-            reducerFunctions.append(reducer)
-
+    reducers = _reducers(self.select['_functions'], groupBy, self.geometry)
     
-    if len(reducerFunctions) == 1:
-        reducers['reduceColumns']['reducer'] = reducerFunctions[0]
-    else:
-        reducers['reduceColumns']['reducer'] = self.combineReducers(reducerFunctions[0], reducerFunctions[1:])
-    if groupBy != None:
-      groups=self._groupGen(reducerFunctions, groupBy)
-      reducers['reduceColumns']['reducer'] = self._group(reducers['reduceColumns']['reducer'], groups)
-
-    simpleReducersCombined = self.combineReducers(presentReducers[0], presentReducers[1:])
-
-    reducers['reduceColumns']['selectors'] = [function['arguments'][0]['value'] for function in selectFunctions]
-    if groupBy != None:
-      reducers['reduceColumns']['selectors'].append(groupBy[0]['value'])
-    reducers['reduceRegion']['reducer'] = simpleReducersCombined
-    reducers['reduceRegion']['geometry'] = self.geometry
-    reducers['reduceRegion']['bestEffort'] = True
-    reducers['reduceRegion']['tileScale'] = 4
-    reducers['reduceRegion']['scale'] = 90
-    reducers['reduceImage']['reducer'] = simpleReducersCombined
-    reducers['reduceImage']['parallelScale'] = 4
-
     return reducers
 
-
-  def _groupGen(self, reducerFunctions, groupBy):
-    result = []
-    for reducer in reducerFunctions:
-          for group in groupBy:
-              reducer = {'groupField': 1,'groupName':group['value']}
-              if group == groupBy[-1]:
-                  result.append(reducer)
-
-    print('--------> HERE = groupGen! ',result[::-1])
-    return result[::-1]
-
-  def _group(self, reducer, groups):
-    for group in groups:
-      reducer=reducer.group(**group)
-    print('--------> HERE = _group! ', reducer.getInfo())
-    return reducer
-
-  def combineReducers(self, reducer, reducerFunctions):
-      if len(reducerFunctions)==0:
-          return reducer
-      else:
-          return combineReducers(reducer.combine(reducerFunctions[0]), reducerFunctions[1:])
-
+  

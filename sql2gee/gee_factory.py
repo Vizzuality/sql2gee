@@ -1,11 +1,10 @@
 import ee
 import json
+from cached_property import cached_property
 from image import Image
 #from json_sql import JsonSql
 from image_collection import ImageCollection
 from feature_collection import FeatureCollection
-
-ee.Initialize()
 
 class GeeFactory(object):
 
@@ -52,7 +51,8 @@ class GeeFactory(object):
       return ee.FeatureCollection(geojson.get('features'))
     else:
       return None
-  @property
+  
+  @cached_property
   def metadata(self):
     """Property that holds the Metadata dictionary returned from Earth Engine."""
     if 'ft:' in self._asset_id:
@@ -83,7 +83,7 @@ class GeeFactory(object):
     r = [i for n, i in enumerate(list) if i not in list[n + 1:]]
     return len(list) == len(r)
 
-  @property  
+  @cached_property  
   def _select(self):
     """
     This will recive the select statment of the query and transform it in the way we need it 
@@ -100,6 +100,10 @@ class GeeFactory(object):
         'bands':[],
         '_bands':[],
         'functions':[],
+        '_functions':{
+            'bands':[],
+            'columns':[]
+            },
         'others':[]
     }
     info={}
@@ -112,8 +116,7 @@ class GeeFactory(object):
 
     #Compare the select results with the available columns/bands
     for a in selectArray:
-        if a['type']=='literal':
-            # This will retrieve the columns and bands inside select and check if the names belong to those in the data
+        if a['type']=='literal': # This will retrieve the columns and bands inside select and check if the names belong to those in the data
             if '_init_cols' in info and a['value'] in info['_init_cols']:
                 response['columns'].append(a)
             elif '_init_bands' in info and a['value'] in info['_init_bands']:
@@ -121,15 +124,20 @@ class GeeFactory(object):
             else:
                 raise NameError('column/band name not valid: {0}'.format(a['value']))
             
-        elif a['type']=='function':
-            # This will retrieve the columns and bands for our dataset and extend the cols/bands to select if they already hasn't being selected
+        elif a['type']=='function': # This will retrieve the columns and bands for our dataset and extend the cols/bands to select if they already hasn't being selected
             response['functions'].append(a)
+            # This will divide the functions that are related bands from those related columns so we can use the in the reducers.
+            
             if '_init_cols' in info:
+              if any(args['type']=='literal' and args['value'] in info['_init_cols'] for args in a['arguments']):
+                response['_functions']['columns'].append(a)
               selected['_init_cols'].extend([args['value'] for args in a['arguments'] if args['type']=='literal' and args['value'] in info['_init_cols']])
             if '_init_bands' in info:
+              if any(args['type']=='literal' and args['value'] in info['_init_bands'] for args in a['arguments']):
+                response['_functions']['bands'].append(a)
               selected['_init_bands'].extend([args['value'] for args in a['arguments'] if args['type']=='literal'and args['value'] in info['_init_bands']])
             if '_init_bands' in info and '_init_cols' in info:
-              f = [args['value'] for args in a['arguments'] if args['type']=='literal'and args['value'] not in info['_init_bands'] and args['value'] not in info['_init_cols']]
+              f = [args['value'] for args in a['arguments'] if args['type']=='literal' and args['value'] not in info['_init_bands'] and args['value'] not in info['_init_cols']]
             elif '_init_bands' in info:
               f = [args['value'] for args in a['arguments'] if args['type']=='literal' and args['value'] not in info['_init_bands']]
             elif '_init_cols' in info:
@@ -161,7 +169,6 @@ class GeeFactory(object):
     _default_geojson = json.loads('{"features": [{"geometry": {"coordinates": [[[-90, -180],[-90, -180], [-90, -180 ], [-90, -180], [-90, -180]]], "geodesic":true, "type":"Polygon"}, "type": "Feature"} ], "type": "FeatureCollection"}')
     imGeom = self.geojson if self.geojson else _default_geojson # To avoid the image composite bug we add a global region to group the image together.
     collGeom = self._geojson_to_featurecollection(self.geojson)
-    
     fnResponse={
     'Image': Image(self.sql, self.json, self._select, self._asset_id, imGeom).response,
     'ImageCollection': ImageCollection(self.json, self._select, self._asset_id, collGeom).response,

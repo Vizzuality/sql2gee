@@ -1,6 +1,14 @@
 from sql2gee import SQL2GEE
-from json_sql import JsonSql
-import pdb; pdb.set_trace()
+import ee; ee.Initialize()
+from utils.jsonSql import JsonSql
+
+### For debugging and testing
+#import pdb; pdb.set_trace()
+#from pympler.tracker  import SummaryTracker
+#import cProfile, pstats, io
+#tracker = SummaryTracker()
+#pr = cProfile.Profile()
+#pr.enable()
 
 #sql=""" 
 #SELECT cc, sum(iso_num) AS x, avg(cc) AS xm, min(avg_vis) AS x,'ddd' as d, avg_vis
@@ -14,15 +22,27 @@ import pdb; pdb.set_trace()
 #order by x asc 
 #LIMIT 1 
 #"""
+## Feature Collection 
+#sql = "select sum(mean_elev), count(mean_elev) from 'GLIMS/2016' group by glac_name, rec_status order by glac_name limit 20"
 
-sql = "select sum(mean_elev), glac_name from 'GLIMS/2016' group by glac_name limit 10"
+## Image Collection 
+
+sql = "select sum(pr), avg(tmmn) from 'IDAHO_EPSCOR/GRIDMET' where system:time_start > 284191200000 order by system:time_start asc limit 10"
+
 
 myQuery = SQL2GEE(JsonSql(sql).to_json())
 
 #pdb.run('myQuery.response()')
 print(myQuery.response())
 
-
+#pr.disable()
+#pr.dump_stats('test_file')
+#s = io.StringIO()
+#sortby = 'cumulative'
+#ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
+#ps.print_stats()
+#print(s.getvalue())
+#tracker.print_diff()
 
 
 

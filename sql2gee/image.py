@@ -1,22 +1,24 @@
-import sqlparse
 import ee
-from sqlparse.tokens import Keyword
-from sqlparse.sql import Identifier, IdentifierList, Function, Parenthesis, Comparison
 from cached_property import cached_property
 
-
+ 
 class Image(object):
   """docstring for Image"""
-  def __init__(self, sql, json, select, _asset_id, geojson=None):
-    self.sql = sql
+  def __init__(self, sql, json, select, _asset_id, geometry=None):
     self.json = json
-    self.geojson = geojson
-    self._parsed = sqlparse.parse(sql)[0]
-    self.target_data=_asset_id
+    self.select = select
+    self.geometry = geometry
+    #self._parsed = 
+    #self.target_data=_asset_id
+    self._asset_id = _asset_id
+    self._asset=self._asset()
 
-  @cached_property
-  def _band_names(self):
-      return ee.Image(self.target_data).bandNames().getInfo()
+  def _asset(self):
+    return ee.Image(self._asset_id)
+  
+  #@cached_property
+  #def _band_names(self):
+  #    return ee.Image(self.target_data).bandNames().getInfo()
 
   @property
   def _reduce_image(self):
@@ -25,13 +27,14 @@ class Image(object):
       """
       d={}
       d['bestEffort'] = True
-      if self.geojson:
-          d['geometry'] = self.geojson
+      if self.geometry:
+          d['geometry'] = self.geometry
       d['reducer'] = ee.Reducer.count().combine(ee.Reducer.sum(), outputPrefix='', sharedInputs=True
                       ).combine(ee.Reducer.mean(), outputPrefix='', sharedInputs=True).combine(
                       ee.Reducer.sampleStdDev(), outputPrefix='', sharedInputs=True).combine(ee.Reducer.min(),
                       outputPrefix='', sharedInputs=True).combine(ee.Reducer.max(), outputPrefix='',
                       sharedInputs=True).combine(ee.Reducer.percentile([25, 75]), outputPrefix='', sharedInputs=True)
+      
       return ee.Image(self.target_data).reduceRegion(**d).getInfo()
 
   @cached_property
@@ -43,6 +46,7 @@ class Image(object):
         iqr[band] = tmp
         del tmp
     return iqr
+  
   @property
   def group_functions(self):
     """Returns the group function with column names specified in the query:
@@ -77,6 +81,7 @@ class Image(object):
         d['value'] = value
 
     return d
+  
   @cached_property
   def histogram(self):
     """Retrieve ST_HISTOGRAM()-like info. This will return a dictionary object with bands as keys, and for each
@@ -102,8 +107,8 @@ class Image(object):
     d['reducer'] = ee.Reducer.fixedHistogram(input_min, input_max, input_bin_num)
     d['bestEffort'] = True
 
-    if self.geojson:
-      d['geometry'] = self.geojson
+    if self.geometry:
+      d['geometry'] = self.geometry
 
     tmp_response = ee.Image(self.target_data).select(band_of_interest).reduceRegion(**d).getInfo()
 
@@ -114,14 +119,13 @@ class Image(object):
       
     return tmp_dic
 
-  @property
-  def st_metadata(self):
-    """The image property Metadata dictionary returned from Earth Engine."""
-    metadata=self._metadata['properties'].copy()
-    metadata.update({"bands": self._metadata['bands']})
-    assert metadata != None, "No metadata available"
-
-    return metadata
+  #@property
+  #def st_metadata(self):
+  #  """The image property Metadata dictionary returned from Earth Engine."""
+  #  metadata=self._metadata['properties'].copy()
+  #  metadata.update({"bands": self._metadata['bands']})
+  #  assert metadata != None, "No metadata available"
+  #  return metadata
 
   @property
   def st_bandmetadata(self):
@@ -166,8 +170,8 @@ class Image(object):
     d['bestEffort'] = True
     d['maxPixels'] =  9000000000
 
-    if self.geojson:
-      d['geometry'] = self.geojson
+    if self.geometry:
+      d['geometry'] = self.geometry
 
     tmp_response = ee.Image(self.target_data).select(band_of_interest).reduceRegion(**d).getInfo()
 
@@ -242,10 +246,10 @@ class Image(object):
       num_bins = band_count ** 0.5  # as a last-resort, use the square root of the counts to set-bin size
     return band_min, band_max, num_bins
 
-  def _metadata(self):
-    """Property that holds the Metadata dictionary returned from Earth Engine."""
-    if self._is_image_request:
-      return ee.Image(self.target_data).getInfo()
+  #def _metadata(self):
+  #  """Property that holds the Metadata dictionary returned from Earth Engine."""
+  #  if self._is_image_request:
+  #    return ee.Image(self.target_data).getInfo()
     
   def response(self):
     for func in self.group_functions:
