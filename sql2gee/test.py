@@ -10,24 +10,13 @@ from utils.jsonSql import JsonSql
 #pr = cProfile.Profile()
 #pr.enable()
 
-#sql=""" 
-#SELECT cc, sum(iso_num) AS x, avg(cc) AS xm, min(avg_vis) AS x,'ddd' as d, avg_vis
-#FROM 'NOAA/DMSP-OLS/NIGHTTIME_LIGHTS'
-#WHERE ST_INTERSECTS(ST_SetSRID(ST_GeomFromGeoJSON('{\"type\":\"Polygon\",\"coordinates\":[[[-5.273512601852417,42.81137220349083],[-5.273512601852417,42.811803118457306],[-5.272732079029083,42.811803118457306],[-5.272732079029083,42.81137220349083],[-5.273512601852417,42.81137220349083]]]}'), 4326), the_geom) 
-#and iso_num > 2 
-#and iso_num < 10 
-#or iso_num = 2
-#order by y asc
-#GROUP BY x 
-#order by x asc 
-#LIMIT 1 
-#"""
+
 ## Feature Collection 
 #sql = "select sum(mean_elev), count(mean_elev) from 'GLIMS/2016' group by glac_name, rec_status order by glac_name limit 20"
 
 ## Image Collection 
 
-sql = "select sum(pr), avg(tmmn) from 'IDAHO_EPSCOR/GRIDMET' where system:time_start > 284191200000 order by system:time_start asc limit 10"
+sql = "select sum(pr), avg(tmmn) from 'IDAHO_EPSCOR/GRIDMET' where system:time_start > 284191200000 and ST_INTERSECTS(ST_SetSRID(ST_GeomFromGeoJSON('{\"type\":\"Polygon\",\"coordinates\":[[[-5.273512601852417,42.81137220349083],[-5.273512601852417,42.811803118457306],[-5.272732079029083,42.811803118457306],[-5.272732079029083,42.81137220349083],[-5.273512601852417,42.81137220349083]]]}'), 4326), the_geom) group by status order by system:time_start asc limit 10"
 
 myQuery = SQL2GEE(JsonSql(sql).to_json())
 

@@ -124,7 +124,7 @@ class Collection(object):
       if isinstance(self._asset, ee.computedobject.ComputedObject):
         self._asset=self._asset.slice(0, self._parsed['limit'])
       elif isinstance(self._asset, ee.Collection):
-        self._asset = self._asset.limit(self._parsed['limit']).toList(self._parsed['limit'])
+        self._asset = self._asset.toList(self._parsed['limit'])
       else:
         raise type(self._asset)
     

@@ -170,7 +170,7 @@ class GeeFactory(object):
     collGeom = self._geojson_to_featurecollection(self.geojson)
     fnResponse={
     'Image': Image(self.sql, self.json, self._select, self._asset_id, imGeom).response,
-    'ImageCollection': ImageCollection(self.json, self._select, self._asset_id, collGeom).response,
+    'ImageCollection': ImageCollection(self.json, self._select, self._asset_id, self._geojson_to_featurecollection(imGeom)).response,
     'FeatureCollection': FeatureCollection(self.json, self._select, self._asset_id, collGeom).response
     }
     

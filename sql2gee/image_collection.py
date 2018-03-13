@@ -14,56 +14,60 @@ class ImageCollection(Collection):
   	self._asset = self._asset.select(self.select['_bands'])
   	return self
 
-  def _initGroupsReducer(self, data, parents=[]):
+  def _initGroupsReducer(self, data, parents=[],proParents={}):
     keys=[*data]
     groups = None
     result =[]
     dparents=list(parents)
+    pparents=dict(proParents)
     if 'groups' in keys: ########---------------------------- Leaf with groups:
         groups = data['groups']
         if (len(keys) > 1): ########------------------------- If groups not alone:
             keys.remove('groups')
             dparents.append(ee.Filter.eq(keys[0],data[keys[0]]))
+            pparents.update({keys[0]:data[keys[0]]})
     else: ########------------------------------------------- Latests leaf we will want to return  
         keys.remove('count')
-        return [ee.Filter.eq(keys[0],data[keys[0]]),*dparents]
+        properties = dict(data)
+        return {'filter':[ee.Filter.eq(keys[0],data[keys[0]]),*dparents], 'properties': {**{keys[0]:data[keys[0]]},**pparents}}
     
     if groups: ########-------------------------------------- leaf group iteration
         for group in groups:
-            partialR=self._initGroupsReducer(group, dparents)
+            partialR=self._initGroupsReducer(group, dparents, pparents)
             ##----------------------------------------------- to keep it in a 2d array
-            if isinstance(partialR[0], list):
+            if isinstance(partialR, list):
                 result.extend(partialR)
             else:
                 result.append(partialR)
-    return result ########----------------------------------- Return result in:[[ee.Filter.eq('month','historical'),ee.Filter.eq('model','historical'),...],...] 
+    return result ########----------------------------------- Return result in: [{properties:{key: value},filters:[ee.Filter.eq('month','historical'),ee.Filter.eq('model','historical'),...]},...]
 
   def _collectionReducer(self):
     crossP = self._asset.reduceColumns(**self.reduceGen['reduceColumns'])
-    mysubsets=_initGroupsReducer(crossP.getInfo())
-    myList=ee.List([self._asset.reduce(**self.reduceGen['reduceImage']).set()  for filters in mysubsets])
-    self._asset = ee.ImageCollection(myList)
-    return self
+    mysubsets=self._initGroupsReducer(crossP.getInfo())
+    collection = self._asset
+    myList=ee.List([collection.filter(ee.Filter(filters['filter'])).reduce(**self.reduceGen['reduceImage']).setMulti(filters['properties'])  for filters in mysubsets])
+    return  ee.ImageCollection(myList)
   
   def _ComputeReducer(self, img):
     reduction = img.reduceRegion(**self.reduceGen['reduceRegion'])
-    return ee.Feature(None, {
-        'result': reduction,
-        'system:time_start': img.get('system:time_start')
-    })
+    return ee.Feature(None, img.toDictionary().combine(reduction))
+    
 
-  def _groupBy(self):	
-    self._asset = ee.List(self._collectionReducer().map(ComputeReducer)).get('groups')	
+  def _groupBy(self):
+    if 'reduceColumns' in  self.reduceGen or 'reduceImage' in  self.reduceGen:
+      reducedIColl = self._collectionReducer()
+      #if 'group' in self._parsed:
+      self._asset = reducedIColl.map(self._ComputeReducer)
+    
     return self
   
 
   def response(self):
-  	"""
-	this will produce the next function in GEE:
-	# ImageCollection.<filters>.<functions>.<sorts>.<imageReducers>.limit(n).getInfo()
-  	"""
-  	print(self.select)
-  	return self._initSelect()._where()._groupBy()._sort()._limit()._getInfo()
+    """
+    this will produce the next function in GEE:
+    # ImageCollection.<filters>.<functions>.<sorts>.<imageReducers>.limit(n).getInfo()
+    """
+    return self._initSelect()._where()._groupBy()._sort()._getInfo()
 
   	
   	

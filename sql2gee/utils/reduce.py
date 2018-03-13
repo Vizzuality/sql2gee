@@ -10,18 +10,17 @@ def _groupGen(groupBy, length):
     for i, group in enumerate(groupBy, length):
         reducer = {'groupField': i,'groupName': group['value']}
         result.append(reducer)
-        #if group == groupBy[-1]:
-        #    result.append(reducer)
+        
     return result
 
-def _combineReducers(reducer, reducerFunctions):
+def _combineReducers(reducer, reducerFunctions, sharedInputs=False):
     if len(reducerFunctions)==0:
         return reducer
     else:
-        return _combineReducers(reducer.combine(reducerFunctions[0]), reducerFunctions[1:])
+        return _combineReducers(reducer.combine(reducerFunctions[0],sharedInputs=sharedInputs), reducerFunctions[1:])
 
 def _reduceImage(selectFunctions=None):
-    reducers, selectors = _reducerGenerator(selectFunctions)
+    reducers, selectors = _reducerGenerator(selectFunctions, None, 'image')
     if reducers:
         return {
           'reducer': reducers,
@@ -31,17 +30,18 @@ def _reduceImage(selectFunctions=None):
         return None
 
 def _reduceRegion(selectFunctions=None, geometry=None):
-    reducers, selectors = _reducerGenerator(selectFunctions)
-    if reducers and geometry:
-        return {
-          'reducer': reducers,
-          'geometry': geometry,
-          'bestEffort': True,
-          'tileScale': 10,
-          'scale': 90 
-          } 
-    else: 
-        return None
+  reducers, selectors = _reducerGenerator(selectFunctions, None, 'image')
+  if reducers and geometry:
+      return {
+        'reducer': reducers,
+        'geometry': geometry,
+        'bestEffort': True,
+        'maxPixels':1e18,
+        'tileScale': 10,
+        'scale': 90
+        } 
+  else: 
+      return None
 
 def _reduceColumns(selectFunctions, groupBy=None):
     reducers, selectors = _reducerGenerator(selectFunctions, groupBy)
@@ -54,7 +54,7 @@ def _reduceColumns(selectFunctions, groupBy=None):
     else: 
         return None
 
-def _reducerGenerator(selectFunctions, groupBy=None):
+def _reducerGenerator(selectFunctions, groupBy=None, reducerFor='column'):
     _agFunctions = {
     'avg': ee.Reducer.mean,
     'max': ee.Reducer.max,
@@ -72,25 +72,35 @@ def _reducerGenerator(selectFunctions, groupBy=None):
     
     }
     functionKeys = list(_agFunctions.keys())
-    presentReducers = []
     reducerFunctions = []
     selectors = []
+    # Reducers
     
     for functionKey in functionKeys:
         if any(function['value'] == functionKey for function in selectFunctions):
             selectors.extend([function['arguments'][0]['value'] for function in selectFunctions if function['value'] == functionKey])
             quantity = sum(function['value'] == functionKey for function in selectFunctions)
-            params=None
-            reducer = _agFunctions[functionKey]().unweighted().repeat(quantity)
-            presentReducers.append(_agFunctions[functionKey]())
-            reducerFunctions.append(reducer)    
+            params=None ## For reducer that require params (in the future)
+            
+            if reducerFor == 'column':
+              ##### Complex reduction to apply to Columns
+              reducer = _agFunctions[functionKey]().unweighted().repeat(quantity)
+            elif reducerFor == 'image':
+              ##### reduction to apply to Images
+              reducer = _agFunctions[functionKey]()
+            else: 
+              raise 
+            reducerFunctions.append(reducer) 
+            
     
-    # Reducers
     reducers=None
     if len(reducerFunctions) == 1:
         reducers = reducerFunctions[0]
     elif len(reducerFunctions) > 1:
-        reducers = _combineReducers(reducerFunctions[0], reducerFunctions[1:])
+        if reducerFor == 'column':
+          reducers = _combineReducers(reducerFunctions[0], reducerFunctions[1:])
+        elif reducerFor == 'image':
+          reducers = _combineReducers(reducerFunctions[0], reducerFunctions[1:],True)
     
     if groupBy != None:
         
@@ -101,16 +111,16 @@ def _reducerGenerator(selectFunctions, groupBy=None):
     # selectors <only for reduce columns>
     if groupBy != None:       
         selectors.extend([group['value'] for group in groupBy])
-    
     return reducers, selectors
 
 def _reducers(selectFunctions, groupBy=None, geometry=None):
-  if selectFunctions['columns'] == None and selectFunctions['bands'] and groupBy:
-      selectFunctions['columns'] = [{'type': 'function', 
-                                    'alias': None, 
-                                    'value': 'count', 
-                                    'arguments': [{'value': groupBy[0], 'type': 'literal'}]}]
+  functions=dict(selectFunctions)
+  if len(functions['columns']) == 0 and len(functions['bands'])>0 and groupBy!=None:
+    functions['columns'] = [{'type': 'function', 
+                                  'alias': None, 
+                                  'value': 'count', 
+                                  'arguments': [groupBy[0]]}]
   
-  return {'reduceColumns': _reduceColumns(selectFunctions['columns'], groupBy),
-          'reduceImage':_reduceImage(selectFunctions['bands']),
-          'reduceRegion':_reduceRegion(selectFunctions['bands'], geometry)} ## result output
+  return {'reduceColumns': _reduceColumns(functions['columns'], groupBy),
+          'reduceImage':_reduceImage(functions['bands']),
+          'reduceRegion':_reduceRegion(functions['bands'], geometry)} ## result output
