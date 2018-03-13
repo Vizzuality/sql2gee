@@ -29,7 +29,6 @@ from utils.jsonSql import JsonSql
 
 sql = "select sum(pr), avg(tmmn) from 'IDAHO_EPSCOR/GRIDMET' where system:time_start > 284191200000 order by system:time_start asc limit 10"
 
-
 myQuery = SQL2GEE(JsonSql(sql).to_json())
 
 #pdb.run('myQuery.response()')
@@ -43,11 +42,6 @@ print(myQuery.response())
 #ps.print_stats()
 #print(s.getvalue())
 #tracker.print_diff()
-
-
-
-
-
 
 # -- ASSETS
 # -- Image Collections: -- 'COPERNICUS/S2', 'HYCOM/GLBu0_08/sea_temp_salinity', 'IDAHO_EPSCOR/GRIDMET'

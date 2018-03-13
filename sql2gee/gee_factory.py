@@ -2,7 +2,6 @@ import ee
 import json
 from cached_property import cached_property
 from image import Image
-#from json_sql import JsonSql
 from image_collection import ImageCollection
 from feature_collection import FeatureCollection
 

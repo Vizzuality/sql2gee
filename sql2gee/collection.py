@@ -1,4 +1,5 @@
 import ee
+from cached_property import cached_property
 from utils.reduce import _reducers
 
 class Collection(object):
@@ -126,12 +127,13 @@ class Collection(object):
         self._asset = self._asset.limit(self._parsed['limit']).toList(self._parsed['limit'])
       else:
         raise type(self._asset)
+    
     return self
 
   def _getInfo(self):
     return self._asset.getInfo()
 
-  @property
+  @cached_property 
   def reduceGen(self):
     groupBy = None
     if 'group' in self._parsed:
@@ -141,4 +143,3 @@ class Collection(object):
     
     return reducers
 
-  
