@@ -4,10 +4,10 @@ from collection import Collection
 
 class ImageCollection(Collection):
   """docstring for ImageCollection"""
-  def __init__(self, json, select, asset_id, geometry=None):
+  def __init__(self, json, select, filters, asset_id, geometry=None):
   	self.json = json
   	self.select = select
-  	super().__init__(json['data']['attributes']['jsonSql'], select, asset_id, 'ImageCollection', geometry)
+  	super().__init__(json['data']['attributes']['jsonSql'], select, filters, asset_id, 'ImageCollection', geometry)
   
   def _initSelect(self):
   	# For image collections select only affects bands and there is not a way of selecting also the columns/properties
@@ -54,11 +54,13 @@ class ImageCollection(Collection):
     
 
   def _groupBy(self):
-    if 'reduceColumns' in  self.reduceGen or 'reduceImage' in  self.reduceGen:
+    #To do discern between group by columns/bands; bands aren't allowed
+    if self.reduceGen['reduceImage'] and 'group' in self._parsed:
       reducedIColl = self._collectionReducer()
-      #if 'group' in self._parsed:
-      self._asset = reducedIColl.map(self._ComputeReducer)
-    
+      self._asset = reducedIColl.map(self._ComputeReducer).toList(999999)
+    elif self.reduceGen['reduceImage']:
+      self._asset = self._asset.map(self._ComputeReducer).toList(999999)
+
     return self
   
 
@@ -67,7 +69,7 @@ class ImageCollection(Collection):
     this will produce the next function in GEE:
     # ImageCollection.<filters>.<functions>.<sorts>.<imageReducers>.limit(n).getInfo()
     """
-    return self._initSelect()._where()._groupBy()._sort()._getInfo()
+    return self._initSelect()._where()._groupBy()._sort()._limit()._getInfo()
 
   	
   	

@@ -4,21 +4,16 @@ from cached_property import cached_property
  
 class Image(object):
   """docstring for Image"""
-  def __init__(self, sql, json, select, _asset_id, geometry=None):
+  def __init__(self, sql, json, select, filters, _asset_id, geometry=None):
     self.json = json
     self.select = select
+    self.group_functions= select[ '_functions']['bands']
     self.geometry = geometry
-    #self._parsed = 
-    #self.target_data=_asset_id
     self._asset_id = _asset_id
-    self._asset=self._asset()
+    self._asset = self._asset()
 
   def _asset(self):
     return ee.Image(self._asset_id)
-  
-  #@cached_property
-  #def _band_names(self):
-  #    return ee.Image(self.target_data).bandNames().getInfo()
 
   @property
   def _reduce_image(self):
@@ -35,53 +30,18 @@ class Image(object):
                       outputPrefix='', sharedInputs=True).combine(ee.Reducer.max(), outputPrefix='',
                       sharedInputs=True).combine(ee.Reducer.percentile([25, 75]), outputPrefix='', sharedInputs=True)
       
-      return ee.Image(self.target_data).reduceRegion(**d).getInfo()
+      return self._asset.select(self.select['_bands']).reduceRegion(**d).getInfo()
 
   @cached_property
   def _band_IQR(self):
     """Return a dictionary object with the InterQuartileRange (Q3 - Q1) per band."""
     iqr = {}
-    for band in self._band_names:
+    for band in self.select['_bands']:
         tmp = self._reduce_image[band + '_p75'] - self._reduce_image[band + '_p25']
         iqr[band] = tmp
         del tmp
     return iqr
-  
-  @property
-  def group_functions(self):
-    """Returns the group function with column names specified in the query:
-    e.g. from sql input of 'select count(pepe) from mytable', a dictionary of
-    {'function': 'COUNT', 'value': 'pepe'} should be returned by self.group_functions"""
-    group_list = []
 
-    for t in self._parsed.tokens:
-      if t.ttype is Keyword and t.value.upper() == 'FROM':
-        return group_list
-      elif isinstance(t, Function):
-        group_list.append(self.token_to_dictionary(t))
-      elif isinstance(t, IdentifierList):
-        for identity in t.tokens:
-          if isinstance(identity, Function):
-            group_list.append(self.token_to_dictionary(identity))
-
-    return group_list
-
-  @staticmethod
-  def token_to_dictionary(token_list):
-    """ Receives a token e.g.('count(pepe)') and converts it into a dict
-    with key:values for function and value ."""
-    assert isinstance(token_list, sqlparse.sql.Function), 'unexpected datatype'
-    d = {}
-
-    for t in token_list:
-      if isinstance(t, Identifier):
-        d['function'] = str(t).upper()
-      elif isinstance(t, Parenthesis):
-        value = t.value.replace('(', '').replace(')', '').strip()
-        d['value'] = value
-
-    return d
-  
   @cached_property
   def histogram(self):
     """Retrieve ST_HISTOGRAM()-like info. This will return a dictionary object with bands as keys, and for each
@@ -119,14 +79,6 @@ class Image(object):
       
     return tmp_dic
 
-  #@property
-  #def st_metadata(self):
-  #  """The image property Metadata dictionary returned from Earth Engine."""
-  #  metadata=self._metadata['properties'].copy()
-  #  metadata.update({"bands": self._metadata['bands']})
-  #  assert metadata != None, "No metadata available"
-  #  return metadata
-
   @property
   def st_bandmetadata(self):
     """Return only metadata for a specifically requested band, like postgis function"""
@@ -155,6 +107,7 @@ class Image(object):
                  'max': self._reduce_image[band+'_max']
                  }
     return d
+
   @cached_property
   def st_valuecount(self):
     """Return only metadata for a specifically requested band, like postgis function"""
@@ -185,12 +138,12 @@ class Image(object):
 
     return tmp_response
 
-  def extract_postgis_arguments(self, argument_string, list_of_expected):
+  def extract_postgis_arguments(self, argument, list_of_expected):
     """Expects a string list of arguments passed to postgis function, and an ordered list of keys needed
     In this way, we should be able to handle any postgis argument arrangements:
     value_string, ordered keyword list: ['raster', 'band_id', 'n_bins'])
     """
-    assert len(argument_string) > 0, "No arguments passed to postgis function"
+    assert len(argument) > 0, "No arguments passed to postgis function"
     value_list = argument_string.split(',')
     assert len(value_list) == len(list_of_expected), "argument string from postgis not equal to list of expected keys"
     return_values = []
@@ -245,21 +198,17 @@ class Image(object):
     except ZeroDivisionError:
       num_bins = band_count ** 0.5  # as a last-resort, use the square root of the counts to set-bin size
     return band_min, band_max, num_bins
-
-  #def _metadata(self):
-  #  """Property that holds the Metadata dictionary returned from Earth Engine."""
-  #  if self._is_image_request:
-  #    return ee.Image(self.target_data).getInfo()
     
   def response(self):
+    print(self.group_functions)
     for func in self.group_functions:
-      if func["function"].lower() == 'st_histogram':
+      if func["value"].lower() == 'st_histogram':
         return self.histogram
-      if func["function"].lower() == 'st_metadata':
+      if func["value"].lower() == 'st_metadata':
         return self.st_metadata
-      if func["function"].lower() == 'st_bandmetadata':
+      if func["value"].lower() == 'st_bandmetadata':
         return self.st_bandmetadata
-      if func["function"].lower() == 'st_summarystats':
+      if func["value"].lower() == 'st_summarystats':
         return self.summary_stats
-      if func["function"].lower() == 'st_valuecount':
+      if func["value"].lower() == 'st_valuecount':
         return self.st_valuecount

@@ -14,7 +14,7 @@ class GeeFactory(object):
     self.sql = self.json['data']['attributes']['query']
     self._asset_id = self.json['data']['attributes']['jsonSql']['from'].strip("'")
     self.type = self.metadata['type']
-    self.geojson = geojson 
+    self.geojson = geojson
     self.flags = flags  # <-- Will be used in a later version of the code
 
   def _geo_extraction(self, json_input):
@@ -77,10 +77,95 @@ class GeeFactory(object):
         info['columns'] = { k: type(v).__name__  for k,v in meta['properties'].items()}
               
     return info
-    
+  
+  @cached_property
+  def _initSelect(self):
+    info={}
+
+    ## This will store the bands and columns separately if they exist in the asset
+    if 'columns' in self.metadata and self.metadata['columns']:
+      info['_init_cols']=self.metadata['columns'].keys()
+    if 'bands' in self.metadata and self.metadata['bands']:
+      info['_init_bands']=[v['id'] for v in self.metadata['bands']]
+
+    return info
+
   def _findDup(self, list):
     r = [i for n, i in enumerate(list) if i not in list[n + 1:]]
     return len(list) == len(r)
+
+  def _filterGen(self, data, parents=[]):
+    """
+    Recursive function that will generate the proper filters that we will apply to the collections to filter them.
+    Response like: ee.Filter([ee.Filter.eq('scenario','historical'), ee.Filter.date('1996-01-01','1997-01-01')])
+    """
+    _filters = {
+      '<': ee.Filter.lt,
+      '<=': ee.Filter.lte,
+      '>': ee.Filter.gt,
+      '>=': ee.Filter.gte,
+      '<>': ee.Filter.neq,
+      '=': ee.Filter.eq,
+      '!=': ee.Filter.neq,
+      'bedate': ee.Filter.date,
+      'between': ee.Filter.rangeContains,
+      'like': ee.Filter.eq,
+      '%like%': ee.Filter.stringContains,
+      '%like': ee.Filter.stringEndsWith,
+      'like%': ee.Filter.stringStartsWith
+    }
+    _comparisons = {
+      'and': ee.Filter.And,
+      'or': ee.Filter.Or
+    }
+    left = None
+    right = None
+    result =[]
+    dparents=list(parents)
+
+    if 'type' in [*data] and data['type']=='conditional': 
+    ########---------------------------- Leaf with groups:
+        left = data['left']
+        right = data['right']
+        dparents=[data['value']]
+
+    elif 'type' in [*data] and data['type']=='operator':
+    ########------------------------------------------- Latests leaf we will want to return. we will need to check if it is a band or a column.
+        if data['left']['value'] in self._initSelect['_init_cols']:
+          if data['right']['type']=='string':
+              return {'column':[data['left']],'filter':_filters[data['value']](data['left']['value'], data['right']['value'].strip("'"))} 
+          else:
+              return {'column':[data['left']['value']],'filter':_filters[data['value']](data['left']['value'], data['right']['value'])}
+        elif data['left']['value'] in self._initSelect['_init_bands']:
+            # todo think what to do with bands in filter where
+            raise Exception('error; non supported operation: filter by column ', data['left']['value'])
+        else:
+            raise Exception('error; nonexisting column: ', data['left']['value'])
+
+    if left and right: ########-------------------------------------- leaf group iteration
+    #for l in left:
+        partialL=self._filterGen(left, dparents)
+        
+        #for r in right:
+        partialR=self._filterGen(right, dparents)
+        
+    
+        if not partialL:
+            result=partialR
+            
+        elif not partialR:
+            result=partialL
+        else:
+            result={'column': list(set([*partialR['column'],*partialL['column']])),'filter':_comparisons[dparents[0]](partialR['filter'], partialL['filter'])}
+
+    return result ########----------------------------------- Return result in:[[ee.Filter.eq('month','historical'),ee.Filter.eq('model','historical'),...],...]
+
+  @cached_property
+  def _filter(self):
+    if 'where' in self._parsed:
+      return self._filterGen(self._parsed['where'])
+    else:
+      return None
 
   @cached_property  
   def _select(self):
@@ -88,7 +173,6 @@ class GeeFactory(object):
     This will recive the select statment of the query and transform it in the way we need it 
     """
     selectArray = self.json['data']['attributes']['jsonSql']['select']
-
     selected={
     '_init_cols':[],
     '_init_bands':[]
@@ -105,13 +189,7 @@ class GeeFactory(object):
             },
         'others':[]
     }
-    info={}
-
-    ## This will store the bands and columns separately if they exist in the asset
-    if 'columns' in self.metadata and self.metadata['columns']:
-      info['_init_cols']=self.metadata['columns'].keys()
-    if 'bands' in self.metadata and self.metadata['bands']:
-      info['_init_bands']=[v['id'] for v in self.metadata['bands']]
+    info=self._initSelect
 
     #Compare the select results with the available columns/bands
     for a in selectArray:
@@ -153,32 +231,37 @@ class GeeFactory(object):
         else:
             response['others'].append(a)
     
+    #for a in whereArray
+
     for key, value in response.items():
       if key in ['columns','bands']:
         assert self._findDup(value), 'we cannot have 2 columns with the same alias'.format()
+    if self._filter:
+      response['_columns'] = list(set([a['value'] for a in response['columns']]).union(selected['_init_cols']).union(self._filter['column']))
+    else:
+      response['_columns'] = list(set([a['value'] for a in response['columns']]).union(selected['_init_cols']))
     
-    response['_columns'] =list(set([a['value'] for a in response['columns']]).union(selected['_init_cols']))
     response['_bands']=list(set([a['value'] for a in response['bands']]).union(selected['_init_bands']))
     
     return response
     
-
-
   def response(self):
-    _default_geojson = json.loads('{"features": [{"geometry": {"coordinates": [[[-90, -180],[-90, -180], [-90, -180 ], [-90, -180], [-90, -180]]], "geodesic":true, "type":"Polygon"}, "type": "Feature"} ], "type": "FeatureCollection"}')
+    """
+    Description here
+    """
+    _default_geojson = json.loads('{"type": "FeatureCollection","features":[{"type":"Feature", "properties": {}, "geometry": {"type":"Polygon", "coordinates": [[[-180,-90],[180,-90],[180,90],[-180,90],[-180,-90]]]}}]}')
     imGeom = self.geojson if self.geojson else _default_geojson # To avoid the image composite bug we add a global region to group the image together.
     collGeom = self._geojson_to_featurecollection(self.geojson)
     fnResponse={
-    'Image': Image(self.sql, self.json, self._select, self._asset_id, imGeom).response,
-    'ImageCollection': ImageCollection(self.json, self._select, self._asset_id, self._geojson_to_featurecollection(imGeom)).response,
-    'FeatureCollection': FeatureCollection(self.json, self._select, self._asset_id, collGeom).response
+    'Image': Image(self.sql, self.json, self._select, self._filter, self._asset_id, imGeom).response,
+    'ImageCollection': ImageCollection(self.json, self._select, self._filter, self._asset_id, self._geojson_to_featurecollection(imGeom)).response,
+    'FeatureCollection': FeatureCollection(self.json, self._select, self._filter, self._asset_id, collGeom).response
     }
     
     try:
       return fnResponse[self.type]()
     except ee.EEException:
         # raise Error
-        print('GEEFactory Exception: ')
-        raise
+        raise ee.EEException
         
     

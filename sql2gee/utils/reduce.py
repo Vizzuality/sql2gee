@@ -29,7 +29,7 @@ def _reduceImage(selectFunctions=None):
     else: 
         return None
 
-def _reduceRegion(selectFunctions=None, geometry=None):
+def _reduceRegion(selectFunctions=None, geometry=None, scale=90):
   reducers, selectors = _reducerGenerator(selectFunctions, None, 'image')
   if reducers and geometry:
       return {
@@ -38,7 +38,7 @@ def _reduceRegion(selectFunctions=None, geometry=None):
         'bestEffort': True,
         'maxPixels':1e18,
         'tileScale': 10,
-        'scale': 90
+        'scale': scale
         } 
   else: 
       return None

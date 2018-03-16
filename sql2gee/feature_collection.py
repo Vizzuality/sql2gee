@@ -4,12 +4,13 @@ from collection import Collection
 
 class FeatureCollection(Collection):
   """docstring for FeatureCollection"""
-  def __init__(self, json, select, asset_id, geometry=None):
+  def __init__(self, json, select,filters, asset_id, geometry=None):
     self.json = json
     self.select = select
-    super().__init__(json['data']['attributes']['jsonSql'], select, asset_id, 'FeatureCollection', geometry)
+    super().__init__(json['data']['attributes']['jsonSql'], select, filters, asset_id, 'FeatureCollection', geometry)
 
   def _initSelect(self):
+    print(self.select['_columns'])
     self._asset = self._asset.select(self.select['_columns'])
     return self
     
@@ -19,7 +20,7 @@ class FeatureCollection(Collection):
         aggFunctions =aggregation functions 
         groups = list containing the columns you wish to group by,
                     starting with the coarse grouping, ending with fine grouping"""
-    if 'reduceColumns' in  self.reduceGen:
+    if  self.reduceGen['reduceColumns']:
       if 'group' in self._parsed:
         self._asset = ee.List(self._asset.reduceColumns(**self.reduceGen['reduceColumns']).get('groups'))
       else:
