@@ -10,7 +10,6 @@ class FeatureCollection(Collection):
     super().__init__(json['data']['attributes']['jsonSql'], select, filters, asset_id, 'FeatureCollection', geometry)
 
   def _initSelect(self):
-    print(self.select['_columns'])
     self._asset = self._asset.select(self.select['_columns'])
     return self
     

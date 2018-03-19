@@ -1,4 +1,4 @@
-from sql2gee import SQL2GEE
+from sql2gee.sql2gee import SQL2GEE
 import ee; ee.Initialize()
 from sql2gee.utils.jsonSql import JsonSql
 
@@ -23,7 +23,7 @@ myQuery = SQL2GEE(JsonSql(sql).to_json())
 
 #pdb.run('myQuery.response()')
 #print(myQuery.metadata)
-print(myQuery.response())
+print(myQuery.response)
 
 #pr.disable()
 #pr.dump_stats('test_file')

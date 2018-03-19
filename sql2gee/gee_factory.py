@@ -12,7 +12,7 @@ class GeeFactory(object):
     self.json = sqlscheme
     self._parsed = self.json['data']['attributes']['jsonSql']
     self.sql = self.json['data']['attributes']['query']
-    self._asset_id = self.json['data']['attributes']['jsonSql']['from'].strip("'")
+    self._asset_id = self.json['data']['attributes']['jsonSql']['from'].strip("'").strip('"')
     self.type = self.metadata['type']
     self.geojson = geojson
     self.flags = flags  # <-- Will be used in a later version of the code
@@ -69,6 +69,7 @@ class GeeFactory(object):
       return info
     else:
       info = ee.data.getInfo(self._asset_id)
+      
       assert info != None, "data type not expected"
 
       if ('bands' in info) and (not info['bands']):
@@ -210,7 +211,7 @@ class GeeFactory(object):
                 response['_functions']['columns'].append(a)
               selected['_init_cols'].extend([args['value'] for args in a['arguments'] if args['type']=='literal' and args['value'] in info['_init_cols']])
             if '_init_bands' in info:
-              if any(args['type']=='literal' and args['value'] in info['_init_bands'] for args in a['arguments']):
+              if any(args['type']=='literal' and (args['value'] in info['_init_bands'] or args['value'] in ['rast']) for args in a['arguments']):
                 response['_functions']['bands'].append(a)
               selected['_init_bands'].extend([args['value'] for args in a['arguments'] if args['type']=='literal'and args['value'] in info['_init_bands']])
             if '_init_bands' in info and '_init_cols' in info:
@@ -221,7 +222,7 @@ class GeeFactory(object):
               f = [args['value'] for args in a['arguments'] if args['type']=='literal' and  args['value'] not in info['_init_cols'] and args['value']]
 
 
-            if f and len(f)==len(a['arguments']):
+            if f and len(f)==len(a['arguments']) and 'rast' not in f:
                 raise NameError('column/band name not valid in function {0}: {1}'.format(a['value'],f))
         
         elif a['type']=='wildcard':

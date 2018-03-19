@@ -10,13 +10,15 @@ class Image(object):
     self.group_functions= select[ '_functions']['bands']
     self.geometry = geometry
     self.metadata = metadata
-    self._bands_names = [band['id'] for band in metadata['bands']]
     self._asset_id = _asset_id
-    self._asset = self._asset()
+    self._asset = self._assetInit()
 
-  def _asset(self):
+  def _assetInit(self):
     return ee.Image(self._asset_id)
 
+  @property
+  def _bands_names(self):
+    return [band['id'] for band in self.metadata['bands']]
 
   @property
   def st_metadata(self):
@@ -28,6 +30,7 @@ class Image(object):
       """ Construct a combined reducer dictionary and pass it to a ReduceRegion().getInfo() command.
       If a geometry has been passed to SQL2GEE, it will be passed to ensure only a subset of the band is examined.
       """
+      print(self.select['_bands'])
       d={}
       d['bestEffort'] = True
       d['maxPixels'] =  9e8
@@ -97,11 +100,11 @@ class Image(object):
     """Return only metadata for a specifically requested band, like postgis function"""
     for function in self.group_functions:
       if function['value'].lower() == "st_bandmetadata":
-        values = function['arguments']
+        values = [ args['value'] for args in function['arguments']]
         assert len(values) > 0, "raster string and bandnum integer (or band key string) must be provided"
         _, nband = self.extract_postgis_arguments(values, ['raster','band_id'])
 
-    for band in self._metadata.get('bands'):
+    for band in self.metadata.get('bands'):
       if band.get('id') == nband:
         tmp_meta = band
             
@@ -127,7 +130,7 @@ class Image(object):
     #tmp_dic = {}
     for function in self.group_functions:
       if function['function'].lower() == "st_valuecount":
-        values = function['value']
+        values = [ args['value'] for args in function['arguments']]
         assert len(values) > 0, "raster string and bandnum integer (or band key string) must be provided"
         _, band_of_interest, no_drop_no_data_val = self.extract_postgis_arguments(values, ['raster','band_id', 'bool'])
 
@@ -213,10 +216,10 @@ class Image(object):
       num_bins = band_count ** 0.5  # as a last-resort, use the square root of the counts to set-bin size
     return band_min, band_max, num_bins
     
-  def response(self):
+  def _image(self):
     response ={}
     for func in self.group_functions:
-      alias = func['alias'] if func['alias'] else func['value']
+      alias = func['alias'] if func['alias'] else func['value'].lower()
 
       if func["value"].lower() == 'st_histogram':
          response[alias] = self.histogram
@@ -230,4 +233,8 @@ class Image(object):
          response[alias] = self.st_valuecount
 
     return [response]
+
+  def response(self):
+    return self._image()
+    
 

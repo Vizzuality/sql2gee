@@ -59,6 +59,8 @@ def _reducerGenerator(selectFunctions, groupBy=None, reducerFor='column'):
     'avg': ee.Reducer.mean,
     'max': ee.Reducer.max,
     'min': ee.Reducer.min,
+    'var': ee.Reducer.variance,
+    'stdev': ee.Reducer.stdDev,
     'count': ee.Reducer.count,
     'sum': ee.Reducer.sum,
     'mode':ee.Reducer.mode,
@@ -77,9 +79,9 @@ def _reducerGenerator(selectFunctions, groupBy=None, reducerFor='column'):
     # Reducers
     
     for functionKey in functionKeys:
-        if any(function['value'] == functionKey for function in selectFunctions):
-            selectors.extend([function['arguments'][0]['value'] for function in selectFunctions if function['value'] == functionKey])
-            quantity = sum(function['value'] == functionKey for function in selectFunctions)
+        if any(function['value'].lower() == functionKey for function in selectFunctions):
+            selectors.extend([function['arguments'][0]['value'] for function in selectFunctions if function['value'].lower() == functionKey])
+            quantity = sum(function['value'].lower() == functionKey for function in selectFunctions)
             params=None ## For reducer that require params (in the future)
             
             if reducerFor == 'column':
