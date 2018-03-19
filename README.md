@@ -6,9 +6,8 @@
 
 [Read the docs](https://vizzuality.github.io/sql2gee/)
 
-A Python 2.7 library to make SQL-like queries to Google's Earth Engine and Fusion Tables. It is able to perform
-Postgis-like operations, including returning summary statistics, and histogram data for Images, including subsetting
-by geojson vector data.
+A Python 3 library to make SQL-like queries to Google's Earth Engine Main asset data types (Feature Collections, and Fusion Tables, Image Collections and Images).  It is able to perform
+Postgis-like operations, including returning summary statistics, and histogram data and subsetting by geojson vector data.
 
 
 
@@ -19,10 +18,13 @@ by geojson vector data.
 ```python
 >>>import ee
 >>>from sql2gee import SQL2GEE
+>>>from utils.jsonSql import JsonSql
 >>>ee.Initialize()
->>>q = SQL2GEE('select count(width) from "ft:1qpKIcYQMBsXLA9RLWCaV9D0Hus2cMQHhI-ViKHo" where width > 100 ')
->>>print "Result of my query: ", q.response
-Result of my query: 1919
+>>>
+>>>sql = "SELECT ST_HISTOGRAM(raster, lossyear, 15, true) FROM 'UMD/hansen/global_forest_change_2015'"
+>>>myQuery = SQL2GEE(JsonSql(sql).to_json())
+>>>print("Result of my query: ", q.response)
+Result of my query: [{'ST_HISTOGRAM': {'lossyear': None}}]
 ```
 
 ### Execute tests
@@ -38,9 +40,10 @@ $cd <path/sql2gee>
 $py.test -v
 ```
 
+## Development
+
+
 ### Notes
 
-Currently, Python 3.x is not supported, due to the G.E.E python API.
-
 ### Want to Contribute?
-Submit a pull request and I'll gladly review it.
+Submit a pull request and We will review it.

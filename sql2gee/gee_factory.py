@@ -1,9 +1,9 @@
 import ee
 import json
 from cached_property import cached_property
-from image import Image
-from image_collection import ImageCollection
-from feature_collection import FeatureCollection
+from sql2gee.image import Image
+from sql2gee.image_collection import ImageCollection
+from sql2gee.feature_collection import FeatureCollection
 
 class GeeFactory(object):
 

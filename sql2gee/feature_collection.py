@@ -1,6 +1,6 @@
 import ee
 import json
-from collection import Collection
+from sql2gee.collection import Collection
 
 class FeatureCollection(Collection):
   """docstring for FeatureCollection"""

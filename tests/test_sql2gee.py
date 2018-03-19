@@ -1,6 +1,6 @@
-from __future__ import print_function
 import pytest
-from sql2gee import SQL2GEE
+from sql2gee.sql2gee import SQL2GEE
+from sql2gee.utils.jsonSql import JsonSql
 from ee import apitestcase, Filter, FeatureCollection
 
 class TestSQL2GEE(apitestcase.ApiTestCase):

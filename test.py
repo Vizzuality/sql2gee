@@ -1,6 +1,6 @@
-from sql2gee import SQL2GEE
+from sql2gee.sql2gee import SQL2GEE
 import ee; ee.Initialize()
-from utils.jsonSql import JsonSql
+from sql2gee.utils.jsonSql import JsonSql
 
 ### For debugging and testing
 #import pdb; pdb.set_trace()

@@ -1,9 +1,9 @@
-from __future__ import print_function, division
 import numpy as np
-import pytest
 import requests
 import sys
-from sql2gee import SQL2GEE
+import pytest
+from sql2gee.sql2gee import SQL2GEE
+from sql2gee.utils.jsonSql import JsonSql
 import ee
 
 # Quick hack, if using a local mac, assume you can initilise using the below...
