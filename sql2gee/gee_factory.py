@@ -250,11 +250,12 @@ class GeeFactory(object):
     Description here
     """
     _default_geojson = json.loads('{"type": "FeatureCollection","features":[{"type":"Feature", "properties": {}, "geometry": {"type":"Polygon", "coordinates": [[[-180,-90],[180,-90],[180,90],[-180,90],[-180,-90]]]}}]}')
-    imGeom = self.geojson if self.geojson else _default_geojson # To avoid the image composite bug we add a global region to group the image together.
+  
+    imGeom = self._geojson_to_featurecollection(self.geojson if self.geojson else _default_geojson) # To avoid the image composite bug we add a global region to group the image together.
     collGeom = self._geojson_to_featurecollection(self.geojson)
     fnResponse={
-    'Image': Image(self.sql, self.json, self._select, self._filter, self._asset_id, imGeom).response,
-    'ImageCollection': ImageCollection(self.json, self._select, self._filter, self._asset_id, self._geojson_to_featurecollection(imGeom)).response,
+    'Image': Image(self.sql, self.json, self._select, self._filter, self._asset_id, self.metadata, imGeom).response,
+    'ImageCollection': ImageCollection(self.json, self._select, self._filter, self._asset_id, imGeom).response,
     'FeatureCollection': FeatureCollection(self.json, self._select, self._filter, self._asset_id, collGeom).response
     }
     
