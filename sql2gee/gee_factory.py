@@ -205,7 +205,6 @@ class GeeFactory(object):
         elif a['type']=='function': # This will retrieve the columns and bands for our dataset and extend the cols/bands to select if they already hasn't being selected
             response['functions'].append(a)
             # This will divide the functions that are related bands from those related columns so we can use the in the reducers.
-            
             if '_init_cols' in info:
               if any(args['type']=='literal' and args['value'] in info['_init_cols'] for args in a['arguments']):
                 response['_functions']['columns'].append(a)
@@ -213,7 +212,7 @@ class GeeFactory(object):
             if '_init_bands' in info:
               if any(args['type']=='literal' and (args['value'] in info['_init_bands'] or args['value'] in ['rast']) for args in a['arguments']):
                 response['_functions']['bands'].append(a)
-              selected['_init_bands'].extend([args['value'] for args in a['arguments'] if args['type']=='literal'and args['value'] in info['_init_bands']])
+              selected['_init_bands'].extend([args['value'] for args in a['arguments'] if args['type']=='literal' and args['value'] in info['_init_bands']])
             if '_init_bands' in info and '_init_cols' in info:
               f = [args['value'] for args in a['arguments'] if args['type']=='literal' and args['value'] not in info['_init_bands'] and args['value'] not in info['_init_cols']]
             elif '_init_bands' in info:
@@ -250,7 +249,7 @@ class GeeFactory(object):
     """
     Description here
     """
-    _default_geojson = json.loads('{"type": "FeatureCollection","features":[{"type":"Feature", "properties": {}, "geometry": {"type":"Polygon", "coordinates": [[[-180,-90],[180,-90],[180,90],[-180,90],[-180,-90]]]}}]}')
+    _default_geojson = json.loads('{"type": "FeatureCollection","features":[{"type":"Feature", "properties": {}, "geometry": {"type":"Polygon", "coordinates": [[[-179,-89],[179,-89],[179,89],[-179,89],[-179,-89]]]}}]}')
   
     imGeom = self._geojson_to_featurecollection(self.geojson if self.geojson else _default_geojson) # To avoid the image composite bug we add a global region to group the image together.
     collGeom = self._geojson_to_featurecollection(self.geojson)

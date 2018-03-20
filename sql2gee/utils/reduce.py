@@ -36,7 +36,7 @@ def _reduceRegion(selectFunctions=None, geometry=None, scale=90):
         'reducer': reducers,
         'geometry': geometry,
         'bestEffort': True,
-        'maxPixels':1e18,
+        'maxPixels':9e8,
         'tileScale': 10,
         'scale': scale
         } 
@@ -65,13 +65,12 @@ def _reducerGenerator(selectFunctions, groupBy=None, reducerFor='column'):
     'sum': ee.Reducer.sum,
     'mode':ee.Reducer.mode,
     'st_histogram': ee.Reducer.autoHistogram,
-    'distinct': ee.Reducer.countDistinct,
+    'st_valuecount': ee.Reducer.countDistinct,
     'every': ee.Reducer.countEvery,
     'first': ee.Reducer.first,
     'last': ee.Reducer.last,
     'frequency': ee.Reducer.frequencyHistogram,
     'array_agg': ee.Reducer.toList
-    
     }
     functionKeys = list(_agFunctions.keys())
     reducerFunctions = []
@@ -102,7 +101,7 @@ def _reducerGenerator(selectFunctions, groupBy=None, reducerFor='column'):
         if reducerFor == 'column':
           reducers = _combineReducers(reducerFunctions[0], reducerFunctions[1:])
         elif reducerFor == 'image':
-          reducers = _combineReducers(reducerFunctions[0], reducerFunctions[1:],True)
+          reducers = _combineReducers(reducerFunctions[0], reducerFunctions[1:], True)
     
     if groupBy != None:
         
