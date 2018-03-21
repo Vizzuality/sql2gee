@@ -17,7 +17,7 @@ from sql2gee.utils.jsonSql import JsonSql
 ## Image Collection 
 
 #sql = "select count(pr), avg(tmmn) from 'IDAHO_EPSCOR/GRIDMET' where system:time_start > 284191200000 and ST_INTERSECTS(ST_SetSRID(ST_GeomFromGeoJSON('{\"type\":\"Polygon\",\"coordinates\":[[[-5.273512601852417,42.81137220349083],[-5.273512601852417,42.811803118457306],[-5.272732079029083,42.811803118457306],[-5.272732079029083,42.81137220349083],[-5.273512601852417,42.81137220349083]]]}'), 4326), the_geom) order by system:time_start asc limit 10"
-sql = "select status from 'IDAHO_EPSCOR/GRIDMET' limit 2"
+sql = "SELECT ST_HISTOGRAM(raster, lossyear, 15, true) FROM 'UMD/hansen/global_forest_change_2015'"
 
 myQuery = SQL2GEE(JsonSql(sql).to_json())
 

@@ -23,8 +23,8 @@ Postgis-like operations, including returning summary statistics, and histogram d
 >>>
 >>>sql = "SELECT ST_HISTOGRAM(raster, lossyear, 15, true) FROM 'UMD/hansen/global_forest_change_2015'"
 >>>myQuery = SQL2GEE(JsonSql(sql).to_json())
->>>print("Result of my query: ", q.response)
-Result of my query: [{'ST_HISTOGRAM': {'lossyear': None}}]
+>>>print("Result of my query: ", q.response())
+Result of my query: [{'st_histogram': {'lossyear': [[0.0, 6929647.301960737], [1.0, 0.0], [2.0, 3.0], [3.0, 1.0], [4.0, 13.0], [5.0, 5.0], [6.0, 5.250980392156863], [7.0, 1.0], [8.0, 5.0], [9.0, 9.0], [10.0, 12.0], [11.0, 3.0], [12.0, 6.0], [13.0, 1.0], [14.0, 16.0]]}}]
 ```
 
 ### Execute tests
