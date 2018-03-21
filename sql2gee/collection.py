@@ -48,7 +48,8 @@ class Collection(object):
       if isinstance(self._asset, ee.ee_list.List):
         pass #### ToDo, should we implement an special algorithm for sortin to map the preresult dict 
       elif isinstance(self._asset, ee.imagecollection.ImageCollection) or isinstance(self._asset, ee.featurecollection.FeatureCollection):
-        self._asset = self._asset.sort(self._parsed['orderBy'][0]['value'], _direction[self._parsed['orderBy'][0]['direction']])
+        for order in  self._parsed['orderBy']:
+          self._asset = self._asset.sort(order['value'], _direction[order['direction']])
     
     return self
 
@@ -72,6 +73,7 @@ class Collection(object):
     return self
 
   def _getInfo(self):
+    print(type(self._asset))
     return self._asset.getInfo()
 
   @cached_property 
