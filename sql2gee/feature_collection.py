@@ -1,64 +1,36 @@
 import ee
 import json
-from collection import Collection
-
-ee.Initialize()
+from .collection import Collection
 
 class FeatureCollection(Collection):
   """docstring for FeatureCollection"""
-  def __init__(self, json, asset_id, geojson=None):
+  def __init__(self, json, select,filters, asset_id, geometry=None):
     self.json = json
-    self.asset_id = asset_id
-    self._parsed = json['data']['attributes']['jsonSql']
-    self.geojson = self._geojson_to_featurecollection(geojson)
-    Collection.__init__(self, self._parsed, self.asset_id, 'FeatureCollection', self.geojson)
+    self.select = select
+    super().__init__(json['data']['attributes']['jsonSql'], select, filters, asset_id, 'FeatureCollection', geometry)
 
-  def _geo_extraction(self, json_input):
-    lookup_key = 'type'
-    lookup_value = 'function'
-    Sqlfunction = 'ST_GeomFromGeoJSON'
-
-    if isinstance(json_input, dict):
-      for k, v in json_input.items():
-        if k == lookup_key and v == lookup_value and json_input['value'] == Sqlfunction:
-          yield json_input['arguments'][0]['value'].strip("'")
-        else:
-          for child_val in self._geo_extraction(v):
-            yield child_val
-    elif isinstance(json_input, list):
-      for item in json_input:
-        for item_val in self._geo_extraction(item):
-          yield item_val
-
-  def _geojson_to_featurecollection(self, geojson):
-    """If Geojson kwarg is recieved or ST_GEOMFROMGEOJSON sql argument is used,
-    (containing geojson data) convert it into a useable E.E. object."""
-    geometries = [json.loads(x) for x in self._geo_extraction(self._parsed)]
-
-    if geometries:
-      geojson = {
-        u'features': geometries,
-        u'type': u'FeatureCollection'
-      }
-
-    if isinstance(geojson, dict):
-      assert geojson.get('features') != None, "Expected key not found in item passed to geojoson"
-      return ee.FeatureCollection(geojson.get('features'))
-    else:
-      return None
+  def _initSelect(self):
+    self._asset = self._asset.select(self.select['_columns'])
+    return self
+    
+  def _groupBy(self):
+    """ data = feature collection
+        select = list with column id you want to count/sum
+        aggFunctions =aggregation functions 
+        groups = list containing the columns you wish to group by,
+                    starting with the coarse grouping, ending with fine grouping"""
+    if  self.reduceGen['reduceColumns']:
+      if 'group' in self._parsed:
+        self._asset = ee.List(self._asset.reduceColumns(**self.reduceGen['reduceColumns']).get('groups'))
+      else:
+        self._asset = ee.List([self._asset.reduceColumns(**self.reduceGen['reduceColumns'])])
+    
+    return self
 
   def response(self):
-    if 'where' in self._parsed:
-      assembled = self._where()
-    else:
-      assembled = self._asset
+    """
+    FeatureCollection.<filters>.<functions>.<sorts>.limit(n).getInfo()
+    """
+    return self._initSelect()._where()._groupBy()._sort()._limit()._getInfo()
 
-    if 'limit' in self._parsed:
-      assembled = assembled.limit(self._limit())
-
-    if 'orderBy' in self._parsed:
-      assembled = assembled.sort(self._sort())
-
-    return assembled.getInfo()
-    # FeatureCollection.<filters>.<functions>.<sorts>.limit(n).getInfo()
     
