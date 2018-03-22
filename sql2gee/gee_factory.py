@@ -133,6 +133,10 @@ class GeeFactory(object):
     elif 'type' in [*data] and data['type']=='operator':
     ########------------------------------------------- Latests leaf we will want to return. we will need to check if it is a band or a column.
         if data['left']['value'] in self._initSelect['_init_cols']:
+          if 'time' in data['left']['value'] and data['right']['type'] in ['string', 'date']:
+            ########------------------------------------------- Date management at filter level
+            data['right']['value']= ee.Date.parse('dd-mm-yyyy',data['right']['value'].strip("'")).millis()
+            data['right']['type']='date'
           if data['right']['type']=='string':
               return {'column':[data['left']],'filter':_filters[data['value']](data['left']['value'], data['right']['value'].strip("'"))} 
           else:
