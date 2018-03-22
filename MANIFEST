@@ -9,3 +9,7 @@ sql2gee/image.py
 sql2gee/image_collection.py
 sql2gee/sql2gee.py
 sql2gee/test.py
+sql2gee/utils/__init__.py
+sql2gee/utils/dateManagement.py
+sql2gee/utils/jsonSql.py
+sql2gee/utils/reduce.py
