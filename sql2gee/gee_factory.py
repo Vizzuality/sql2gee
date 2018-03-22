@@ -134,11 +134,11 @@ class GeeFactory(object):
     ########------------------------------------------- Latests leaf we will want to return. we will need to check if it is a band or a column.
         if data['left']['value'] in self._initSelect['_init_cols']:
           if 'time' in data['left']['value'] and data['right']['type'] in ['string', 'date']:
-            ########------------------------------------------- Date management at filter level
+            ########------------------------------------------- Date management at filter level this is TEMPORAL TODO until we do have a proper way of identify it.
             data['right']['value']= ee.Date.parse('dd-mm-yyyy',data['right']['value'].strip("'")).millis()
             data['right']['type']='date'
           if data['right']['type']=='string':
-              return {'column':[data['left']],'filter':_filters[data['value']](data['left']['value'], data['right']['value'].strip("'"))} 
+              return {'column':[data['left']['value']],'filter':_filters[data['value']](data['left']['value'], data['right']['value'].strip("'"))} 
           else:
               return {'column':[data['left']['value']],'filter':_filters[data['value']](data['left']['value'], data['right']['value'])}
         elif data['left']['value'] in self._initSelect['_init_bands']:
@@ -234,13 +234,13 @@ class GeeFactory(object):
         
         else:
             response['others'].append(a)
-    
-    #for a in whereArray
 
     for key, value in response.items():
       if key in ['columns','bands']:
         assert self._findDup(value), 'we cannot have 2 columns with the same alias'.format()
+    
     if self._filter:
+      print(self._filter['column'])
       response['_columns'] = list(set([a['value'] for a in response['columns']]).union(selected['_init_cols']).union(self._filter['column']))
     else:
       response['_columns'] = list(set([a['value'] for a in response['columns']]).union(selected['_init_cols']))
@@ -267,6 +267,6 @@ class GeeFactory(object):
       return fnResponse[self.type]()
     except ee.EEException:
         # raise Error
-        raise ee.EEException
+        raise 
         
     

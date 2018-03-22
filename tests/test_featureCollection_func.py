@@ -91,7 +91,13 @@ def test_first_with_where_table_query():
     q = SQL2GEE(JsonSql(sql).to_json())
     assert q.response()[0]['first'] == [125.0], "FIRST with WHERE query incorrect"
     return
-
+def test_groupby_table_query():
+    sql = "select sum(area), anlys_time from 'GLIMS/2016'  group by anlys_time order by anlys_time asc limit 10"
+    q = SQL2GEE(JsonSql(sql).to_json())
+    assert q.response()[0]['sum'] == [419.9050000000001], "sum with group by query incorrect"
+    assert len(q.response()) == 10, "limit incorrect"
+    return
+# 
 # This functions aren't suported by sql2json microservice
 #def test_var_table_query():
 #    sql = 'select VAR(width) from "ft:1qpKIcYQMBsXLA9RLWCaV9D0Hus2cMQHhI-ViKHo"'

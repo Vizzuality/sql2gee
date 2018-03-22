@@ -71,9 +71,9 @@ class Collection(object):
       self._asset = self._asset.toList(10000)
     
     return self
-  
-  def _getInfo(self):
 
+  def _getInfo(self):
+    """docstring for Collection"""
     return self._asset.getInfo()
 
   @cached_property 
