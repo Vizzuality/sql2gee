@@ -32,4 +32,5 @@ class FeatureCollection(Collection):
     FeatureCollection.<filters>.<functions>.<sorts>.limit(n).getInfo()
     """
     return self._initSelect()._where()._groupBy()._sort()._limit()._getInfo()
+
     
