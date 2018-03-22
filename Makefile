@@ -9,6 +9,9 @@ help:
 	@echo "Available commands:"
 	@sed -n '/^[a-zA-Z0-9_.]*:/s/:.*//p' <Makefile | sort
 
+install:
+	sudo pip install -e .
+
 test:
 	py.test -v
 
@@ -19,5 +22,5 @@ clean:
 
 release:
 	@rm -rf dist/
-	python setup.py sdist upload --sign --identity E0B84F81
-	python setup.py bdist_wheel upload --sign --identity E0B84F81
+	python setup.py sdist upload -r pypi
+	python setup.py bdist_wheel upload -r pypi
