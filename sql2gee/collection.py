@@ -1,6 +1,6 @@
 import ee
 from cached_property import cached_property
-from sql2gee.utils.reduce import _reducers
+from .utils.reduce import _reducers
 
 class Collection(object):
   """docstring for Collection"""

@@ -1,4 +1,4 @@
-from sql2gee.gee_factory import GeeFactory
+from .gee_factory import GeeFactory
 
 class SQL2GEE(object):
   """docstring for SQL2GEE"""

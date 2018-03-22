@@ -1,9 +1,9 @@
 import ee
 import json
 from cached_property import cached_property
-from sql2gee.image import Image
-from sql2gee.image_collection import ImageCollection
-from sql2gee.feature_collection import FeatureCollection
+from .image import Image
+from .image_collection import ImageCollection
+from .feature_collection import FeatureCollection
 
 class GeeFactory(object):
 
@@ -240,7 +240,6 @@ class GeeFactory(object):
         assert self._findDup(value), 'we cannot have 2 columns with the same alias'.format()
     
     if self._filter:
-      print(self._filter['column'])
       response['_columns'] = list(set([a['value'] for a in response['columns']]).union(selected['_init_cols']).union(self._filter['column']))
     else:
       response['_columns'] = list(set([a['value'] for a in response['columns']]).union(selected['_init_cols']))

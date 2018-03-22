@@ -1,6 +1,6 @@
 import ee
 import json
-from sql2gee.collection import Collection
+from .collection import Collection
 
 class ImageCollection(Collection):
   """docstring for ImageCollection"""
