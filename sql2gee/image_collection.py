@@ -54,12 +54,14 @@ class ImageCollection(Collection):
     
 
   def _groupBy(self):
-    #To do discern between group by columns/bands; bands aren't allowed
+    #To do discern between group by columns/bands; bands aren't allowed if not group by and global agg there, 
     if self.reduceGen['reduceImage'] and 'group' in self._parsed:
+      
       reducedIColl = self._collectionReducer()
       self._asset = reducedIColl.map(self._ComputeReducer).toList(999999)
     elif self.reduceGen['reduceImage']:
-      self._asset = self._asset.map(self._ComputeReducer).toList(999999)
+      reducedIColl = self._asset.reduce(**self.reduceGen['reduceImage']) 
+      self._asset = ee.FeatureCollection(self._ComputeReducer(ee.Image(reducedIColl)))
 
     return self
   

@@ -62,15 +62,32 @@ class Collection(object):
     if 'limit' in self._parsed and self._parsed['limit']:
       if isinstance(self._asset, ee.ee_list.List):
         self._asset=self._asset.slice(0, self._parsed['limit'])
-      elif isinstance(self._asset, ee.imagecollection.ImageCollection) or isinstance(self._asset, ee.featurecollection.FeatureCollection):
+      elif isinstance(self._asset, ee.imagecollection.ImageCollection):
+        self._asset = self._asset.toList(self._parsed['limit'])
+      elif isinstance(self._asset, ee.featurecollection.FeatureCollection):
         self._asset = self._asset.toList(self._parsed['limit'])
       else:
         raise type(self._asset)
     elif isinstance(self._asset, ee.imagecollection.ImageCollection) or isinstance(self._asset, ee.featurecollection.FeatureCollection):
       ##Lets limit the output: TODO Paginate it
       self._asset = self._asset.toList(10000)
+
     
     return self
+
+  def _mapOutputList(self):
+
+  def _mapOutputList(self):
+
+  
+  def _output(self):
+    """mapping to get the output columns, aliases and normalize the output"""
+    if isinstance(self._asset, ee.ee_list.List):
+     self._asset = self._asset.map()
+    elif isinstance(self._asset, ee.imagecollection.ImageCollection):
+     self._asset = self._asset.map()
+    elif isinstance(self._asset, ee.featurecollection.FeatureCollection):
+     self._asset = self._asset.map()
 
   def _getInfo(self):
     """docstring for Collection"""
