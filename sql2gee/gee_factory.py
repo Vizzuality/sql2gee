@@ -210,17 +210,23 @@ class GeeFactory(object):
             response['functions'].append(a)
             # This will divide the functions that are related bands from those related columns so we can use the in the reducers.
             if '_init_cols' in info:
+              # this will test if the arguments contains a column and if so it will added it to our select tree
               if any(args['type']=='literal' and args['value'] in info['_init_cols'] for args in a['arguments']):
                 response['_functions']['columns'].append(a)
               selected['_init_cols'].extend([args['value'] for args in a['arguments'] if args['type']=='literal' and args['value'] in info['_init_cols']])
+            
             if '_init_bands' in info:
+              # this will test if the arguments contains a band and if so it will added it to our select tree
               if any(args['type']=='literal' and (args['value'] in info['_init_bands'] or args['value'] in ['rast']) for args in a['arguments']):
                 response['_functions']['bands'].append(a)
               selected['_init_bands'].extend([args['value'] for args in a['arguments'] if args['type']=='literal' and args['value'] in info['_init_bands']])
+            
             if '_init_bands' in info and '_init_cols' in info:
               f = [args['value'] for args in a['arguments'] if args['type']=='literal' and args['value'] not in info['_init_bands'] and args['value'] not in info['_init_cols']]
+            
             elif '_init_bands' in info:
               f = [args['value'] for args in a['arguments'] if args['type']=='literal' and args['value'] not in info['_init_bands']]
+            
             elif '_init_cols' in info:
               f = [args['value'] for args in a['arguments'] if args['type']=='literal' and  args['value'] not in info['_init_cols'] and args['value']]
 

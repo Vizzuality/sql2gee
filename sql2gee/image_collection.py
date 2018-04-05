@@ -1,5 +1,6 @@
 import ee
 import json
+import sys
 from .collection import Collection
 
 class ImageCollection(Collection):
@@ -44,21 +45,25 @@ class ImageCollection(Collection):
   def _collectionReducer(self):
     crossP = self._asset.reduceColumns(**self.reduceGen['reduceColumns'])
     mysubsets=self._initGroupsReducer(crossP.getInfo())
-    collection = self._asset
-    myList=ee.List([collection.filter(ee.Filter(filters['filter'])).reduce(**self.reduceGen['reduceImage']).setMulti(filters['properties'])  for filters in mysubsets])
-    return  ee.ImageCollection(myList)
+    del crossP
+    if len(mysubsets) == self._asset.size().getInfo():
+      # no need to reduce
+      return self._asset
+    else:
+      collection = self._asset
+      myList = ee.List([collection.filter(ee.Filter(filters['filter'])).reduce(**self.reduceGen['reduceImage']).setMulti(filters['properties'])  for filters in mysubsets])
+      return  ee.ImageCollection(myList)
   
   def _ComputeReducer(self, img):
     reduction = img.reduceRegion(**self.reduceGen['reduceRegion'])
-    return ee.Feature(None, img.toDictionary().combine(reduction))
+    return ee.Feature(None, img.toDictionary().combine(reduction).combine(img.toDictionary(['system:time_start','system:footprint','system:asset_size','system:index'])))
     
 
   def _groupBy(self):
     #To do discern between group by columns/bands; bands aren't allowed if not group by and global agg there, 
     if self.reduceGen['reduceImage'] and 'group' in self._parsed:
-      
       reducedIColl = self._collectionReducer()
-      self._asset = reducedIColl.map(self._ComputeReducer).toList(999999)
+      self._asset = ee.FeatureCollection(reducedIColl.map(self._ComputeReducer))
     elif self.reduceGen['reduceImage']:
       reducedIColl = self._asset.reduce(**self.reduceGen['reduceImage']) 
       self._asset = ee.FeatureCollection(self._ComputeReducer(ee.Image(reducedIColl)))

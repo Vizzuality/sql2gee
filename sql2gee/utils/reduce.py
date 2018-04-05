@@ -19,14 +19,14 @@ def _groupGen(groupBy, length):
       
   return result
 
-def _combineReducers(reducer, reducerFunctions, sharedInputs=False):
+def _combineReducers(reducer, reducerFunctions, sharedIn=False):
   """
   Description here
   """
   if len(reducerFunctions)==0:
       return reducer
   else:
-      return _combineReducers(reducer.combine(reducerFunctions[0],sharedInputs=sharedInputs), reducerFunctions[1:])
+      return _combineReducers(reducer.combine(reducerFunctions[0], sharedInputs=sharedIn), reducerFunctions[1:])
 
 def _reduceImage(selectFunctions=None):
   """
@@ -78,6 +78,7 @@ def _reducerGenerator(selectFunctions, groupBy=None, reducerFor='column'):
   """
   _agFunctions = {
   'avg': ee.Reducer.mean,
+  'mean': ee.Reducer.mean,
   'max': ee.Reducer.max,
   'min': ee.Reducer.min,
   'var': ee.Reducer.variance,
@@ -125,14 +126,11 @@ def _reducerGenerator(selectFunctions, groupBy=None, reducerFor='column'):
         reducers = _combineReducers(reducerFunctions[0], reducerFunctions[1:], True)
   
   if groupBy != None:
-      
+      # selectors <only for reduce columns>
       groups=_groupGen(groupBy, len(selectors))
-      
       reducers = _group(reducers, groups)
-  
-  # selectors <only for reduce columns>
-  if groupBy != None:       
-      selectors.extend([group['value'] for group in groupBy])
+      selectors.extend([group['value'] for group in groupBy])    
+      
   return reducers, selectors
 
 def _reducers(selectFunctions, groupBy=None, geometry=None):

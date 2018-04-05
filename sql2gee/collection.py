@@ -52,6 +52,63 @@ class Collection(object):
           self._asset = self._asset.sort(order['value'], _direction[order['direction']])
     
     return self
+  
+  @cached_property 
+  def _output(self):
+    """return dict output and alias arrays ordered"""
+    _Output = {
+    "output":[],
+    "alias":{
+      "result":[],
+      "alias":[]
+      },
+    }
+    print(self.select)
+    print('________________________')
+    #Funcion management
+    for function in self.select['functions']:
+      
+      #the way GEE constructs the function values is <band/column>_<function(RImage/RColumn)>_<function(RRegion)>
+      for args in function['arguments']:
+        if args['type']=='literal' and args['value'] in self.select['_columns'] or args['value'] in self.select['_bands']:
+          functionName = '{0}_{1}'.format(args['value'],function['value'])
+          _Output["output"].append(functionName)
+          if function['alias']:
+            _Output["alias"]["result"].append(functionName)
+            _Output["alias"]["alias"].append(function['alias'])
+
+    #columns management
+    for column in self.select['columns']:
+      _Output["output"].append(column['value'])
+      
+      if column['alias']:
+        _Output["alias"]["result"].append(column['value'])
+        _Output["alias"]["alias"].append(column['alias'])
+    print(_Output)
+    return _Output
+
+  @staticmethod
+  def _mapOutputIList(img):
+    if len(output['alias']['result'])>0:
+      return ee.Image(img).toDictionary(output['output']).rename(output['alias']['result'], output['alias']['alias'])
+    elif len(output["output"])>0:
+      return ee.Image(img).toDictionary(output['output'])
+    else:
+      return ee.Image(img).toDictionary()
+  
+  @staticmethod
+  def _mapOutputFList(feat):
+    if len(output['alias']['result'])>0:
+      return ee.Feature(feat).toDictionary(output['output']).rename(output['alias']['result'], output['alias']['alias'])
+    elif len(output["output"])>0:
+      return ee.Feature(feat).toDictionary(output['output'])
+    else:
+      return ee.Feature(feat).toDictionary()
+
+
+  #def _mapOutputList(self):
+    """mapping to get the output columns, aliases and normalize the output"""
+   
 
   def _limit(self):
     """
@@ -59,35 +116,28 @@ class Collection(object):
     if the object is a collection it will use the built in function for it. 
     If instead the anwer is a dictionary, it will linit the output due the selected limit.
     """
+    global output; output = self._output
     if 'limit' in self._parsed and self._parsed['limit']:
       if isinstance(self._asset, ee.ee_list.List):
         self._asset=self._asset.slice(0, self._parsed['limit'])
       elif isinstance(self._asset, ee.imagecollection.ImageCollection):
-        self._asset = self._asset.toList(self._parsed['limit'])
+        self._asset = self._asset.toList(self._parsed['limit']).map(self._mapOutputIList)
       elif isinstance(self._asset, ee.featurecollection.FeatureCollection):
-        self._asset = self._asset.toList(self._parsed['limit'])
+        self._asset = self._asset.toList(self._parsed['limit']).map(self._mapOutputFList)
       else:
         raise type(self._asset)
-    elif isinstance(self._asset, ee.imagecollection.ImageCollection) or isinstance(self._asset, ee.featurecollection.FeatureCollection):
+    elif isinstance(self._asset, ee.imagecollection.ImageCollection):
       ##Lets limit the output: TODO Paginate it
-      self._asset = self._asset.toList(10000)
-
+      self._asset = self._asset.toList(10000).map(self._mapOutputIList)
+    elif isinstance(self._asset, ee.featurecollection.FeatureCollection):
+      ##Lets limit the output: TODO Paginate itf
+      self._asset = ee.List(self._asset.toList(10000).map(self._mapOutputFList))
+      #self._asset = ee.List(self._asset.toList(10000).map(functools.partial(test_f, output=self._output)))
+    #elif isinstance(self._asset, ee.ee_list.List):
+      ##Lets limit the output: TODO Paginate it
+       #self._asset = self._asset.map()
     
     return self
-
-  def _mapOutputList(self):
-
-  def _mapOutputList(self):
-
-  
-  def _output(self):
-    """mapping to get the output columns, aliases and normalize the output"""
-    if isinstance(self._asset, ee.ee_list.List):
-     self._asset = self._asset.map()
-    elif isinstance(self._asset, ee.imagecollection.ImageCollection):
-     self._asset = self._asset.map()
-    elif isinstance(self._asset, ee.featurecollection.FeatureCollection):
-     self._asset = self._asset.map()
 
   def _getInfo(self):
     """docstring for Collection"""
