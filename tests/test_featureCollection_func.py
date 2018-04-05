@@ -15,6 +15,8 @@ else:
     credentials = ee.ServiceAccountCredentials(service_account, './privatekey.pem')
     ee.Initialize(credentials, 'https://earthengine.googleapis.com')
 
+ee.data.setDeadline(200000)
+
 def test_metadata_table_query():
     sql = 'select count(width) from "ft:1qpKIcYQMBsXLA9RLWCaV9D0Hus2cMQHhI-ViKHo"'
     q = SQL2GEE(JsonSql(sql).to_json())
@@ -94,6 +96,7 @@ def test_first_with_where_table_query():
 def test_groupby_table_query():
     sql = "select sum(area), anlys_time from 'GLIMS/2016'  group by anlys_time order by anlys_time asc limit 10"
     q = SQL2GEE(JsonSql(sql).to_json())
+    print(q.response())
     assert q.response()[0]['sum'] == [419.9050000000001], "sum with group by query incorrect"
     assert len(q.response()) == 10, "limit incorrect"
     return

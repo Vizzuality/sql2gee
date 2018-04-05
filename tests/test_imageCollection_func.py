@@ -15,6 +15,8 @@ else:
     credentials = ee.ServiceAccountCredentials(service_account, './privatekey.pem')
     ee.Initialize(credentials, 'https://earthengine.googleapis.com')
 
+ee.data.setDeadline(200000)
+
 def test_metadata_icollection_query():
     sql = "select * from 'IDAHO_EPSCOR/GRIDMET' limit 2"
     q = SQL2GEE(JsonSql(sql).to_json())
@@ -52,21 +54,25 @@ def test_icollection_orderby_query():
     return
 
 def test_icollection_agg_query():
-    sql = "select sum(pr), avg(tmmn) from 'IDAHO_EPSCOR/GRIDMET' where system:time_start > 284191200000 order by system:time_start asc limit 10"
-    q = SQL2GEE(JsonSql(sql).to_json()).response()
-    response = 10
+    gstore = "https://api.resourcewatch.org/v1/geostore/46e0617e8d2000bd3c36e9e92bb5a35b"
+    r = requests.get(gstore).json().get('data').get('attributes').get('geojson')
+    sql = "select sum(pr), avg(tmmn) from 'IDAHO_EPSCOR/GRIDMET' where system:time_start > 1522548800000 "
+    q = SQL2GEE(JsonSql(sql).to_json(), geojson=r).response()
+    response = 1
     assert len(q) == response, "BASIC limit query incorrect"
     return
 
 def test_icollection_agg_timeFilter_query():
-    sql = "select sum(pr), avg(tmmn) from 'IDAHO_EPSCOR/GRIDMET' where system:time_start > '05-01-2018' order by system:time_start asc limit 10"
-    q = SQL2GEE(JsonSql(sql).to_json()).response()
-    response = 10
+    gstore = "https://api.resourcewatch.org/v1/geostore/46e0617e8d2000bd3c36e9e92bb5a35b"
+    r = requests.get(gstore).json().get('data').get('attributes').get('geojson')
+    sql = "select sum(pr), avg(tmmn) from 'IDAHO_EPSCOR/GRIDMET' where system:time_start > '05-01-2017' order by system:time_start asc limit 10"
+    q = SQL2GEE(JsonSql(sql).to_json(), geojson=r).response()
+    response = 1
     assert len(q) == response, "BASIC limit query incorrect"
     return
 
 def test_icollection_groupby_query():
-    gstore = "https://api.resourcewatch.org/v1/geostore/ca38fa80a4ffa9ac6217a7e0bf71e6df"
+    gstore = "https://api.resourcewatch.org/v1/geostore/46e0617e8d2000bd3c36e9e92bb5a35b"
     r = requests.get(gstore).json().get('data').get('attributes').get('geojson')
     sql = "select sum(water) from 'JRC/GSW1_0/MonthlyHistory' where system:time_start > '05-01-2013' group by month order by system:time_start asc limit 10"
     q = SQL2GEE(JsonSql(sql).to_json(), geojson=r).response()

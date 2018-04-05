@@ -24,9 +24,9 @@ def _combineReducers(reducer, reducerFunctions, sharedIn=False):
   Description here
   """
   if len(reducerFunctions)==0:
-      return reducer
+    return reducer
   else:
-      return _combineReducers(reducer.combine(reducerFunctions[0], sharedInputs=sharedIn), reducerFunctions[1:])
+    return _combineReducers(reducer.combine(reducerFunctions[0], sharedInputs=sharedIn), reducerFunctions[1:])
 
 def _reduceImage(selectFunctions=None):
   """
@@ -52,7 +52,7 @@ def _reduceRegion(selectFunctions=None, geometry=None, scale=90):
         'geometry': geometry,
         'bestEffort': True,
         'maxPixels':9e8,
-        'tileScale': 10,
+        'tileScale': 16,
         'scale': scale
         } 
   else: 
@@ -98,7 +98,6 @@ def _reducerGenerator(selectFunctions, groupBy=None, reducerFor='column'):
   reducerFunctions = []
   selectors = []
   # Reducers
-  
   for functionKey in functionKeys:
       if any(function['value'].lower() == functionKey for function in selectFunctions):
           selectors.extend([function['arguments'][0]['value'] for function in selectFunctions if function['value'].lower() == functionKey])
@@ -113,6 +112,7 @@ def _reducerGenerator(selectFunctions, groupBy=None, reducerFor='column'):
             reducer = _agFunctions[functionKey]()
           else: 
             raise 
+          
           reducerFunctions.append(reducer) 
           
   
@@ -130,7 +130,7 @@ def _reducerGenerator(selectFunctions, groupBy=None, reducerFor='column'):
       groups=_groupGen(groupBy, len(selectors))
       reducers = _group(reducers, groups)
       selectors.extend([group['value'] for group in groupBy])    
-      
+   
   return reducers, selectors
 
 def _reducers(selectFunctions, groupBy=None, geometry=None):

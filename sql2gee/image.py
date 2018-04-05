@@ -1,6 +1,6 @@
 import ee
 from cached_property import cached_property
-
+import json
  
 class Image(object):
   """docstring for Image"""
@@ -8,14 +8,19 @@ class Image(object):
     self.json = json
     self.select = select
     self.group_functions= select[ 'functions']
-    self.geometry = geometry
     self.metadata = metadata
     self._asset_id = _asset_id
     self._asset = self._assetInit()
+    self.geometry = self._geometry(geometry)
 
   def _assetInit(self):
     return ee.Image(self._asset_id)
 
+  def _geometry(self, geometry):
+    if geometry:
+      return geometry
+    else:
+      return ee.FeatureCollection(json.loads('{"type": "FeatureCollection","features":[{"type":"Feature", "properties": {}, "geometry": {"type":"Polygon", "coordinates": [[[-179,-89],[179,-89],[179,89],[-179,89],[-179,-89]]]}}]}').get('features')) 
   @property
   def _bands_names(self):
     return [band['id'] for band in self.metadata['bands']]

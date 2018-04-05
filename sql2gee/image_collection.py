@@ -12,8 +12,8 @@ class ImageCollection(Collection):
   
   def _initSelect(self):
   	# For image collections select only affects bands and there is not a way of selecting also the columns/properties
-  	self._asset = self._asset.select(self.select['_bands'])
-  	return self
+    self._asset = self._asset.select(self.select['_bands'])
+    return self
 
   def _initGroupsReducer(self, data, parents=[],proParents={}):
     keys=[*data]
@@ -65,7 +65,10 @@ class ImageCollection(Collection):
       reducedIColl = self._collectionReducer()
       self._asset = ee.FeatureCollection(reducedIColl.map(self._ComputeReducer))
     elif self.reduceGen['reduceImage']:
-      reducedIColl = self._asset.reduce(**self.reduceGen['reduceImage']) 
+      if self._asset.size().getInfo()>1:
+        reducedIColl = self._asset.reduce(**self.reduceGen['reduceImage'])
+      else:
+        reducedIColl = self._asset
       self._asset = ee.FeatureCollection(self._ComputeReducer(ee.Image(reducedIColl)))
 
     return self

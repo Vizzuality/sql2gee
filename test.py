@@ -1,7 +1,8 @@
 from sql2gee import SQL2GEE
 import ee; ee.Initialize()
 from sql2gee.utils.jsonSql import JsonSql
-
+import requests
+#ee.data.setDeadline(120000)
 ### For debugging and testing
 #import pdb; pdb.set_trace()
 #from pympler.tracker  import SummaryTracker
@@ -15,11 +16,13 @@ from sql2gee.utils.jsonSql import JsonSql
 #sql = "select sum(mean_elev), count(mean_elev) from 'GLIMS/2016' group by glac_name, rec_status order by glac_name limit 20"
 
 ## Image Collection 
-
-#sql = "select count(pr), avg(tmmn) from 'IDAHO_EPSCOR/GRIDMET' where system:time_start > 284191200000 and ST_INTERSECTS(ST_SetSRID(ST_GeomFromGeoJSON('{\"type\":\"Polygon\",\"coordinates\":[[[-5.273512601852417,42.81137220349083],[-5.273512601852417,42.811803118457306],[-5.272732079029083,42.811803118457306],[-5.272732079029083,42.81137220349083],[-5.273512601852417,42.81137220349083]]]}'), 4326), the_geom) order by system:time_start asc limit 10"
-sql = "Select count(tmmn) as count from 'IDAHO_EPSCOR/GRIDMET' where system:time_start > 284191200000 limit 1"
-
+#gstore = "https://api.resourcewatch.org/v1/geostore/af552873b84588bf8a9723d5f0e68171"
+#r = requests.get(gstore).json().get('data').get('attributes').get('geojson')
+sql = "select sum(area), anlys_time from 'GLIMS/2016'  group by anlys_time order by anlys_time asc limit 10"
 myQuery = SQL2GEE(JsonSql(sql).to_json())
+#sql = "Select count(pr), avg(tmmn) as count from 'IDAHO_EPSCOR/GRIDMET' where system:time_start > 1522548800000 limit 1"
+#print(r)
+#myQuery = SQL2GEE(JsonSql(sql).to_json(), geojson=r)
 
 #pdb.run('myQuery.response()')
 

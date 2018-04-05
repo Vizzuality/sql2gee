@@ -8,10 +8,10 @@ class Collection(object):
     self._parsed = parsed
     self._filters = filters
     self.select = select
-    self.geometry = geometry
     self.type = dType
     self._asset_id = asset_id
-    self._asset=self._assetInit() 
+    self._asset=self._assetInit()
+    self.geometry = self._geometry(geometry)
 
   def _assetInit(self):
     """
@@ -23,12 +23,17 @@ class Collection(object):
     }
     return _data[self.type](self._asset_id)
   
+  def _geometry(self, geometry):
+    if geometry or self.type=='FeatureCollection':
+      return geometry
+    else:
+      return self._asset.geometry()
+      
   def _where(self):
     """
     It gets *where* conditions and converts them in the proper filters.
     self.asset.filter(ee.Filter([ee.Filter.eq('scenario','historical'), ee.Filter.date('1996-01-01','1997-01-01')])).filterBounds(geometry)
     """
-    
     if 'where' in self._parsed and self._parsed['where']:
       if self.geometry:
         self._asset = self._asset.filter(self._filters['filter']).filterBounds(self.geometry)
@@ -63,19 +68,20 @@ class Collection(object):
       "alias":[]
       },
     }
-    print(self.select)
-    print('________________________')
+    n_times = len(list(filter(None, self.reduceGen.values())))
     #Funcion management
     for function in self.select['functions']:
-      
       #the way GEE constructs the function values is <band/column>_<function(RImage/RColumn)>_<function(RRegion)>
       for args in function['arguments']:
         if args['type']=='literal' and args['value'] in self.select['_columns'] or args['value'] in self.select['_bands']:
-          functionName = '{0}_{1}'.format(args['value'],function['value'])
+          functionValue = 'mean' if function['value'] == 'avg' else function['value']
+          functionName = '{0}_{1}'.format(args['value'],'_'.join([functionValue for x in range(0, n_times)]))
+          
           _Output["output"].append(functionName)
           if function['alias']:
             _Output["alias"]["result"].append(functionName)
             _Output["alias"]["alias"].append(function['alias'])
+
 
     #columns management
     for column in self.select['columns']:
@@ -84,7 +90,7 @@ class Collection(object):
       if column['alias']:
         _Output["alias"]["result"].append(column['value'])
         _Output["alias"]["alias"].append(column['alias'])
-    print(_Output)
+    
     return _Output
 
   @staticmethod
