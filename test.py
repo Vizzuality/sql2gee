@@ -18,11 +18,16 @@ import requests
 ## Image Collection 
 #gstore = "https://api.resourcewatch.org/v1/geostore/af552873b84588bf8a9723d5f0e68171"
 #r = requests.get(gstore).json().get('data').get('attributes').get('geojson')
-sql = """SELECT first('b1') 
+sql = """SELECT sum('b1') 
 FROM 'users/resourcewatch_wri/foo_024_vegetation_health_index' 
-where st_intersects(the_geom, ST_SetSRID(ST_GeomFromGeoJSON('{\"type\":\"Point\",\"coordinates\":[-2,-62]}'),4326)) 
-and system:asset_size > 1 order by system::time_start desc"""
-myQuery = SQL2GEE(JsonSql(sql).to_json())
+WHERE ST_INTERSECTS(ST_SetSRID(ST_GeomFromGeoJSON('{\"type\":\"Polygon\",
+                 \"coordinates\":[[[-43.39599609375,-4.740675384778361],
+                 [-43.39599609375,-4.959615024698014],
+                 [-43.17626953125,-4.806364708499984],
+                 [-43.39599609375,-4.740675384778361]]]}'),4326), the_geom) 
+AND system::time_start > 1
+order by system::time_start desc"""
+myQuery = SQL2GEE(JsonSql(sql).to_json()) 
 #sql = "Select count(pr), avg(tmmn) as count from 'IDAHO_EPSCOR/GRIDMET' where system:time_start > 1522548800000 limit 1"
 #print(r)
 #myQuery = SQL2GEE(JsonSql(sql).to_json(), geojson=r)
