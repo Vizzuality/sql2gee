@@ -43,7 +43,8 @@ class GeeFactory(object):
       geojson = {
         u'features': geometries,
         u'type': u'FeatureCollection'
-      }
+      },
+      print(self._parsed)
 
     if isinstance(geojson, dict):
       assert geojson.get('features') != None, "Expected key not found in item passed to geojoson"

@@ -18,7 +18,10 @@ import requests
 ## Image Collection 
 #gstore = "https://api.resourcewatch.org/v1/geostore/af552873b84588bf8a9723d5f0e68171"
 #r = requests.get(gstore).json().get('data').get('attributes').get('geojson')
-sql = "select sum(area), anlys_time from 'GLIMS/2016'  group by anlys_time order by anlys_time asc limit 10"
+sql = """SELECT first('b1') 
+FROM 'users/resourcewatch_wri/foo_024_vegetation_health_index' 
+where st_intersects(the_geom, ST_SetSRID(ST_GeomFromGeoJSON('{\"type\":\"Point\",\"coordinates\":[-2,-62]}'),4326)) 
+and system:asset_size > 1 order by system::time_start desc"""
 myQuery = SQL2GEE(JsonSql(sql).to_json())
 #sql = "Select count(pr), avg(tmmn) as count from 'IDAHO_EPSCOR/GRIDMET' where system:time_start > 1522548800000 limit 1"
 #print(r)
