@@ -50,10 +50,11 @@ def _reduceRegion(selectFunctions=None, geometry=None, scale=90):
       return {
         'reducer': reducers,
         'geometry': geometry,
+        'scale': scale,
         'bestEffort': True,
         'maxPixels':9e8,
-        'tileScale': 16,
-        'scale': scale
+        'tileScale': 16
+        
         } 
   else: 
       return None

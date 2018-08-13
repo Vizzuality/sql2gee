@@ -1,6 +1,7 @@
 import ee
 from cached_property import cached_property
 from .utils.reduce import _reducers
+import functools
 
 class Collection(object):
   """docstring for Collection"""
@@ -68,10 +69,13 @@ class Collection(object):
       "alias":[]
       },
     }
-    n_times = len(list(filter(None, self.reduceGen.values())))
+    n_func = len(set([f['value'] for f in self.select['_functions']['bands'] ]))
+    n_reduc = len(list(filter(None, self.reduceGen.values())))
+    n_times = n_reduc if n_func > 1 else 1
     #Funcion management
     for function in self.select['functions']:
       #the way GEE constructs the function values is <band/column>_<function(RImage/RColumn)>_<function(RRegion)>
+      
       for args in function['arguments']:
         if args['type']=='literal' and args['value'] in self.select['_columns'] or args['value'] in self.select['_bands']:
           functionValue = 'mean' if function['value'] == 'avg' else function['value']
@@ -90,7 +94,6 @@ class Collection(object):
       if column['alias']:
         _Output["alias"]["result"].append(column['value'])
         _Output["alias"]["alias"].append(column['alias'])
-    
     return _Output
 
   @staticmethod
@@ -104,6 +107,7 @@ class Collection(object):
   
   @staticmethod
   def _mapOutputFList(feat):
+    print(output["output"])
     if len(output['alias']['result'])>0:
       return ee.Feature(feat).toDictionary(output['output']).rename(output['alias']['result'], output['alias']['alias'])
     elif len(output["output"])>0:
@@ -122,7 +126,9 @@ class Collection(object):
     if the object is a collection it will use the built in function for it. 
     If instead the anwer is a dictionary, it will linit the output due the selected limit.
     """
+    
     global output; output = self._output
+    print(self._asset.getInfo())
     if 'limit' in self._parsed and self._parsed['limit']:
       if isinstance(self._asset, ee.ee_list.List):
         self._asset=self._asset.slice(0, self._parsed['limit'])
@@ -137,11 +143,11 @@ class Collection(object):
       self._asset = self._asset.toList(10000).map(self._mapOutputIList)
     elif isinstance(self._asset, ee.featurecollection.FeatureCollection):
       ##Lets limit the output: TODO Paginate itf
-      self._asset = ee.List(self._asset.toList(10000).map(self._mapOutputFList))
-      #self._asset = ee.List(self._asset.toList(10000).map(functools.partial(test_f, output=self._output)))
+      self._asset = self._asset.toList(10000).map(self._mapOutputFList)
+      #elf._asset = ee.List(self._asset.toList(10000).map(functools.partial(test_f, output=self._output)))
     #elif isinstance(self._asset, ee.ee_list.List):
       ##Lets limit the output: TODO Paginate it
-       #self._asset = self._asset.map()
+      #self._asset = self._asset.map()
     
     return self
 

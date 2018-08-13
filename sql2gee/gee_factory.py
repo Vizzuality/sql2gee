@@ -9,6 +9,9 @@ class GeeFactory(object):
 
   """docstring for GeeFactory"""
   def __init__(self, sqlscheme, geojson=None, flags=None):
+    """
+    Description here
+    """
     self.json = sqlscheme
     self._parsed = self.json['data']['attributes']['jsonSql']
     self.sql = self.json['data']['attributes']['query']
@@ -18,10 +21,12 @@ class GeeFactory(object):
     self.flags = flags  # <-- Will be used in a later version of the code
 
   def _geo_extraction(self, json_input):
+    """
+    Description here
+    """
     lookup_key = 'type'
     lookup_value = 'function'
     Sqlfunction = 'ST_GeomFromGeoJSON'
-
     if isinstance(json_input, dict):
       for k, v in json_input.items():
         if k == lookup_key and v == lookup_value and json_input['value'] == Sqlfunction:
@@ -37,14 +42,14 @@ class GeeFactory(object):
   def _geojson_to_featurecollection(self, geojson):
     """If Geojson kwarg is recieved or ST_GEOMFROMGEOJSON sql argument is used,
     (convert it into a useable E.E. object.ontaining geojson data) c"""
+    
     geometries = [json.loads(x) for x in self._geo_extraction(self._parsed)]
-
+    
     if geometries:
       geojson = {
-        u'features': geometries,
-        u'type': u'FeatureCollection'
+        "features": geometries,
+        "type": "FeatureCollection"
       }
-
     if isinstance(geojson, dict):
       assert geojson.get('features') != None, "Expected key not found in item passed to geojoson"
       return ee.FeatureCollection(geojson.get('features'))
@@ -81,6 +86,9 @@ class GeeFactory(object):
   
   @cached_property
   def _initSelect(self):
+    """
+    Descript
+    """
     info={}
 
     ## This will store the bands and columns separately if they exist in the asset
@@ -232,6 +240,7 @@ class GeeFactory(object):
 
 
             if f and len(f)==len(a['arguments']) and 'rast' not in f:
+                
                 raise NameError('column/band name not valid in function {0}: {1}'.format(a['value'],f))
         
         elif a['type']=='wildcard':

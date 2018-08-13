@@ -55,20 +55,19 @@ class ImageCollection(Collection):
       return  ee.ImageCollection(myList)
   
   def _ComputeReducer(self, img):
+
     reduction = img.reduceRegion(**self.reduceGen['reduceRegion'])
     return ee.Feature(None, img.toDictionary().combine(reduction).combine(img.toDictionary(['system:time_start','system:footprint','system:asset_size','system:index'])))
     
 
   def _groupBy(self):
-    #To do discern between group by columns/bands; bands aren't allowed if not group by and global agg there, 
+    #To do discern between group by columns/bands; bands aren't allowed if not group by and global agg there
     if self.reduceGen['reduceImage'] and 'group' in self._parsed:
+      
       reducedIColl = self._collectionReducer()
       self._asset = ee.FeatureCollection(reducedIColl.map(self._ComputeReducer))
-    elif self.reduceGen['reduceImage']:
-      if self._asset.size().getInfo()>1:
-        reducedIColl = self._asset.reduce(**self.reduceGen['reduceImage'])
-      else:
-        reducedIColl = self._asset
+    elif self.reduceGen['reduceImage']: 
+      reducedIColl = self._asset.reduce(**self.reduceGen['reduceImage'])  
       self._asset = ee.FeatureCollection(self._ComputeReducer(ee.Image(reducedIColl)))
 
     return self

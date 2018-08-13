@@ -2,6 +2,7 @@ from sql2gee import SQL2GEE
 import ee; ee.Initialize()
 from sql2gee.utils.jsonSql import JsonSql
 import requests
+import json
 #ee.data.setDeadline(120000)
 ### For debugging and testing
 #import pdb; pdb.set_trace()
@@ -16,11 +17,17 @@ import requests
 #sql = "select sum(mean_elev), count(mean_elev) from 'GLIMS/2016' group by glac_name, rec_status order by glac_name limit 20"
 
 ## Image Collection 
-#gstore = "https://api.resourcewatch.org/v1/geostore/af552873b84588bf8a9723d5f0e68171"
+gstore = "https://api.resourcewatch.org/v1/geostore/89cb48bcd6888a2d4c95df12babff9cc"
 #r = requests.get(gstore).json().get('data').get('attributes').get('geojson')
-sql = "select sum(area), anlys_time from 'GLIMS/2016'  group by anlys_time order by anlys_time asc limit 10"
+s=json.loads('{"type":"FeatureCollection","features":[{"type":"Feature","properties":{},"geometry":{"type":"Point","coordinates":[-99.66796875,38.87392853923629]}}]}')
+#print(r)
+#sql = "select sum(area), anlys_time from 'GLIMS/2016'  group by anlys_time order by anlys_time asc limit 10"
+#sql = "select first(pr) from 'IDAHO_EPSCOR/GRIDMET' where system:time_start > 284191200000"
+
+sql = "select first(pr) as x, avg(bi) as y from 'IDAHO_EPSCOR/GRIDMET' where system:time_start >= 1533448800000 and ST_INTERSECTS(ST_SetSRID(ST_GeomFromGeoJSON('{\"type\":\"Point\",\"coordinates\":[-99.66796875,38.87392853923629]}'),4326), the_geom)"
+
 myQuery = SQL2GEE(JsonSql(sql).to_json())
-#sql = "Select count(pr), avg(tmmn) as count from 'IDAHO_EPSCOR/GRIDMET' where system:time_start > 1522548800000 limit 1"
+
 #print(r)
 #myQuery = SQL2GEE(JsonSql(sql).to_json(), geojson=r)
 
@@ -28,6 +35,7 @@ myQuery = SQL2GEE(JsonSql(sql).to_json())
 
 
 print(myQuery.response())
+#print(myQuery.type)
 
 #pr.disable()
 #pr.dump_stats('test_file')
