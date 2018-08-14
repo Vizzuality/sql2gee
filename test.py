@@ -24,7 +24,7 @@ s=json.loads('{"type":"FeatureCollection","features":[{"type":"Feature","propert
 #sql = "select sum(area), anlys_time from 'GLIMS/2016'  group by anlys_time order by anlys_time asc limit 10"
 #sql = "select first(pr) from 'IDAHO_EPSCOR/GRIDMET' where system:time_start > 284191200000"
 
-sql = "select first(pr) as x, avg(bi) as y from 'IDAHO_EPSCOR/GRIDMET' where system:time_start >= 1533448800000 and ST_INTERSECTS(ST_SetSRID(ST_GeomFromGeoJSON('{\"type\":\"Point\",\"coordinates\":[-99.66796875,38.87392853923629]}'),4326), the_geom)"
+sql = "select first(pr) as x, avg(bi) as y, min(bi) from 'IDAHO_EPSCOR/GRIDMET' where system:time_start >= 1533448800000 and ST_INTERSECTS(ST_SetSRID(ST_GeomFromGeoJSON('{\"type\":\"Point\",\"coordinates\":[-99.66796875,38.87392853923629]}'),4326), the_geom)"
 
 myQuery = SQL2GEE(JsonSql(sql).to_json())
 

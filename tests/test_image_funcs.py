@@ -122,7 +122,7 @@ def test_STSUMMARYSTATS():
                                 'min': -415,
                                 'stdev': 865.9582784994756,
                                 'sum': 1859471136.0274282}}}]
-    sql = "SELECT ST_SUMMARYSTATS() FROM srtm90_v4"
+    sql = "SELECT ST_SUMMARYSTATS() FROM 'CGIAR/SRTM90_V4'"
     q = SQL2GEE(JsonSql(sql).to_json())
     q.response() == expected, "Summary stats did not match expected result"
     return
@@ -187,7 +187,7 @@ def test_ST_GeomFromGeoJSON():
 
   q = SQL2GEE(JsonSql(sql).to_json())
   
-  assert q.response() == correct, "Incorrect response returned"
+  assert q.response()[0]['x']['elevation']['count'] == correct[0]['x']['elevation']['count'], "Incorrect response returned"
   return
 
 def test_auto_bug():

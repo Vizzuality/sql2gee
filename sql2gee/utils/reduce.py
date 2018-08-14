@@ -26,7 +26,7 @@ def _combineReducers(reducer, reducerFunctions, sharedIn=False):
   if len(reducerFunctions)==0:
     return reducer
   else:
-    return _combineReducers(reducer.combine(reducerFunctions[0], sharedInputs=sharedIn), reducerFunctions[1:])
+    return _combineReducers(reducer.combine(reducerFunctions[0], sharedInputs=sharedIn), reducerFunctions[1:], sharedIn)
 
 def _reduceImage(selectFunctions=None):
   """
@@ -99,6 +99,7 @@ def _reducerGenerator(selectFunctions, groupBy=None, reducerFor='column'):
   reducerFunctions = []
   selectors = []
   # Reducers
+
   for functionKey in functionKeys:
       if any(function['value'].lower() == functionKey for function in selectFunctions):
           selectors.extend([function['arguments'][0]['value'] for function in selectFunctions if function['value'].lower() == functionKey])
@@ -116,7 +117,6 @@ def _reducerGenerator(selectFunctions, groupBy=None, reducerFor='column'):
           
           reducerFunctions.append(reducer) 
           
-  
   reducers=None
   if len(reducerFunctions) == 1:
       reducers = reducerFunctions[0]
@@ -131,7 +131,6 @@ def _reducerGenerator(selectFunctions, groupBy=None, reducerFor='column'):
       groups=_groupGen(groupBy, len(selectors))
       reducers = _group(reducers, groups)
       selectors.extend([group['value'] for group in groupBy])    
-   
   return reducers, selectors
 
 def _reducers(selectFunctions, groupBy=None, geometry=None):

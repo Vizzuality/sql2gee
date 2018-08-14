@@ -107,7 +107,7 @@ class Collection(object):
   
   @staticmethod
   def _mapOutputFList(feat):
-    print(output["output"])
+    
     if len(output['alias']['result'])>0:
       return ee.Feature(feat).toDictionary(output['output']).rename(output['alias']['result'], output['alias']['alias'])
     elif len(output["output"])>0:
@@ -128,7 +128,6 @@ class Collection(object):
     """
     
     global output; output = self._output
-    print(self._asset.getInfo())
     if 'limit' in self._parsed and self._parsed['limit']:
       if isinstance(self._asset, ee.ee_list.List):
         self._asset=self._asset.slice(0, self._parsed['limit'])
