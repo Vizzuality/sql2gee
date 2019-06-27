@@ -1,12 +1,12 @@
-import numpy as np
-import requests
 import sys
-import pytest
+
+import ee
+import requests
+
 from sql2gee import SQL2GEE
 from sql2gee.utils.jsonSql import JsonSql
-import ee
 
-#Quick hack, if using a local mac, assume you can initilise using the below...
+# Quick hack, if using a local mac, assume you can initilise using the below...
 if sys.platform == 'darwin':
     ee.Initialize()
 else:
@@ -17,12 +17,14 @@ else:
 
 ee.data.setDeadline(200000)
 
+
 def test_metadata_icollection_query():
     sql = "select * from 'IDAHO_EPSCOR/GRIDMET' limit 2"
     q = SQL2GEE(JsonSql(sql).to_json())
     response = 'ImageCollection'
     assert q.metadata['type'] == response, "metadata type incorrect"
     return
+
 
 def test_icollection_query():
     sql = "select * from 'IDAHO_EPSCOR/GRIDMET' limit 2"
@@ -31,12 +33,14 @@ def test_icollection_query():
     assert len(q) == response, "BASIC limit query incorrect"
     return
 
+
 def test_icollection_subsectselect_query():
     sql = "select status, pr from 'IDAHO_EPSCOR/GRIDMET' limit 10"
     q = SQL2GEE(JsonSql(sql).to_json()).response()
     response = 10
     assert len(q) == response, "BASIC limit query incorrect"
     return
+
 
 def test_icollection_where_query():
     sql = "select status from 'IDAHO_EPSCOR/GRIDMET' where status='permanent' limit 10"
@@ -46,12 +50,14 @@ def test_icollection_where_query():
     assert len(q) == response, "BASIC limit query incorrect"
     return
 
+
 def test_icollection_orderby_query():
     sql = "select status from 'IDAHO_EPSCOR/GRIDMET' where status='permanent' order by system:time_start desc, system:asset_size asc limit 10"
     q = SQL2GEE(JsonSql(sql).to_json()).response()
     response = 10
     assert len(q) == response, "BASIC limit query incorrect"
     return
+
 
 def test_icollection_agg_query():
     gstore = "https://api.resourcewatch.org/v1/geostore/46e0617e8d2000bd3c36e9e92bb5a35b"
@@ -62,6 +68,7 @@ def test_icollection_agg_query():
     assert len(q) == response, "BASIC limit query incorrect"
     return
 
+
 def test_icollection_agg_timeFilter_query():
     gstore = "https://api.resourcewatch.org/v1/geostore/46e0617e8d2000bd3c36e9e92bb5a35b"
     r = requests.get(gstore).json().get('data').get('attributes').get('geojson')
@@ -71,6 +78,7 @@ def test_icollection_agg_timeFilter_query():
     assert len(q) == response, "BASIC limit query incorrect"
     return
 
+
 def test_icollection_groupby_query():
     gstore = "https://api.resourcewatch.org/v1/geostore/46e0617e8d2000bd3c36e9e92bb5a35b"
     r = requests.get(gstore).json().get('data').get('attributes').get('geojson')
@@ -79,4 +87,3 @@ def test_icollection_groupby_query():
     response = 10
     assert len(q) == response, "BASIC limit query incorrect"
     return
-
