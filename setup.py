@@ -1,7 +1,7 @@
 from distutils.core import setup
 
 setup(name='sql2gee',
-      version='0.2.5',
+      version='0.3.0',
       description='Library to convert SQL-like queries into Google Earth Engine syntax, and return the responses',
       author='Vizzuality',
       author_email='info@vizzuality.com',
@@ -15,5 +15,5 @@ setup(name='sql2gee',
           'google-api-python-client==1.7.3',
           'cached-property==1.3.0'],
       url='https://github.com/Vizzuality/sql2gee',
-      download_url='https://github.com/Vizzuality/sql2gee/tarball/0.2.5',
+      download_url='https://github.com/Vizzuality/sql2gee/tarball/0.3.0',
       zip_safe=False)
