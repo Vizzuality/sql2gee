@@ -1,6 +1,7 @@
 /sql2gee.egg-info
 /dist
 privatekey.pem
+privatekey.json
 config.py
 ra.py
 /env
