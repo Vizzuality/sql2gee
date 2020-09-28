@@ -3,7 +3,6 @@
 privatekey.pem
 privatekey.json
 config.py
-ra.py
 /env
 /.cache
 .coverage
@@ -20,3 +19,4 @@ tests/__pycache__/
 /build
 .pytest_cache/*
 .eggs
+coverage.xml

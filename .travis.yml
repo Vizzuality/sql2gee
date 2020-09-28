@@ -2,24 +2,10 @@ language: python
 python:
   - "3.6"
 cache: pip
-install:
-  - sudo apt-get install openssl
-  - pip install --upgrade pip
-  - pip install --upgrade wheel
-  - pip install --upgrade setuptools
-  - pip install --upgrade codecov pytest pytest-cov
-  - pip install oauth2 sphinx travis-sphinx sphinx_rtd_theme sphinxcontrib-inlinesyntaxhighlight
-  - pip install 'oauth2client==1.5.2'
-  - pip install 'pyOpenSSL>=0.11'
-  - pip install pyCrypto
-  - pip install google-api-python-client
-  - pip install requests
-  - pip install .
+install: pip install sphinx travis-sphinx sphinx_rtd_theme sphinxcontrib-inlinesyntaxhighlight tox-travis
 script:
-  - echo -e "$EE_PRIVATE_KEY" | base64 -d > privatekey.pem
-  - pwd
-  - ls
-  - py.test --cov sql2gee --cov-report xml --cov-report term
+  - echo -e "$EE_PRIVATE_KEY" | base64 -d > privatekey.json
+  - tox
   - travis-sphinx build
 after_success:
   - codecov

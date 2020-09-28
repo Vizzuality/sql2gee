@@ -31,15 +31,18 @@ Result of my query: [{'st_histogram': {'lossyear': [[0.0, 6929647.301960737], [1
 
 ### Execute tests
 
-```bash
-$make test
-```
+Test run queries on GEE servers, so you need a GCP service account with access to GEE. Specifically, you need:
 
-or using py.test
+- The service account name (a string formatted like `<name>@<project>.iam.gserviceaccount.com`) that has permissions to access GEE.
+- A JSON access key for that account.
+
+The account name needs to be set as the `EE_ACCOUNT` environment variable. 
+The JSON account key needs to be saved as a `privatekey.json` file at the root of the project.
+
+Once both values are set, you can run the tests using tox: 
 
 ```bash
-$cd <path/sql2gee>
-$py.test -v
+tox
 ```
 
 ## Development
