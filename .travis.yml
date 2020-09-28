@@ -2,11 +2,10 @@ language: python
 python:
   - "3.6"
 cache: pip
-install: pip install sphinx travis-sphinx sphinx_rtd_theme sphinxcontrib-inlinesyntaxhighlight tox-travis
+install:
+  - pip install sphinx travis-sphinx sphinx_rtd_theme sphinxcontrib-inlinesyntaxhighlight tox-travis
 script:
   - echo -e "$EE_PRIVATE_KEY" | base64 -d > privatekey.json
   - tox
-  - travis-sphinx build
 after_success:
   - codecov
-  - travis-sphinx --branches=develop deploy
