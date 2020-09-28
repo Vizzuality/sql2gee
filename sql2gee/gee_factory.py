@@ -2,19 +2,20 @@ import json
 
 import ee
 from cached_property import cached_property
+
+from .feature_collection import FeatureCollection
 from .image import Image
 from .image_collection import ImageCollection
-from .feature_collection import FeatureCollection
 
 
 class GeeFactory(object):
     """docstring for GeeFactory"""
 
-    def __init__(self, sqlscheme, geojson=None, flags=None):
+    def __init__(self, sql_scheme, geojson=None, flags=None):
         """
         Description here
         """
-        self.json = sqlscheme
+        self.json = sql_scheme
         self._parsed = self.json['data']['attributes']['jsonSql']
         self.sql = self.json['data']['attributes']['query']
         self._asset_id = self.json['data']['attributes']['jsonSql']['from'].strip("'").strip('"')
@@ -28,10 +29,10 @@ class GeeFactory(object):
         """
         lookup_key = 'type'
         lookup_value = 'function'
-        Sqlfunction = 'ST_GeomFromGeoJSON'
+        sql_function = 'ST_GeomFromGeoJSON'
         if isinstance(json_input, dict):
             for k, v in json_input.items():
-                if k == lookup_key and v == lookup_value and json_input['value'] == Sqlfunction:
+                if k == lookup_key and v == lookup_value and json_input['value'] == sql_function:
                     yield json_input['arguments'][0]['value'].strip("'")
                 else:
                     for child_val in self._geo_extraction(v):
@@ -53,7 +54,7 @@ class GeeFactory(object):
                 "type": "FeatureCollection"
             }
         if isinstance(geojson, dict):
-            assert geojson.get('features') != None, "Expected key not found in item passed to geojoson"
+            assert geojson.get('features') is not None, "Expected key not found in item passed to geojoson"
             return ee.FeatureCollection(geojson.get('features'))
         else:
             return None
@@ -63,7 +64,7 @@ class GeeFactory(object):
         """Property that holds the Metadata dictionary returned from Earth Engine."""
         if 'ft:' in self._asset_id:
             meta = ee.FeatureCollection(self._asset_id).limit(0).getInfo()
-            assert meta != None, 'please enter a valid fusion table'
+            assert meta is not None, 'please enter a valid fusion table'
 
             info = {
                 'type': meta['type'],
@@ -75,12 +76,13 @@ class GeeFactory(object):
 
             return info
         else:
-            info = ee.data.getInfo(self._asset_id)
+            info = ee.data.getAsset(self._asset_id)
 
-            assert info != None, "data type not expected"
+            assert info is not None, "data type not expected"
 
-            if ('bands' in info) and (not info['bands']):
-                meta = ee.ImageCollection(self._asset_id).limit(1).getInfo()['features'][0]  ### this is a bit ...
+            # if ('bands' in info) and (not info['bands']):
+            if info['type'] == 'IMAGE_COLLECTION':
+                meta = ee.ImageCollection(self._asset_id).limit(1).getInfo()['features'][0]
                 info['bands'] = meta['bands']
                 info['columns'] = {k: type(v).__name__ for k, v in meta['properties'].items()}
 
@@ -89,15 +91,17 @@ class GeeFactory(object):
     @cached_property
     def _initSelect(self):
         """
-        Descript
+        Description
         """
         info = {}
 
-        ## This will store the bands and columns separately if they exist in the asset
+        ## This will store the bands and properties separately if they exist in the asset
         if 'columns' in self.metadata and self.metadata['columns']:
             info['_init_cols'] = self.metadata['columns'].keys()
         if 'bands' in self.metadata and self.metadata['bands']:
             info['_init_bands'] = [v['id'] for v in self.metadata['bands']]
+        elif self.type == 'TABLE' or self.type == 'FEATURE_COLLECTION':
+            info['_init_cols'] = ee.FeatureCollection(self.metadata['id']).limit(1).getInfo()['columns']
 
         return info
 
@@ -145,11 +149,13 @@ class GeeFactory(object):
             if data['left'][0]['value'] in self._initSelect['_init_cols']:
                 if 'time' in data['left'][0]['value'] and data['right'][0]['type'] in ['string', 'date']:
                     ########------------------------------------------- Date management at filter level this is TEMPORAL TODO until we do have a proper way of identify it.
-                    data['right'][0]['value'] = ee.Date.parse('dd-mm-yyyy', data['right'][0]['value'].strip("'")).millis()
+                    data['right'][0]['value'] = ee.Date.parse('dd-mm-yyyy',
+                                                              data['right'][0]['value'].strip("'")).millis()
                     data['right'][0]['type'] = 'date'
                 if data['right'][0]['type'] == 'string':
                     return {'column': [data['left'][0]['value']],
-                            'filter': _filters[data['value']](data['left'][0]['value'], data['right'][0]['value'].strip("'"))}
+                            'filter': _filters[data['value']](data['left'][0]['value'],
+                                                              data['right'][0]['value'].strip("'"))}
                 else:
                     return {'column': [data['left'][0]['value']],
                             'filter': _filters[data['value']](data['left'][0]['value'], data['right'][0]['value'])}
@@ -209,59 +215,63 @@ class GeeFactory(object):
         info = self._initSelect
 
         # Compare the select results with the available columns/bands
-        for a in selectArray:
+        for selectElement in selectArray:
             # This will retrieve the columns and bands inside select and check if the names belong to those in the data
-            if a['type'] == 'literal':
-                if '_init_cols' in info and a['value'] in info['_init_cols']:
-                    response['columns'].append(a)
-                elif '_init_bands' in info and a['value'] in info['_init_bands']:
-                    response['bands'].append(a)
+            if selectElement['type'] == 'literal':
+                if '_init_cols' in info and selectElement['value'] in info['_init_cols']:
+                    response['columns'].append(selectElement)
+                elif '_init_bands' in info and selectElement['value'] in info['_init_bands']:
+                    response['bands'].append(selectElement)
                 else:
-                    raise NameError('column/band name not valid: {0}'.format(a['value']))
+                    raise NameError('column/band name not valid: {0}'.format(selectElement['value']))
 
             # This will retrieve the columns and bands for our dataset and extend the cols/bands to select if they already hasn't being selected
-            elif a['type'] == 'function':
-                response['functions'].append(a)
+            elif selectElement['type'] == 'function':
+                response['functions'].append(selectElement)
                 # This will divide the functions that are related bands from those related columns so we can use the in the reducers.
                 if '_init_cols' in info:
                     # this will test if the arguments contains a column and if so it will added it to our select tree
                     if any(args['type'] == 'literal' and args['value'] in info['_init_cols'] for args in
-                           a['arguments']):
-                        response['_functions']['columns'].append(a)
-                    selected['_init_cols'].extend([args['value'] for args in a['arguments'] if
+                           selectElement['arguments']):
+                        response['_functions']['columns'].append(selectElement)
+                    selected['_init_cols'].extend([args['value'] for args in selectElement['arguments'] if
                                                    args['type'] == 'literal' and args['value'] in info['_init_cols']])
 
                 if '_init_bands' in info:
                     # this will test if the arguments contains a band and if so it will added it to our select tree
                     if any(args['type'] == 'literal' and (
                             args['value'] in info['_init_bands'] or args['value'] in ['rast']) for args in
-                           a['arguments']):
-                        response['_functions']['bands'].append(a)
-                    selected['_init_bands'].extend([args['value'] for args in a['arguments'] if
+                           selectElement['arguments']):
+                        response['_functions']['bands'].append(selectElement)
+                    selected['_init_bands'].extend([args['value'] for args in selectElement['arguments'] if
                                                     args['type'] == 'literal' and args['value'] in info['_init_bands']])
 
                 if '_init_bands' in info and '_init_cols' in info:
-                    f = [args['value'] for args in a['arguments'] if
+                    f = [args['value'] for args in selectElement['arguments'] if
                          args['type'] == 'literal' and args['value'] not in info['_init_bands'] and args['value'] not in
                          info['_init_cols']]
 
                 elif '_init_bands' in info:
-                    f = [args['value'] for args in a['arguments'] if
+                    f = [args['value'] for args in selectElement['arguments'] if
                          args['type'] == 'literal' and args['value'] not in info['_init_bands']]
 
                 elif '_init_cols' in info:
-                    f = [args['value'] for args in a['arguments'] if
+                    f = [args['value'] for args in selectElement['arguments'] if
                          args['type'] == 'literal' and args['value'] not in info['_init_cols'] and args['value']]
 
-                if f and len(f) == len(a['arguments']) and 'rast' not in f:
-                    raise NameError('column/band name not valid in function {0}: {1}'.format(a['value'], f))
+                if f and len(f) == len(selectElement['arguments']) and 'rast' not in f:
+                    raise NameError('column/band name not valid in function {0}: {1}'.format(selectElement['value'], f))
 
-            elif a['type'] == 'wildcard':
-                d = [{'type': 'literal', 'alias': None, 'value': f} for f in info['_init_cols']]
-                response['columns'].extend(d)
+            elif selectElement['type'] == 'wildcard':
+                if '_init_cols' in info and len(info['_init_cols']) > 0:
+                    d = [{'type': 'literal', 'alias': None, 'value': f} for f in info['_init_cols']]
+                    response['columns'].extend(d)
+                elif '_init_bands' in info and len(info['_init_bands']) > 0:
+                    d = [{'type': 'literal', 'alias': None, 'value': f} for f in info['_init_bands']]
+                    response['bands'].extend(d)
 
             else:
-                response['others'].append(a)
+                response['others'].append(selectElement)
 
         for key, value in response.items():
             if key in ['columns', 'bands']:
@@ -282,16 +292,14 @@ class GeeFactory(object):
         """
         Description here
         """
-        Geom = self._geojson_to_featurecollection(self.geojson)
-        fnResponse = {
-            'Image': Image(self.sql, self.json, self._select, self._filter, self._asset_id, self.metadata,
-                           Geom).response,
-            'ImageCollection': ImageCollection(self.json, self._select, self._filter, self._asset_id, Geom).response,
-            'FeatureCollection': FeatureCollection(self.json, self._select, self._filter, self._asset_id, Geom).response
-        }
+        geom = self._geojson_to_featurecollection(self.geojson)
 
-        try:
-            return fnResponse[self.type]()
-        except ee.EEException:
-            # raise Error
-            raise
+        if self.type == 'IMAGE':
+            return Image(self.sql, self.json, self._select, self._filter, self._asset_id, self.metadata, geom).response()
+        elif self.type == 'IMAGE_COLLECTION':
+            return ImageCollection(self.json, self._select, self._filter, self._asset_id, geom).response()
+        elif self.type == 'FEATURE_COLLECTION' or self.type == 'TABLE':
+            return FeatureCollection(self.json, self._select, self._filter, self._asset_id, geom).response()
+        else:
+            raise Exception('Invalid type {}'.format(self.type))
+

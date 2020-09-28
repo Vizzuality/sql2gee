@@ -12,6 +12,14 @@ class FeatureCollection(Collection):
         super().__init__(json['data']['attributes']['jsonSql'], select, filters, asset_id, 'FeatureCollection',
                          geometry)
 
+    def _mapOutputFList(self, feat):
+        if len(self._output['alias']['result']) > 0:
+            return feat.rename(self._output['alias']['result'], self._output['alias']['alias'])
+        # elif len(self._output["output"]) > 0:
+        #     return ee.Feature(feat).toDictionary(self._output['output'])
+        else:
+            return feat
+
     def _initSelect(self):
         self._asset = self._asset.select(self.select['_columns'])
         return self
@@ -32,6 +40,10 @@ class FeatureCollection(Collection):
 
     def response(self):
         """
-        FeatureCollection.<filters>.<functions>.<sorts>.limit(n).getInfo()
+        this will produce the following function chain in GEE:
+        # FeatureCollection.<filters>.<functions>.<sorts>.<imageReducers>.limit(n).getInfo()
         """
-        return self._initSelect()._where()._groupBy()._sort()._limit()._getInfo()
+        result = self._initSelect()._where()._groupBy()._sort()._limit()._getInfo()
+        alias_mapped_results = [self._mapOutputFList(element) for element in result]
+
+        return alias_mapped_results

@@ -1,6 +1,6 @@
 language: python
 python:
-  - "3.5"
+  - "3.6"
 cache: pip
 install:
   - sudo apt-get install openssl
@@ -8,7 +8,6 @@ install:
   - pip install --upgrade wheel
   - pip install --upgrade setuptools
   - pip install --upgrade codecov pytest pytest-cov
-  - pip install --upgrade pytest-cov
   - pip install oauth2 sphinx travis-sphinx sphinx_rtd_theme sphinxcontrib-inlinesyntaxhighlight
   - pip install 'oauth2client==1.5.2'
   - pip install 'pyOpenSSL>=0.11'

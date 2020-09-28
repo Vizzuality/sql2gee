@@ -77,7 +77,10 @@ class ImageCollection(Collection):
 
     def response(self):
         """
-        this will produce the next function in GEE:
+        this will produce the following function chain in GEE:
         # ImageCollection.<filters>.<functions>.<sorts>.<imageReducers>.limit(n).getInfo()
         """
-        return self._initSelect()._where()._groupBy()._sort()._limit()._getInfo()
+        result = self._initSelect()._where()._groupBy()._sort()._limit()._getInfo()
+        alias_mapped_results = [self._mapOutputIList(element) for element in result]
+
+        return alias_mapped_results

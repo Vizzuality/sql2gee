@@ -75,7 +75,7 @@ class Collection(object):
         n_func = len(set([f['value'] for f in self.select['_functions']['bands']]))
         n_reduc = len(list(filter(None, self.reduceGen.values())))
         n_times = n_reduc if n_func > 1 else 1
-        # Funcion management
+        # Function management
         for function in self.select['functions']:
             # the way GEE constructs the function values is <band/column>_<function(RImage/RColumn)>_<function(RRegion)>
 
@@ -99,54 +99,46 @@ class Collection(object):
                 _Output["alias"]["alias"].append(column['alias'])
         return _Output
 
-    @staticmethod
-    def _mapOutputIList(img):
-        if len(output['alias']['result']) > 0:
-            return ee.Image(img).toDictionary(output['output']).rename(output['alias']['result'],
-                                                                       output['alias']['alias'])
-        elif len(output["output"]) > 0:
-            return ee.Image(img).toDictionary(output['output'])
+    def _mapOutputIList(self, img):
+        if len(self._output['alias']['result']) > 0:
+            return img.rename(self._output['alias']['result'], self._output['alias']['alias'])
+        # elif len(output["output"]) > 0:
+        #     return ee.Image(img['id']).toDictionary(output['output'])
         else:
-            return ee.Image(img).toDictionary()
+            return img
 
-    @staticmethod
-    def _mapOutputFList(feat):
-
-        if len(output['alias']['result']) > 0:
-            return ee.Feature(feat).toDictionary(output['output']).rename(output['alias']['result'],
-                                                                          output['alias']['alias'])
-        elif len(output["output"]) > 0:
-            return ee.Feature(feat).toDictionary(output['output'])
+    def _mapOutputFList(self, feat):
+        if len(self._output['alias']['result']) > 0:
+            return ee.Feature(feat).toDictionary(self._output['output']).rename(self._output['alias']['result'],
+                                                                          self._output['alias']['alias'])
+        elif len(self._output["output"]) > 0:
+            return ee.Feature(feat).toDictionary(self._output['output'])
         else:
             return ee.Feature(feat).toDictionary()
-
-        # def _mapOutputList(self):
-        """mapping to get the output columns, aliases and normalize the output"""
 
     def _limit(self):
         """
         This will limit  the answer if limit exist.
         if the object is a collection it will use the built in function for it.
-        If instead the anwer is a dictionary, it will linit the output due the selected limit.
+        If instead the answer is a dictionary, it will limit the output due the selected limit.
         """
 
-        global output;
-        output = self._output
         if 'limit' in self._parsed and self._parsed['limit']:
             if isinstance(self._asset, ee.ee_list.List):
                 self._asset = self._asset.slice(0, self._parsed['limit'])
             elif isinstance(self._asset, ee.imagecollection.ImageCollection):
-                self._asset = self._asset.toList(self._parsed['limit']).map(self._mapOutputIList)
+                self._asset = self._asset.toList(self._parsed['limit'])
             elif isinstance(self._asset, ee.featurecollection.FeatureCollection):
-                self._asset = self._asset.toList(self._parsed['limit']).map(self._mapOutputFList)
+                self._asset = self._asset.toList(self._parsed['limit'])
             else:
                 raise type(self._asset)
         elif isinstance(self._asset, ee.imagecollection.ImageCollection):
             ##Lets limit the output: TODO Paginate it
-            self._asset = self._asset.toList(10000).map(self._mapOutputIList)
+            self._asset = self._asset.toList(10000)
         elif isinstance(self._asset, ee.featurecollection.FeatureCollection):
             ##Lets limit the output: TODO Paginate itf
-            self._asset = self._asset.toList(10000).map(self._mapOutputFList)
+            # self._asset = self._asset.toList(10000).map(self._mapOutputFList)
+            self._asset = self._asset.toList(10000)
             # elf._asset = ee.List(self._asset.toList(10000).map(functools.partial(test_f, output=self._output)))
         # elif isinstance(self._asset, ee.ee_list.List):
         ##Lets limit the output: TODO Paginate it
@@ -160,10 +152,10 @@ class Collection(object):
 
     @cached_property
     def reduceGen(self):
-        groupBy = None
+        group_by = None
         if 'group' in self._parsed:
-            groupBy = self._parsed['group']
+            group_by = self._parsed['group']
 
-        reducers = _reducers(self.select['_functions'], groupBy, self.geometry)
+        reducers = _reducers(self.select['_functions'], group_by, self.geometry)
 
         return reducers

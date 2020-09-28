@@ -1,5 +1,5 @@
+import os
 import sys
-
 import ee
 import requests
 
@@ -10,29 +10,30 @@ from sql2gee.utils.jsonSql import JsonSql
 if sys.platform == 'darwin':
     ee.Initialize()
 else:
-    # Else, assume you have an EE_private_key environment variable with authorisation, as on Travis-CI
-    service_account = '390573081381-lm51tabsc8q8b33ik497hc66qcmbj11d@developer.gserviceaccount.com'
-    credentials = ee.ServiceAccountCredentials(service_account, './privatekey.pem')
-    ee.Initialize(credentials, 'https://earthengine.googleapis.com')
+    EE_ACCOUNT = os.environ['EE_ACCOUNT']
+    EE_PRIVATE_KEY_FILE = 'privatekey.json'
+
+    gee_credentials = ee.ServiceAccountCredentials(EE_ACCOUNT, EE_PRIVATE_KEY_FILE)
+    ee.Initialize(gee_credentials)
 
 
 def test_metadata():
-    sql = "SELECT ST_HISTOGRAM(rast, elevation, 10, true) FROM srtm90_v4"
+    sql = "SELECT ST_HISTOGRAM(rast, elevation, 10, true) FROM CGIAR/SRTM90_V4"
     q = SQL2GEE(JsonSql(sql).to_json())
-    assert q.metadata == {'type': 'Image', 'bands': [
-        {'id': 'elevation', 'data_type': {'type': 'PixelType', 'precision': 'int', 'min': -32768, 'max': 32767},
-         'dimensions': [432000, 144000], 'crs': 'EPSG:4326',
-         'crs_transform': [0.000833333333333, 0.0, -180.0, 0.0, -0.000833333333333, 60.0]}],
-                          'version': 1494271934303000, 'id': 'srtm90_v4',
-                          'properties': {'system:time_start': 950227200000, 'system:time_end': 951177600000,
-                                         'system:asset_size': 18827626666}}
+    assert q.metadata['type'] == 'IMAGE'
+    assert q.metadata['name'] == 'projects/earthengine-public/assets/CGIAR/SRTM90_V4'
+    assert q.metadata['id'] == 'CGIAR/SRTM90_V4'
+    assert q.metadata['title'] == 'SRTM Digital Elevation Data Version 4'
+    assert 'properties' in q.metadata
+    assert 'description' in q.metadata
+    assert 'bands' in q.metadata
     return
 
 
 def test_type():
-    sql = "SELECT ST_HISTOGRAM(rast, elevation, 10, true) FROM srtm90_v4"
+    sql = "SELECT ST_HISTOGRAM(rast, elevation, 10, true) FROM CGIAR/SRTM90_V4"
     q = SQL2GEE(JsonSql(sql).to_json())
-    assert q.type == 'Image'
+    assert q.type == 'IMAGE'
     return
 
 
@@ -40,52 +41,47 @@ def test_retrieve_st_metadata():
     """Test that basic raster metadata (in dictionary format) is returned when
     the postgis ST_METADATA() command is given.
     Notes:
-        srtm90_v4 is a 90m Elevation image.
+        CGIAR/SRTM90_V4 is a 90m Elevation image.
     """
-    sql = "SELECT ST_METADATA(rast) FROM srtm90_v4"
+    sql = "SELECT ST_METADATA(rast) FROM CGIAR/SRTM90_V4"
     q = SQL2GEE(JsonSql(sql).to_json())
-    ee_meta = {'type': 'Image', 'bands': [
-        {'id': 'elevation', 'data_type': {'type': 'PixelType', 'precision': 'int', 'min': -32768, 'max': 32767},
-         'dimensions': [432000, 144000], 'crs': 'EPSG:4326',
-         'crs_transform': [0.000833333333333, 0.0, -180.0, 0.0, -0.000833333333333, 60.0]}],
-               'version': 1494271934303000, 'id': 'srtm90_v4',
-               'properties': {'system:time_start': 950227200000, 'system:time_end': 951177600000,
-                              'system:asset_size': 18827626666}}
-    print(q.response())
-    assert q.response()[0]['st_metadata'] == ee_meta, 'Metadata response was not equal to expected metadata'
+
+    result = q.response()[0]['st_metadata']
+
+    assert result['type'] == 'IMAGE'
+    assert result['name'] == 'projects/earthengine-public/assets/CGIAR/SRTM90_V4'
+    assert result['id'] == 'CGIAR/SRTM90_V4'
+    assert result['title'] == 'SRTM Digital Elevation Data Version 4'
+    assert 'properties' in result
+    assert 'description' in result
+    assert 'bands' in result
+
     return
 
 
-def test_retrieve_st_bandmetadata():
+def test_retrieve_st_band_metadata():
     """Test that basic raster metadata (in dictionary format) is returned when
     the postgis ST_BANDMETADATA() command is given.
     Notes:
-        srtm90_v4 is a 90m Elevation image.
+        CGIAR/SRTM90_V4 is a 90m Elevation image.
     """
-    sql = "SELECT ST_BANDMETADATA(rast, elevation) FROM srtm90_v4"
+    sql = "SELECT ST_BANDMETADATA(rast, elevation) FROM CGIAR/SRTM90_V4"
     q = SQL2GEE(JsonSql(sql).to_json())
-    ee_meta = {u'crs': u'EPSG:4326',
-               u'crs_transform': [0.000833333333333,
-                                  0.0,
-                                  -180.0,
-                                  0.0,
-                                  -0.000833333333333,
-                                  60.0],
-               u'data_type': {u'max': 32767,
-                              u'min': -32768,
-                              u'precision': u'int',
-                              u'type': u'PixelType'},
-               u'dimensions': [432000, 144000],
-               u'id': u'elevation'}
-    print(q.response())
-    assert q.response()[0][
-               'st_bandmetadata'] == ee_meta, 'Band Metadata response was not equal to expected band metadata'
+
+    result = q.response()[0]['st_bandmetadata']
+
+    assert result['id'] == 'elevation'
+    assert result['dataType'] == {'precision': 'INT', 'range': {'min': -32768, 'max': 32767}}
+    assert result['grid'] == {'crsCode': 'EPSG:4326', 'dimensions': {'width': 432000, 'height': 144000},
+                              'affineTransform': {'scaleX': 0.000833333333333, 'translateX': -180,
+                                                  'scaleY': -0.000833333333333, 'translateY': 60}}
+    assert result['pyramidingPolicy'] == 'MEAN'
     return
 
 
 def test_ST_HISTOGRAM():
     """Test that a dictionary containing a list of expected length and values is returned"""
-    sql = "SELECT ST_HISTOGRAM(rast, 1, auto, true) FROM srtm90_v4"
+    sql = "SELECT ST_HISTOGRAM(rast, 1, auto, true) FROM CGIAR/SRTM90_V4"
     q = SQL2GEE(JsonSql(sql).to_json())
     response = q.response()[0]['st_histogram']
     assert response['elevation'][0] == [-32.0, 5.149019607843137], 'First bin incorrect'
@@ -99,7 +95,6 @@ def test_ST_HISTORGRAM_multiband_image():
     sql = "SELECT ST_HISTOGRAM(rast, 1, auto, true) FROM 'CGIAR/SRTM90_V4'"
     q = SQL2GEE(JsonSql(sql).to_json())
     response = q.response()
-    print(response)
     assert isinstance(response, list), "Dictionary was not returned as a response"
     assert len(response) == 1, "Size of the dictionary was diffrent from expected response"
     assert list(response[0].keys()) == expected_keys, "Expected keys in response dictionary were not returned"
@@ -110,14 +105,14 @@ def test_ST_HISTORGRAM_multiband_image():
 
 
 def test_ST_HISTORGRAM_keywords_select_specific_band_and_bins():
-    """Without any speicifc keywords set, ST_HISTOGRAM gives back a dic with the first band, and best-guess binning"""
+    """Without any specific keywords set, ST_HISTOGRAM gives back a dic with the first band, and best-guess binning"""
     expected_keys = ['st_histogram']
     sql = "SELECT ST_HISTOGRAM(raster, 'elevation', 10, true) FROM 'CGIAR/SRTM90_V4'"
     q = SQL2GEE(JsonSql(sql).to_json())
     response = q.response()
 
     assert isinstance(response, list), "Dictionary was not returned as a response"
-    assert len(response) == 1, "Size of the dictionary was diffrent from expected response"
+    assert len(response) == 1, "Size of the dictionary was diffrrent from expected response"
 
     assert list(response[0].keys()) == expected_keys, "Expected elevation in response dictionary"
     for key in response[0][expected_keys[0]].keys():
@@ -127,7 +122,7 @@ def test_ST_HISTORGRAM_keywords_select_specific_band_and_bins():
 
 
 def test_ST_HISTORGRAM_keywords_reversed():
-    """Without any speicifc keywords set, ST_HISTOGRAM gives back a dic with the first band, and best-guess binning"""
+    """Without any specific keywords set, ST_HISTOGRAM gives back a dic with the first band, and best-guess binning"""
     sql = "SELECT ST_HISTOGRAM(raster, 'elevation', 10, false) FROM 'CGIAR/SRTM90_V4'"
     q = SQL2GEE(JsonSql(sql).to_json())
     response = q.response()
@@ -159,7 +154,7 @@ def test_STSUMMARYSTATS_with_area_restriction_from_geojson_polygon():
     r = requests.get(gstore).json().get('data').get('attributes').get('geojson')
 
     # Initilise an SQL2GEE query object with geojson
-    sql = "SELECT ST_SUMMARYSTATS() FROM srtm90_v4"
+    sql = "SELECT ST_SUMMARYSTATS() FROM CGIAR/SRTM90_V4"
     q = SQL2GEE(JsonSql(sql).to_json(), geojson=r)
     response = q.response()
     assert response == expected, "Response was not equal to expected values"
@@ -175,9 +170,8 @@ def test_STSUMMARYSTATS_with_area_restriction_via_passing_geojson_multipolygon()
                        'mean': 1048.341463414634}}}]
     gstore = "https://api.resourcewatch.org/v1/geostore/ca38fa80a4ffa9ac6217a7e0bf71e6df"
     r = requests.get(gstore).json().get('data').get('attributes').get('geojson')
-    print(r)
-    # Initilise an SQL2GEE query object with geojson
-    sql = "SELECT ST_SUMMARYSTATS() FROM srtm90_v4"
+    # Initialise an SQL2GEE query object with geojson
+    sql = "SELECT ST_SUMMARYSTATS() FROM CGIAR/SRTM90_V4"
     q = SQL2GEE(JsonSql(sql).to_json(), geojson=r)
     response = q.response()
     assert response == expected, "Area restricted response did not match expected result"
@@ -188,7 +182,7 @@ def test_ST_SUMMARYSTATS_with_tricky_data():
     """A problem with image data that is a composite. We will try and get a response, if an EEException is raised,
     a default (near-global) feature collection will be passed to the area, which will cause reducers to correctly
     treat it like an image."""
-    sql = 'SELECT ST_SUMMARYSTATS() FROM "USGS/GFSAD1000_V0"'
+    sql = 'SELECT ST_SUMMARYSTATS() FROM "USGS/GFSAD1000_V1"'
     q = SQL2GEE(JsonSql(sql).to_json())
     assert isinstance(q.response(), list), "Dictionary should have been returned"
     return
@@ -197,38 +191,37 @@ def test_ST_SUMMARYSTATS_with_tricky_data():
 def test_ST_HISTOGRAM_bins_correct():
     """Hansen Forest change dataset has a band called lossyear, which has integer values of 0->14.
     Make a test to create a bin for each integer."""
-    sql = 'SELECT ST_HISTOGRAM(raster, lossyear, 15, true) FROM "UMD/hansen/global_forest_change_2015"'
+    sql = 'SELECT ST_HISTOGRAM(raster, lossyear, 15, true) FROM "UMD/hansen/global_forest_change_2019_v1_7"'
     q = SQL2GEE(JsonSql(sql).to_json())
     response = q.response()
     assert len(response[0]['st_histogram']['lossyear']) == 15, "15 bins expected"
-    assert response[0]['st_histogram']['lossyear'][14][0] == 14, "Expected last bin to be 14 exactly"
+    assert response[0]['st_histogram']['lossyear'][14][0] == 18.733333333333334
     return
 
 
 def test_ST_GeomFromGeoJSON():
     """Test that SQL queries can set a geojson object that gets correctly used."""
-    sql = """SELECT ST_SUMMARYSTATS() as x FROM 'srtm90_v4'
+    sql = """SELECT ST_SUMMARYSTATS() as x FROM 'CGIAR/SRTM90_V4'
                  WHERE ST_INTERSECTS(ST_SetSRID(ST_GeomFromGeoJSON('{\"type\":\"Polygon\",
                  \"coordinates\":[[[-43.39599609375,-4.740675384778361],
                  [-43.39599609375,-4.959615024698014],
                  [-43.17626953125,-4.806364708499984],
                  [-43.39599609375,-4.740675384778361]]]}'),4326), the_geom)"""
 
-    correct = [{'x': {
-        'elevation': {'count': 35178, 'sum': 3464822.050980393, 'mean': 100.03593960771832, 'stdev': 21.969258118520724,
-                      'min': 52, 'max': 172}}}]
+    correct = {'x': {'elevation': {'count': 35205, 'sum': 3465299.4509803923, 'mean': 100.04437654442181,
+                                   'stdev': 21.970242559380736, 'min': 52, 'max': 172}}}
 
     jsonQuery = JsonSql(sql).to_json()
     q = SQL2GEE(jsonQuery)
+    response = q.response()[0]
 
-    assert q.response()[0]['x']['elevation']['count'] == correct[0]['x']['elevation'][
-        'count'], "Incorrect response returned"
+    assert response == correct, "Incorrect response returned"
     return
 
 
 def test_auto_bug():
     """Test a bug that was noticed regarding the use of auto as an argument"""
-    sql = "SELECT ST_HISTOGRAM(rast, 1, auto, true) FROM srtm90_v4"
+    sql = "SELECT ST_HISTOGRAM(rast, 1, auto, true) FROM CGIAR/SRTM90_V4"
     q = SQL2GEE(JsonSql(sql).to_json())
     try:
         _ = q.response()
@@ -240,22 +233,34 @@ def test_auto_bug():
 
 def test_band_byname():
     """Test a bug that was noticed regarding the use of auto as an argument"""
-    sql = "SELECT ST_HISTOGRAM(rast, 'elevation', auto, true) FROM srtm90_v4"
+    sql = "SELECT ST_HISTOGRAM(rast, 'elevation', auto, true) FROM CGIAR/SRTM90_V4"
     q = SQL2GEE(JsonSql(sql).to_json())
     try:
         _ = q.response()
     except:
-        # If the response failed to retun fail this test...
+        # If the response failed to return fail this test...
         assert q.response == None
     return
 
 
 def test_valuecount_categorical():
     """Test a bug that was noticed regarding the use of auto as an argument"""
-    sql = "SELECT ST_valuecount(rast, 'seasonality', false) as t FROM 'JRC/GSW1_0/GlobalSurfaceWater'"
+    sql = "SELECT ST_valuecount(rast, 'seasonality', false) as t FROM 'JRC/GSW1_2/GlobalSurfaceWater'"
     correct = [{'t': {
+        'seasonality': {'1': 269354, '10': 13929, '11': 2506, '12': 19746788, '2': 79053, '3': 18373, '4': 11953,
+                        '5': 11982, '6': 3361, '7': 60005, '8': 17058, '9': 20501}}}]
+    q = SQL2GEE(JsonSql(sql).to_json())
+    assert q.response() == correct, "Incorrect response returned"
+    return
+
+
+def test_valuecount_categorical_true():
+    """Test a bug that was noticed regarding the use of auto as an argument"""
+    sql = "SELECT ST_valuecount(rast, 'seasonality', true) FROM 'JRC/GSW1_2/GlobalSurfaceWater'"
+    correct = [{'st_valuecount': {
         'seasonality': {'1': 257090.0, '10': 53411.0, '11': 3326.0, '12': 18471661.0, '2': 86180.0, '3': 17032.0,
-                        '4': 40943.0, '5': 27166.0, '6': 4363.0, '7': 150599.0, '8': 30365.0, '9': 68880.0}}}]
+                        '4': 40943.0, '5': 27166.0, '6': 4363.0, '7': 150599.0, '8': 30365.0, '9': 68880.0,
+                        'null': 673491564.0}}}]
     q = SQL2GEE(JsonSql(sql).to_json())
     assert q.response() == correct, "Incorrect response returned"
     return
@@ -269,6 +274,7 @@ def test_valuecount_categorical_true():
                         '4': 40943.0, '5': 27166.0, '6': 4363.0, '7': 150599.0, '8': 30365.0, '9': 68880.0,
                         'null': 673491564.0}}}]
     q = SQL2GEE(JsonSql(sql).to_json())
-    print(q.response())
-    assert q.response() == correct, "Incorrect response returned"
+    response = q.response()
+
+    assert response == correct, "Incorrect response returned"
     return

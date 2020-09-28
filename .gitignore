@@ -19,3 +19,4 @@ docs/_build/doctrees
 tests/__pycache__/
 /build
 .pytest_cache/*
+.eggs

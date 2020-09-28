@@ -1,6 +1,6 @@
 import sys
-
 import ee
+import os
 
 from sql2gee import SQL2GEE
 from sql2gee.utils.jsonSql import JsonSql
@@ -9,130 +9,115 @@ from sql2gee.utils.jsonSql import JsonSql
 if sys.platform == 'darwin':
     ee.Initialize()
 else:
-    # Else, assume you have an EE_private_key environment variable with authorisation, as on Travis-CI
-    service_account = '390573081381-lm51tabsc8q8b33ik497hc66qcmbj11d@developer.gserviceaccount.com'
-    credentials = ee.ServiceAccountCredentials(service_account, './privatekey.pem')
-    ee.Initialize(credentials, 'https://earthengine.googleapis.com')
+    EE_ACCOUNT = os.environ['EE_ACCOUNT']
+    EE_PRIVATE_KEY_FILE = 'privatekey.json'
+
+    gee_credentials = ee.ServiceAccountCredentials(EE_ACCOUNT, EE_PRIVATE_KEY_FILE)
+    ee.Initialize(gee_credentials)
 
 ee.data.setDeadline(200000)
 
 
 def test_metadata_table_query():
-    sql = 'select count(width) from "ft:1qpKIcYQMBsXLA9RLWCaV9D0Hus2cMQHhI-ViKHo"'
-    q = SQL2GEE(JsonSql(sql).to_json())
-    response = {'type': 'FeatureCollection',
-                'columns': {'date': 'Number', 'height': 'Number', 'lng': 'Number', 'title': 'String', 'url': 'String',
-                            'user_id': 'Number', 'user_name': 'String', 'width': 'Number'},
-                'id': 'ft:1qpKIcYQMBsXLA9RLWCaV9D0Hus2cMQHhI-ViKHo', 'version': '',
-                'properties': {'name': 'SF Panoramio Photos +ID', 'DocID': '1qpKIcYQMBsXLA9RLWCaV9D0Hus2cMQHhI-ViKHo'}}
-    assert q.metadata == response, "BASIC COUNT query incorrect"
+    sql = 'select count(width) from "TIGER/2018/States"'
+    sql_gee = SQL2GEE(JsonSql(sql).to_json())
+    expected_metadata = {'type': 'TABLE', 'name': 'projects/earthengine-public/assets/TIGER/2018/States',
+                         'id': 'TIGER/2018/States', 'updateTime': '2019-06-17T17:48:10.661679Z', 'sizeBytes': '3543775'}
+    assert sql_gee.metadata == expected_metadata, "Response metadata incorrect"
     return
 
 
-def test_select_table_query():
-    sql = 'select * from "ft:1qpKIcYQMBsXLA9RLWCaV9D0Hus2cMQHhI-ViKHo" limit 1'
-    q = SQL2GEE(JsonSql(sql).to_json())
-    response = {'type': 'FeatureCollection',
-                'columns': {'date': 'Number', 'height': 'Number', 'lng': 'Number', 'title': 'String', 'url': 'String',
-                            'user_id': 'Number', 'user_name': 'String', 'width': 'Number'},
-                'id': 'ft:1qpKIcYQMBsXLA9RLWCaV9D0Hus2cMQHhI-ViKHo', 'version': '',
-                'properties': {'name': 'SF Panoramio Photos +ID', 'DocID': '1qpKIcYQMBsXLA9RLWCaV9D0Hus2cMQHhI-ViKHo'}}
-    assert q.metadata == response, "BASIC COUNT query incorrect"
+def test_limit_table_query():
+    sql = 'select * from "TIGER/2018/States" limit 1'
+    response = SQL2GEE(JsonSql(sql).to_json()).response()
+    assert len(response) == 1, "BASIC COUNT query incorrect"
     return
 
 
 def test_count_table_query():
-    sql = 'select count(width) from "ft:1qpKIcYQMBsXLA9RLWCaV9D0Hus2cMQHhI-ViKHo"'
-    q = SQL2GEE(JsonSql(sql).to_json())
-    assert q.response()[0]['count'] == [1919], "BASIC COUNT query incorrect"
+    sql = 'select count(NAME) from "TIGER/2018/States"'
+    response = SQL2GEE(JsonSql(sql).to_json()).response()
+    assert response[0]['count'] == [56], "BASIC COUNT query incorrect"
     return
 
 
 def test_count_table_query_with_where_statement():
-    sql = 'select count(width) from "ft:1qpKIcYQMBsXLA9RLWCaV9D0Hus2cMQHhI-ViKHo" where width > 400'
-    q = SQL2GEE(JsonSql(sql).to_json())
-    assert q.response()[0]['count'] == [1677], "COUNT with WHERE query incorrect"
+    sql = 'select count(ALAND) from "TIGER/2018/States" where ALAND > 400000000'
+    response = SQL2GEE(JsonSql(sql).to_json()).response()
+    assert response[0]['count'] == [53], "COUNT with WHERE query incorrect"
     return
 
 
 def test_max_table_query():
-    sql = 'select MAX(width) from "ft:1qpKIcYQMBsXLA9RLWCaV9D0Hus2cMQHhI-ViKHo" limit 2'
-    q = SQL2GEE(JsonSql(sql).to_json())
-    print(q.response()[0])
-    assert q.response()[0]['max'] == [500.0], "Basic MAX query incorrect"
+    sql = 'select MAX(ALAND) from "TIGER/2018/States" limit 2'
+    response = SQL2GEE(JsonSql(sql).to_json()).response()
+    assert response[0]['max'] == [1478839695958], "Basic MAX query incorrect"
     return
 
 
 def test_min_table_query():
-    sql = 'select MIN(width) from "ft:1qpKIcYQMBsXLA9RLWCaV9D0Hus2cMQHhI-ViKHo"'
-    q = SQL2GEE(JsonSql(sql).to_json())
-    assert q.response()[0]['min'] == [125.0], "Basic MIN query incorrect"
+    sql = 'select MIN(ALAND) from "TIGER/2018/States"'
+    response = SQL2GEE(JsonSql(sql).to_json()).response()
+    assert response[0]['min'] == [158340391], "Basic MIN query incorrect"
     return
 
 
 def test_sum_table_query():
-    sql = 'select SUM(width) from "ft:1qpKIcYQMBsXLA9RLWCaV9D0Hus2cMQHhI-ViKHo"'
-    q = SQL2GEE(JsonSql(sql).to_json())
-    assert q.response()[0]['sum'] == [924091.0], "Basic SUM query incorrect"
+    sql = 'select SUM(ALAND) from "TIGER/2018/States"'
+    response = SQL2GEE(JsonSql(sql).to_json()).response()
+    assert response[0]['sum'] == [9159859051207], "Basic SUM query incorrect"
     return
 
 
 def test_sum_with_where_table_query():
-    sql = 'select SUM(width) from "ft:1qpKIcYQMBsXLA9RLWCaV9D0Hus2cMQHhI-ViKHo" WHERE width < 400'
-    q = SQL2GEE(JsonSql(sql).to_json())
-    assert q.response()[0]['sum'] == [83306.0], "SUM with WHERE query incorrect"
+    sql = 'select SUM(ALAND) from "TIGER/2018/States" WHERE ALAND > 400000000'
+    response = SQL2GEE(JsonSql(sql).to_json()).response()
+    assert response[0]['sum'] == [9159154929857], "SUM with WHERE query incorrect"
     return
 
 
 def test_avg_with_where_table_query():
-    sql = 'select AVG(width) from "ft:1qpKIcYQMBsXLA9RLWCaV9D0Hus2cMQHhI-ViKHo" WHERE width < 400'
-    q = SQL2GEE(JsonSql(sql).to_json())
-    print(q.response()[0])
-    assert q.response()[0]['mean'] == [354.4936170212766], "AVG with WHERE query incorrect"
+    sql = 'select AVG(ALAND) from "TIGER/2018/States" WHERE ALAND > 400000000'
+    response = SQL2GEE(JsonSql(sql).to_json()).response()
+    assert response[0]['mean'] == [172814243959.56604], "AVG with WHERE query incorrect"
     return
 
 
-# def test_avCreturn
+def test_var_table_query():
+    sql = 'select VAR(ALAND) from "TIGER/2018/States"'
+    response = SQL2GEE(JsonSql(sql).to_json()).response()
+    assert response[0]['variance'] == [4.640943337611609e+22], "Simple VAR query incorrect"
 
 
-#
-# This functions aren't suported by sql2json microservice
-# def test_var_table_query():
-#    sql = 'select VAR(width) from "ft:1qpKIcYQMBsXLA9RLWCaV9D0Hus2cMQHhI-ViKHo"'
-#    q = SQL2GEE(JsonSql(sql).to_json())
-#    assert q.response()[0]['var'] == [2423.5074511457533], "Simple VAR query incorrect"
+def test_var_table_where_all_equal():
+    sql = 'select VAR(ALAND) from "TIGER/2018/States" WHERE ALAND > 400000000'
+    response = SQL2GEE(JsonSql(sql).to_json()).response()
+    assert response[0]['variance'] == [4.744082688545956e+22], "Simple VAR query incorrect"
 
-# def test_var_table_where_all_equal():
-#    sql = 'select VAR(width) from "ft:1qpKIcYQMBsXLA9RLWCaV9D0Hus2cMQHhI-ViKHo" WHERE width = 500'
-#    q = SQL2GEE(JsonSql(sql).to_json())
-#    assert q.response()[0]['var'] == [0.0], "Simple VAR query incorrect"
 
-# def test_stdev_table():
-#    sql = 'select STDEV(width) from "ft:1qpKIcYQMBsXLA9RLWCaV9D0Hus2cMQHhI-ViKHo"'
-#    q = SQL2GEE(JsonSql(sql).to_json())
-#    assert q.response()[0]['stdev'] == [49.22913213886421], "Simple STDEV query incorrect"
+def test_stdev_table():
+    sql = 'select STDEV(ALAND) from "TIGER/2018/States"'
+    response = SQL2GEE(JsonSql(sql).to_json()).response()
+    assert response[0]['stdDev'] == [215428487847.16492], "Simple STDEV query incorrect"
 
-# def test_stdev_width_lt_table():
-#    sql = 'select STDEV(width) from "ft:1qpKIcYQMBsXLA9RLWCaV9D0Hus2cMQHhI-ViKHo" where width < 500'
-#    q = SQL2GEE(JsonSql(sql).to_json())
-#    assert q.response()[0]['stdev'] == [35.01078172011275], "STDEV with WHERE LT 500 query incorrect"
 
-# def test_stdev_width_eq_table():
-#    sql = 'select STDEV(width) from "ft:1qpKIcYQMBsXLA9RLWCaV9D0Hus2cMQHhI-ViKHo" where width = 500'
-#    q = SQL2GEE(JsonSql(sql).to_json())
-#    assert q.response()[0]['stdev'] == 0.0, "STDEV with WHERE EQ 500 query incorrect"
+def test_stdev_width_lt_table():
+    sql = 'select STDEV(ALAND) from "TIGER/2018/States" where ALAND < 400000000'
+    response = SQL2GEE(JsonSql(sql).to_json()).response()
+    assert response[0]['stdDev'] == [81725709.28450204], "STDEV with WHERE LT 400000000 query incorrect"
+
 
 def test_limit_on_tables():
     """Test ability to limit the size of SQL table requests"""
-    sql = 'select width from "ft:1qpKIcYQMBsXLA9RLWCaV9D0Hus2cMQHhI-ViKHo" LIMIT '
+    sql = 'select ALAND from "TIGER/2018/States" LIMIT '
     err = 'Response was not equal to size of LIMIT'
     limit = 1
-    q = SQL2GEE(JsonSql(sql + str(limit)).to_json())
-    assert len(q.response()) == limit, err
+    response = SQL2GEE(JsonSql(sql + str(limit)).to_json()).response()
+    assert len(response) == limit, err
     limit = 2
-    q = SQL2GEE(JsonSql(sql + str(limit)).to_json())
-    assert len(q.response()) == limit, err
+    response = SQL2GEE(JsonSql(sql + str(limit)).to_json()).response()
+    assert len(response) == limit, err
     limit = 5
-    q = SQL2GEE(JsonSql(sql + str(limit)).to_json())
-    assert len(q.response()) == limit, err
+    response = SQL2GEE(JsonSql(sql + str(limit)).to_json()).response()
+    assert len(response) == limit, err
     return
