@@ -1,6 +1,6 @@
 import ee
 from cached_property import cached_property
-
+import logging
 from .utils.reduce import _reducers
 
 
@@ -37,10 +37,12 @@ class Collection(object):
         It gets *where* conditions and converts them in the proper filters.
         self.asset.filter(ee.Filter([ee.Filter.eq('scenario','historical'), ee.Filter.date('1996-01-01','1997-01-01')])).filterBounds(geometry)
         """
-        if 'where' in self._parsed and self._parsed['where']:
-            if self.geometry:
+        if 'where' in self._parsed and len(self._parsed['where']) > 0:
+            if self.geometry and 'filter' in self._filters:
                 self._asset = self._asset.filter(self._filters['filter']).filterBounds(self.geometry)
-            else:
+            elif self.geometry:
+                self._asset = self._asset.filterBounds(self.geometry)
+            elif 'filter' in self._filters:
                 self._asset = self._asset.filter(self._filters['filter'])
         return self
 
@@ -74,7 +76,7 @@ class Collection(object):
         }
         n_func = len(set([f['value'] for f in self.select['_functions']['bands']]))
         n_reduc = len(list(filter(None, self.reduceGen.values())))
-        n_times = n_reduc if n_func > 1 else 1
+        n_times = n_reduc if n_func > 2 else 1
         # Function management
         for function in self.select['functions']:
             # the way GEE constructs the function values is <band/column>_<function(RImage/RColumn)>_<function(RRegion)>
@@ -100,7 +102,12 @@ class Collection(object):
         return _Output
 
     def _mapOutputIList(self, img):
-        if len(self._output['alias']['result']) > 0:
+        """
+        """
+        # @debt: inside the reducers we will need to use setOutputs
+        if len(self._output['alias']['result']) > 0 and type(img) is dict:
+            return ee.Dictionary(img['properties']).rename(self._output['alias']['result'], self._output['alias']['alias']).select(self._output['alias']['alias']).getInfo()
+        elif (len(self._output['alias']['result']) > 0):
             return img.rename(self._output['alias']['result'], self._output['alias']['alias'])
         # elif len(output["output"]) > 0:
         #     return ee.Image(img['id']).toDictionary(output['output'])
@@ -108,6 +115,8 @@ class Collection(object):
             return img
 
     def _mapOutputFList(self, feat):
+        """
+        """
         if len(self._output['alias']['result']) > 0:
             return ee.Feature(feat).toDictionary(self._output['output']).rename(self._output['alias']['result'],
                                                                           self._output['alias']['alias'])

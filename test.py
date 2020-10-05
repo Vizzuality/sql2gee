@@ -1,9 +1,13 @@
-import ee;
+import ee
+import os
+from sql2gee import SQL2GEE
 
-from .sql2gee import SQL2GEE
+EE_ACCOUNT = os.environ['EE_ACCOUNT']
+EE_PRIVATE_KEY_FILE = 'privatekey.json'
+gee_credentials = ee.ServiceAccountCredentials(EE_ACCOUNT, EE_PRIVATE_KEY_FILE)
+ee.Initialize(gee_credentials)
 
-ee.Initialize()
-from .utils.jsonSql import JsonSql
+from sql2gee.utils.jsonSql import JsonSql
 
 ### For debugging and testing
 # import pdb; pdb.set_trace()
@@ -19,14 +23,15 @@ from .utils.jsonSql import JsonSql
 
 ## Image Collection 
 
-# sql = "select count(pr), avg(tmmn) from 'IDAHO_EPSCOR/GRIDMET' where system:time_start > 284191200000 and ST_INTERSECTS(ST_SetSRID(ST_GeomFromGeoJSON('{\"type\":\"Polygon\",\"coordinates\":[[[-5.273512601852417,42.81137220349083],[-5.273512601852417,42.811803118457306],[-5.272732079029083,42.811803118457306],[-5.272732079029083,42.81137220349083],[-5.273512601852417,42.81137220349083]]]}'), 4326), the_geom) order by system:time_start asc limit 10"
-sql = "SELECT ST_HISTOGRAM(raster, lossyear, 15, true) FROM 'UMD/hansen/global_forest_change_2015'"
+sql = "select system:index, first(q25) as q25,first(q50) as q50, first(q75) as q75, mean(q75) as q75_mean from 'projects/resource-watch-gee/cli_051_nexgddp_annual_tasmin' where ST_INTERSECTS(ST_SetSRID(ST_GeomFromGeoJSON('{\"type\":\"Point\",\"coordinates\":[-110.22939224192194,19.986126139624318]}'),4326),the_geom) group by system:index"
+#sql = "SELECT ST_HISTOGRAM(raster, lossyear, 15, true) FROM 'UMD/hansen/global_forest_change_2015'"
+#sql = "select * from 'projects/resource-watch-gee/cli_051_nexgddp_annual_tasmin' limit 1"
 
 myQuery = SQL2GEE(JsonSql(sql).to_json())
 
 # pdb.run('myQuery.response()')
-# print(myQuery.metadata)
-print(myQuery.response)
+#print(myQuery.metadata)
+print(myQuery.response())
 
 # pr.disable()
 # pr.dump_stats('test_file')
