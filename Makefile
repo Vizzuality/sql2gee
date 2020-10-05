@@ -3,6 +3,11 @@
 
 PYTHON=`which python`
 
+# cli prefix for commands to run in container
+RUN_DOCK = \
+docker-compose up --build && docker-compose run --rm sql2gee sh -l -c
+
+.PHONY: shell, help, install, clean, test, release 
 default: help
 
 help:
@@ -10,7 +15,12 @@ help:
 	@sed -n '/^[a-zA-Z0-9_.]*:/s/:.*//p' <Makefile | sort
 
 install:
-	sudo pip install -e .
+	pip install -e .
+
+shell:
+	$(RUN_DOCK) "cd ~/sql2gee \
+		&& ([ -d "sql2gee" ] || ln -sf module "sql2gee") \
+		&& bash"
 
 test:
 	py.test -v
