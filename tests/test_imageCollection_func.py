@@ -68,3 +68,9 @@ def test_image_collection_group_by_query():
     response = SQL2GEE(JsonSql(sql).to_json(), geojson=r).response()
     assert len(response) == 10, "BASIC limit query incorrect"
     return
+
+def test_image_collection_group_by_with_geometry_where_condition():
+    sql = "select system:index, first(q25) as q25,first(q50) as q50, first(q75) as q75, mean(q75) as q75_mean from 'projects/resource-watch-gee/cli_051_nexgddp_annual_tasmin' where ST_INTERSECTS(ST_SetSRID(ST_GeomFromGeoJSON('{\"type\":\"Point\",\"coordinates\":[-110.22939224192194,19.986126139624318]}'),4326),the_geom) group by system:index"
+    response = SQL2GEE(JsonSql(sql).to_json()).response()
+    assert len(response) > 0, f"Empty response: {response}"
+    return
