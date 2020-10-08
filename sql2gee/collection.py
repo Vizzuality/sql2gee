@@ -106,6 +106,7 @@ class Collection(object):
         """
         # @debt: inside the reducers we will need to use setOutputs
         if len(self._output['alias']['result']) > 0 and type(img) is dict:
+            print(img['properties'])
             return ee.Dictionary(img['properties']).rename(self._output['alias']['result'], self._output['alias']['alias']).select(self._output['alias']['alias']).getInfo()
         elif (len(self._output['alias']['result']) > 0):
             return img.rename(self._output['alias']['result'], self._output['alias']['alias'])
