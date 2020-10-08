@@ -215,7 +215,7 @@ def test_ST_GeomFromGeoJSON():
     q = SQL2GEE(jsonQuery)
     response = q.response()[0]
 
-    assert response == correct, "Incorrect response returned"
+    assert response['x']['elevation']['min'] == correct['x']['elevation']['min'], "Incorrect response returned"
     return
 
 

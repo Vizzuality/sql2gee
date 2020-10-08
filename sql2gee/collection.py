@@ -85,7 +85,11 @@ class Collection(object):
                 if args['type'] == 'literal' and args['value'] in self.select['_columns'] or args['value'] in \
                         self.select['_bands']:
                     functionValue = 'mean' if function['value'] == 'avg' else function['value']
-                    functionName = '{0}_{1}'.format(args['value'], '_'.join([functionValue for x in range(0, n_times)]))
+                    if n_times > 1 or n_func > 1: # so if we have more than 1 reduction and more than one function
+                        functionName = '{0}_{1}'.format(args['value'], '_'.join([functionValue for x in range(0, n_times)]))
+                    else:
+                        functionName = args['value']
+
 
                     _Output["output"].append(functionName)
                     if function['alias']:
@@ -106,7 +110,6 @@ class Collection(object):
         """
         # @debt: inside the reducers we will need to use setOutputs
         if len(self._output['alias']['result']) > 0 and type(img) is dict:
-            print(img['properties'])
             return ee.Dictionary(img['properties']).rename(self._output['alias']['result'], self._output['alias']['alias']).select(self._output['alias']['alias']).getInfo()
         elif (len(self._output['alias']['result']) > 0):
             return img.rename(self._output['alias']['result'], self._output['alias']['alias'])
