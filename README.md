@@ -42,18 +42,8 @@ The JSON account key needs to be saved as a `privatekey.json` file at the root o
 Once both values are set, you can run the tests using tox: 
 
 ```bash
-tox
+pytest
 ```
-
-## Development
-
-To develop it with docker and docker compose,  execute: 
-`docker-compose -p sql2gee_4000 up --build && docker-compose run --rm sql2gee sh -l -c`
-and then
-
-or execute `make shell`
-
-Without docker and docker compose just `Make install`
 
 ### Notes
 

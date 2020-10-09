@@ -23,4 +23,3 @@ coverage.xml
 .env
 Dockerfile
 docker-compose.yml
-test.py
