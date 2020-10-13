@@ -18,6 +18,7 @@ Postgis-like operations, including returning summary statistics, and histogram d
 import ee
 from sql2gee import SQL2GEE
 from utils.jsonSql import JsonSql
+
 ee.Initialize()
 
 sql = "SELECT ST_HISTOGRAM(raster, lossyear, 15, true) FROM 'UMD/hansen/global_forest_change_2015'"
