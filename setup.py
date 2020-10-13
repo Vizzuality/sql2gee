@@ -10,7 +10,7 @@ tests_require = [
 ]
 
 setup(name='sql2gee',
-      version='0.4.1',
+      version='0.5.0',
       description='Library to convert SQL-like queries into Google Earth Engine syntax, and return the responses',
       author='Vizzuality',
       author_email='info@vizzuality.com',
