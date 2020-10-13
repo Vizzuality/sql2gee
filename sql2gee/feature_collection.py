@@ -13,10 +13,9 @@ class FeatureCollection(Collection):
                          geometry)
 
     def _mapOutputFList(self, feat):
-        if len(self._output['alias']['result']) > 0:
-            return feat.rename(self._output['alias']['result'], self._output['alias']['alias'])
-        # elif len(self._output["output"]) > 0:
-        #     return ee.Feature(feat).toDictionary(self._output['output'])
+        output = self.calculate_output_format(feat)
+        if len(output['alias']['result']) > 0:
+            return feat.rename(output['alias']['result'], output['alias']['alias'])
         else:
             return feat
 

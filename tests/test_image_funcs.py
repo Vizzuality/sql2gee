@@ -208,8 +208,12 @@ def test_ST_GeomFromGeoJSON():
                  [-43.17626953125,-4.806364708499984],
                  [-43.39599609375,-4.740675384778361]]]}'),4326), the_geom)"""
 
-    correct = {'x': {'elevation': {'count': 35205, 'sum': 3465299.4509803923, 'mean': 100.04437654442181,
-                                   'stdev': 21.970242559380736, 'min': 52, 'max': 172}}}
+    correct = {'x': {'elevation': {'count': 35205,
+                     'max': 172,
+                     'mean': 100.04437654442182,
+                     'min': 52,
+                     'stdev': 21.970242559380736,
+                     'sum': 3465299.4509803928}}}
 
     jsonQuery = JsonSql(sql).to_json()
     q = SQL2GEE(jsonQuery)

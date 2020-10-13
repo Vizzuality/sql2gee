@@ -37,11 +37,15 @@ class Collection(object):
         It gets *where* conditions and converts them in the proper filters.
         self.asset.filter(ee.Filter([ee.Filter.eq('scenario','historical'), ee.Filter.date('1996-01-01','1997-01-01')])).filterBounds(geometry)
         """
-        if 'where' in self._parsed and self._parsed['where']:
-            if self.geometry:
-                self._asset = self._asset.filter(self._filters['filter']).filterBounds(self.geometry)
-            else:
-                self._asset = self._asset.filter(self._filters['filter'])
+        if 'where' not in self._parsed or len(self._parsed['where']) == 0:
+            return self
+
+        if 'filter' in self._filters:
+            self._asset = self._asset.filter(self._filters['filter'])
+
+        if self.geometry:
+            self._asset = self._asset.filterBounds(self.geometry)
+
         return self
 
     def _sort(self):
@@ -62,8 +66,7 @@ class Collection(object):
 
         return self
 
-    @cached_property
-    def _output(self):
+    def calculate_output_format(self, value):
         """return dict output and alias arrays ordered"""
         _Output = {
             "output": [],
@@ -73,8 +76,6 @@ class Collection(object):
             },
         }
         n_func = len(set([f['value'] for f in self.select['_functions']['bands']]))
-        n_reduc = len(list(filter(None, self.reduceGen.values())))
-        n_times = n_reduc if n_func > 1 else 1
         # Function management
         for function in self.select['functions']:
             # the way GEE constructs the function values is <band/column>_<function(RImage/RColumn)>_<function(RRegion)>
@@ -83,12 +84,19 @@ class Collection(object):
                 if args['type'] == 'literal' and args['value'] in self.select['_columns'] or args['value'] in \
                         self.select['_bands']:
                     functionValue = 'mean' if function['value'] == 'avg' else function['value']
-                    functionName = '{0}_{1}'.format(args['value'], '_'.join([functionValue for x in range(0, n_times)]))
+                    for iterations in range(1, n_func + 2):
+                        temp_name = '{0}_{1}'.format(args['value'],
+                                                     '_'.join([functionValue for x in range(0, iterations)]))
+                        if 'properties' in value and temp_name in value['properties']:
+                            functionName = temp_name
+                            _Output["output"].append(functionName)
+                            if function['alias']:
+                                _Output["alias"]["result"].append(functionName)
+                                _Output["alias"]["alias"].append(function['alias'])
 
-                    _Output["output"].append(functionName)
-                    if function['alias']:
-                        _Output["alias"]["result"].append(functionName)
-                        _Output["alias"]["alias"].append(function['alias'])
+                            break
+                    # if functionName is None:
+                    #     raise Exception('Error: cannot calculate output format for column {}'.format(args['value']))
 
         # columns management
         for column in self.select['columns']:
@@ -99,20 +107,14 @@ class Collection(object):
                 _Output["alias"]["alias"].append(column['alias'])
         return _Output
 
-    def _mapOutputIList(self, img):
-        if len(self._output['alias']['result']) > 0:
-            return img.rename(self._output['alias']['result'], self._output['alias']['alias'])
-        # elif len(output["output"]) > 0:
-        #     return ee.Image(img['id']).toDictionary(output['output'])
-        else:
-            return img
-
     def _mapOutputFList(self, feat):
-        if len(self._output['alias']['result']) > 0:
-            return ee.Feature(feat).toDictionary(self._output['output']).rename(self._output['alias']['result'],
-                                                                          self._output['alias']['alias'])
-        elif len(self._output["output"]) > 0:
-            return ee.Feature(feat).toDictionary(self._output['output'])
+        output = self.calculate_output_format()
+
+        if len(output['alias']['result']) > 0:
+            return ee.Feature(feat).toDictionary(output['output']).rename(output['alias']['result'],
+                                                                          output['alias']['alias'])
+        elif len(output["output"]) > 0:
+            return ee.Feature(feat).toDictionary(output['output'])
         else:
             return ee.Feature(feat).toDictionary()
 

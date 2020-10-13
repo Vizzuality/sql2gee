@@ -58,15 +58,13 @@ class ImageCollection(Collection):
             return ee.ImageCollection(myList)
 
     def _ComputeReducer(self, img):
-
         reduction = img.reduceRegion(**self.reduceGen['reduceRegion'])
-        return ee.Feature(None, img.toDictionary().combine(reduction).combine(
-            img.toDictionary(['system:time_start', 'system:footprint', 'system:asset_size', 'system:index'])))
+        properties = img.toDictionary().combine(reduction).combine(img.toDictionary(['system:time_start', 'system:footprint', 'system:asset_size', 'system:index']))
+        return ee.Feature(None, properties)
 
     def _groupBy(self):
         # To do discern between group by columns/bands; bands aren't allowed if not group by and global agg there
         if self.reduceGen['reduceImage'] and 'group' in self._parsed:
-
             reducedIColl = self._collectionReducer()
             self._asset = ee.FeatureCollection(reducedIColl.map(self._ComputeReducer))
         elif self.reduceGen['reduceImage']:
@@ -74,6 +72,20 @@ class ImageCollection(Collection):
             self._asset = ee.FeatureCollection(self._ComputeReducer(ee.Image(reducedIColl)))
 
         return self
+
+    def _mapOutputIList(self, image):
+        output = self.calculate_output_format(image)
+        output_alias = output['alias']
+
+        if len(output_alias['result']) == 0:
+            image_dictionary = ee.Dictionary(image['properties'])
+            return image_dictionary.select(output['output']).getInfo()
+
+        if type(image) is dict:
+            image_dictionary = ee.Dictionary(image['properties'])
+            return image_dictionary.rename(output_alias['result'], output_alias['alias']).getInfo()
+        else:
+            return image.rename(output_alias['result'], output_alias['alias'])
 
     def response(self):
         """
