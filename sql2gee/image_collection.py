@@ -1,6 +1,8 @@
 import ee
 
 from .collection import Collection
+import logging 
+logger = logging.getLogger(__name__)
 
 
 class ImageCollection(Collection):
@@ -59,7 +61,7 @@ class ImageCollection(Collection):
 
     def _ComputeReducer(self, img):
         reduction = img.reduceRegion(**self.reduceGen['reduceRegion'])
-        properties = img.toDictionary().combine(reduction).combine(img.toDictionary(['system:time_start', 'system:footprint', 'system:asset_size', 'system:index']))
+        properties = img.toDictionary(img.propertyNames()).combine(reduction)#.combine(img.toDictionary(['system:time_start', 'system:footprint', 'system:asset_size', 'system:index','time_start','time_end']))
         return ee.Feature(None, properties)
 
     def _groupBy(self):
@@ -76,16 +78,17 @@ class ImageCollection(Collection):
     def _mapOutputIList(self, image):
         output = self.calculate_output_format(image)
         output_alias = output['alias']
-
         if len(output_alias['result']) == 0:
+            # image['properties']['system:id'] = image['id'] if 'id' in image.keys() else None
             image_dictionary = ee.Dictionary(image['properties'])
-            return image_dictionary.select(output['output']).getInfo()
+            return image_dictionary.select(output['output'], True).getInfo()
 
         if type(image) is dict:
+            image['properties']['system:id'] = image['id'] if 'id' in image.keys() else None
             image_dictionary = ee.Dictionary(image['properties'])
-            return image_dictionary.rename(output_alias['result'], output_alias['alias']).getInfo()
+            return image_dictionary.select(output['output'], True).rename(output_alias['result'], output_alias['alias']).getInfo()
         else:
-            return image.rename(output_alias['result'], output_alias['alias'])
+            return image.select(output['output'], True).rename(output_alias['result'], output_alias['alias'])
 
     def response(self):
         """
@@ -93,6 +96,7 @@ class ImageCollection(Collection):
         # ImageCollection.<filters>.<functions>.<sorts>.<imageReducers>.limit(n).getInfo()
         """
         result = self._initSelect()._where()._groupBy()._sort()._limit()._getInfo()
+        
         alias_mapped_results = [self._mapOutputIList(element) for element in result]
 
         return alias_mapped_results

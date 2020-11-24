@@ -20,3 +20,7 @@ tests/__pycache__/
 .pytest_cache/*
 .eggs
 coverage.xml
+.env
+Dockerfile
+docker-compose.yml
+test.py
