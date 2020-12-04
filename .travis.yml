@@ -1,6 +1,6 @@
 language: python
 python:
-  - "3.6"
+  - "3.8"
 cache: pip
 install:
   - pip install sphinx travis-sphinx sphinx_rtd_theme sphinxcontrib-inlinesyntaxhighlight tox-travis

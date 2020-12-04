@@ -96,7 +96,7 @@ class ImageCollection(Collection):
         # ImageCollection.<filters>.<functions>.<sorts>.<imageReducers>.limit(n).getInfo()
         """
         result = self._initSelect()._where()._groupBy()._sort()._limit()._getInfo()
-        
+        logger.error(result)
         alias_mapped_results = [self._mapOutputIList(element) for element in result]
 
         return alias_mapped_results
