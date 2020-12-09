@@ -1,10 +1,7 @@
 import ee
-import json
 from cached_property import cached_property
 
 from .utils.reduce import _reducers
-import logging 
-logger = logging.getLogger(__name__)
 
 
 class Collection(object):
@@ -33,10 +30,7 @@ class Collection(object):
         if geometry or self.type == 'FeatureCollection':
             return geometry
         else:
-            return ee.FeatureCollection(json.loads(
-                '{"type": "FeatureCollection","features":[{"type":"Feature", "properties": {}, "geometry": {"type":"Polygon", "coordinates": [[[-180,-90],[180,-90],[180,90],[-180,90],[-180,-90]]]}}]}').get(
-                'features'))          
-
+            return self._asset.geometry()
 
     def _where(self):
         """
@@ -82,7 +76,6 @@ class Collection(object):
             },
         }
         n_func = len(set([f['value'] for f in self.select['_functions']['bands']]))
-        
         # Function management
         for function in self.select['functions']:
             # the way GEE constructs the function values is <band/column>_<function(RImage/RColumn)>_<function(RRegion)>
@@ -91,10 +84,9 @@ class Collection(object):
                 if args['type'] == 'literal' and args['value'] in self.select['_columns'] or args['value'] in \
                         self.select['_bands']:
                     functionValue = 'mean' if function['value'] == 'avg' else function['value']
-                    for iterations in range(0, n_func + 2):
-                        temp_subname = '_'.join([functionValue for x in range(0, iterations)])
-                        temp_name = '{0}{1}'.format(args['value'],
-                                                f"_{temp_subname}" if temp_subname else '' )
+                    for iterations in range(1, n_func + 2):
+                        temp_name = '{0}_{1}'.format(args['value'],
+                                                     '_'.join([functionValue for x in range(0, iterations)]))
                         if 'properties' in value and temp_name in value['properties']:
                             functionName = temp_name
                             _Output["output"].append(functionName)

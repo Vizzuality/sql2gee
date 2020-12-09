@@ -15,9 +15,6 @@ install:
 test:
 	py.test -v
 
-dev:
-	docker-compose build && docker-compose up
-
 clean:
 	$(PYTHON) setup.py clean
 	find . -name '*.pyc' -delete

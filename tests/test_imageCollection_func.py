@@ -3,7 +3,6 @@ import sys
 
 import ee
 import requests
-#from datatest import validate, accepted
 
 from sql2gee import SQL2GEE
 from sql2gee.utils.jsonSql import JsonSql
@@ -279,7 +278,7 @@ def test_image_collection_group_by_with_geometry_where_clause_and_multiple_alias
     sql = "select min(slp) as min_slp, avg(slp) as average_slp from 'NCEP_RE/sea_level_pressure'  group by system:index limit 5"
     response = SQL2GEE(JsonSql(sql).to_json(), geojson=r).response()
     assert len(response) == 5
-    assert len(response[0].keys()) == 2
+    assert len(response[0].keys()) == 5
     assert "min_slp" in response[0].keys()
     assert "average_slp" in response[0].keys()
     return
@@ -289,17 +288,9 @@ def test_image_collection_group_by_with_geometry_where_clause_and_multiple_alias
     sql = "select first(slp) as first_slp, avg(slp) as average_slp from 'NCEP_RE/sea_level_pressure' where ST_INTERSECTS(ST_SetSRID(ST_GeomFromGeoJSON('{\"type\":\"Point\",\"coordinates\":[-110.22939224192194,19.986126139624318]}'),4326),the_geom) group by system:index limit 5"
     response = SQL2GEE(JsonSql(sql).to_json()).response()
     assert len(response) == 5
-    assert len(response[0].keys()) == 2
+    assert len(response[0].keys()) == 5
     assert "first_slp" in response[0].keys()
     assert "average_slp" in response[0].keys()
-    return
-
-def test_image_collection_group_by_without_where_clause_and_multiple_aliases():
-    sql = "select max(tmmx), avg(tmmx) as average_tmmx from 'IDAHO_EPSCOR/TERRACLIMATE' group by system:index limit 5"
-    response = SQL2GEE(JsonSql(sql).to_json()).response()
-    assert len(response) == 5
-    assert "tmmx_max" in response[0].keys()
-    assert "average_tmmx" in response[0].keys()
     return
 
 # TODO: currently failing with "Image.reduceRegion: Provide 'geometry' parameter when aggregating over an unbounded image"
