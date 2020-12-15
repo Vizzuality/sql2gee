@@ -32,7 +32,7 @@ class Collection(object):
         return _data[self.type](self._asset_id)
 
     def _geometry(self, geometry):
-        if geometry:
+        if geometry or self.type == 'FeatureCollection':
             return geometry
         return ee.FeatureCollection(json.loads(
             '{"type": "FeatureCollection","features":[{"type":"Feature", "properties": {}, "geometry": {"type":"Polygon", "coordinates": [[[-180,-90],[180,-90],[180,90],[-180,90],[-180,-90]]]}}]}').get(
@@ -72,6 +72,69 @@ class Collection(object):
 
         return self
 
+    def _reduce_image(self):
+        """ Construct a combined reducer dictionary and pass it to a ReduceRegion().getInfo() command.
+        If a geometry has been passed to SQL2GEE, it will be passed to ensure only a subset of the band is examined.
+        """
+        d = {
+            'reducer': ee.Reducer.count().combine(ee.Reducer.sum(), outputPrefix='', sharedInputs=True
+                                                  ).combine(ee.Reducer.mean(), outputPrefix='',
+                                                            sharedInputs=True).combine(
+                ee.Reducer.sampleStdDev(), outputPrefix='', sharedInputs=True).combine(ee.Reducer.min(),
+                                                                                       outputPrefix='',
+                                                                                       sharedInputs=True).combine(
+                ee.Reducer.max(), outputPrefix='',
+                sharedInputs=True),
+            'bestEffort': True,
+            'maxPixels': 9e8,
+            'tileScale': 10
+        }
+        if self.geometry:
+            d['geometry'] = self.geometry
+
+        return self._asset.select(self._bands_names).reduceRegion(**d).getInfo()
+
+    @property
+    def _bands_names(self):
+        return [band['id'] for band in self.metadata['bands']]
+
+    def _reduce_image(self, value):
+        """ Construct a combined reducer dictionary and pass it to a ReduceRegion().getInfo() command.
+        If a geometry has been passed to SQL2GEE, it will be passed to ensure only a subset of the band is examined.
+        """
+        result = {
+            'reducer': ee.Reducer.count().combine(ee.Reducer.sum(), outputPrefix='', sharedInputs=True
+                                                  ).combine(ee.Reducer.mean(), outputPrefix='',
+                                                            sharedInputs=True).combine(
+                ee.Reducer.sampleStdDev(), outputPrefix='', sharedInputs=True).combine(ee.Reducer.min(),
+                                                                                       outputPrefix='',
+                                                                                       sharedInputs=True).combine(
+                ee.Reducer.max(), outputPrefix='',
+                sharedInputs=True),
+            'bestEffort': True,
+            'maxPixels': 9e8,
+            'tileScale': 10
+        }
+        if self.geometry:
+            result['geometry'] = self.geometry
+
+        return ee.Image(value['id']).select(self._bands_names).reduceRegion(**result).getInfo()
+
+    def summary_stats(self, value):
+        """Return a dictionary object of summary stats like the postgis function ST_SUMMARYSTATS()."""
+        result = {}
+        for band in self._bands_names:
+            values = self._reduce_image(value)
+            result[band] = {
+                'count': values[band + '_count'],
+                'sum': values[band + '_sum'],
+                'mean': values[band + '_mean'],
+                'stdev': values[band + '_stdDev'],
+                'min': values[band + '_min'],
+                'max': values[band + '_max']
+            }
+        return result
+
     def calculate_output_format(self, value):
         """return dict output and alias arrays ordered"""
         _Output = {
@@ -80,31 +143,36 @@ class Collection(object):
                 "result": [],
                 "alias": []
             },
+            "functions": {}
         }
         n_func = len(set([f['value'] for f in self.select['_functions']['bands']]))
 
         # Function management
         for function in self.select['functions']:
-            # the way GEE constructs the function values is <band/column>_<function(RImage/RColumn)>_<function(RRegion)>
+            if function["value"].lower() == 'st_summarystats':
+                alias = function['alias'] if function['alias'] else function['value'].lower()
+                _Output["functions"][alias] = self.summary_stats(value)
+            else:
+                # the way GEE constructs the function values is <band/column>_<function(RImage/RColumn)>_<function(RRegion)>
 
-            for args in function['arguments']:
-                if args['type'] == 'literal' and args['value'] in self.select['_columns'] or args['value'] in \
-                        self.select['_bands']:
-                    functionValue = 'mean' if function['value'] == 'avg' else function['value']
-                    for iterations in range(0, n_func + 2):
-                        temp_subname = '_'.join([functionValue for x in range(0, iterations)])
-                        temp_name = '{0}{1}'.format(args['value'],
-                                                    f"_{temp_subname}" if temp_subname else '')
-                        if 'properties' in value and temp_name in value['properties']:
-                            functionName = temp_name
-                            _Output["output"].append(functionName)
-                            if function['alias']:
-                                _Output["alias"]["result"].append(functionName)
-                                _Output["alias"]["alias"].append(function['alias'])
+                for args in function['arguments']:
+                    if args['type'] == 'literal' and args['value'] in self.select['_columns'] or args['value'] in \
+                            self.select['_bands']:
+                        functionValue = 'mean' if function['value'] == 'avg' else function['value']
+                        for iterations in range(0, n_func + 2):
+                            temp_subname = '_'.join([functionValue for x in range(0, iterations)])
+                            temp_name = '{0}{1}'.format(args['value'],
+                                                        f"_{temp_subname}" if temp_subname else '')
+                            if 'properties' in value and temp_name in value['properties']:
+                                functionName = temp_name
+                                _Output["output"].append(functionName)
+                                if function['alias']:
+                                    _Output["alias"]["result"].append(functionName)
+                                    _Output["alias"]["alias"].append(function['alias'])
 
-                            break
-                    # if functionName is None:
-                    #     raise Exception('Error: cannot calculate output format for column {}'.format(args['value']))
+                                break
+                        # if functionName is None:
+                        #     raise Exception('Error: cannot calculate output format for column {}'.format(args['value']))
 
         # columns management
         for column in self.select['columns']:

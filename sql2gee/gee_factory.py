@@ -297,7 +297,7 @@ class GeeFactory(object):
         if self.type == 'IMAGE':
             return Image(self.sql, self.json, self._select, self._filter, self._asset_id, self.metadata, geom).response()
         elif self.type == 'IMAGE_COLLECTION':
-            return ImageCollection(self.json, self._select, self._filter, self._asset_id, geom).response()
+            return ImageCollection(self.json, self._select, self._filter, self._asset_id, self.metadata, geom).response()
         elif self.type == 'FEATURE_COLLECTION' or self.type == 'TABLE':
             return FeatureCollection(self.json, self._select, self._filter, self._asset_id, geom).response()
         else:
