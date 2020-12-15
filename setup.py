@@ -6,8 +6,7 @@ install_requires = [
 ]
 
 tests_require = [
-    'pytest==6.0.2',
-    'datatest==0.9.6'
+    'pytest==6.0.2'
 ]
 
 setup(name='sql2gee',
