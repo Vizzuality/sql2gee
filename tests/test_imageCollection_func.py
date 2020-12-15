@@ -3,7 +3,7 @@ import sys
 
 import ee
 import requests
-#from datatest import validate, accepted
+from datatest import validate, accepted
 
 from sql2gee import SQL2GEE
 from sql2gee.utils.jsonSql import JsonSql
