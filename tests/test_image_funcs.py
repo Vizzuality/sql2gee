@@ -1,5 +1,6 @@
 import os
 import sys
+
 import ee
 import requests
 
@@ -131,7 +132,7 @@ def test_ST_HISTORGRAM_keywords_reversed():
     return
 
 
-def test_STSUMMARYSTATS():
+def test_ST_SUMMARYSTATS():
     """Check an expected dictionary is returned via the ST_SUMMARYSTATS() keyword"""
     expected = [{u'st_summarystats': {u'elevation': {'count': 2747198,
                                                      'max': 7159,
@@ -145,7 +146,7 @@ def test_STSUMMARYSTATS():
     return
 
 
-def test_STSUMMARYSTATS_with_area_restriction_from_geojson_polygon():
+def test_ST_SUMMARYSTATS_with_area_restriction_from_geojson_polygon():
     """First, I need to construct a simple polygon out of multipolygon data, and pass that to SQL2GEE"""
     expected = [{u'st_summarystats': {
         u'elevation': {'count': 4, 'min': 1041, 'max': 1051, 'sum': 505.6705882352941, 'stdev': 4.272001872658765,
@@ -161,7 +162,7 @@ def test_STSUMMARYSTATS_with_area_restriction_from_geojson_polygon():
     return
 
 
-def test_STSUMMARYSTATS_with_area_restriction_via_passing_geojson_multipolygon():
+def test_ST_SUMMARYSTATS_with_area_restriction_via_passing_geojson_multipolygon():
     """If a geojson argument is passed to SQL2GEE it should be converted into an Earth Engine Feature Collection.
     This should then be used to subset the area considered for results."""
     # Get a test geojson object by accessing Vizzuality's geostore
@@ -209,17 +210,28 @@ def test_ST_GeomFromGeoJSON():
                  [-43.39599609375,-4.740675384778361]]]}'),4326), the_geom)"""
 
     correct = {'x': {'elevation': {'count': 35205,
-                     'max': 172,
-                     'mean': 100.04437654442182,
-                     'min': 52,
-                     'stdev': 21.970242559380736,
-                     'sum': 3465299.4509803928}}}
+                                   'max': 172,
+                                   'mean': 100.04437654442182,
+                                   'min': 52,
+                                   'stdev': 21.970242559380736,
+                                   'sum': 3465299.4509803928}}}
 
     jsonQuery = JsonSql(sql).to_json()
     q = SQL2GEE(jsonQuery)
     response = q.response()[0]
 
-    assert response['x']['elevation']['max'] == correct['x']['elevation']['max'], "Incorrect response returned"
+    assert round(response['x']['elevation']['max'], 2) == round(correct['x']['elevation']['max'],
+                                                                2), "Incorrect response returned"
+    assert round(response['x']['elevation']['count'], 2) == round(correct['x']['elevation']['count'],
+                                                                  2), "Incorrect response returned"
+    assert round(response['x']['elevation']['min'], 2) == round(correct['x']['elevation']['min'],
+                                                                2), "Incorrect response returned"
+    assert round(response['x']['elevation']['mean'], 2) == round(correct['x']['elevation']['mean'],
+                                                                 2), "Incorrect response returned"
+    assert round(response['x']['elevation']['sum'], 2) == round(correct['x']['elevation']['sum'],
+                                                                2), "Incorrect response returned"
+    assert round(response['x']['elevation']['stdev'], 2) == round(correct['x']['elevation']['stdev'],
+                                                                  2), "Incorrect response returned"
     return
 
 
@@ -230,7 +242,7 @@ def test_auto_bug():
     try:
         _ = q.response()
     except:
-        # If the response failed to retun fail this test...
+        # If the response failed to return fail this test...
         assert q.response() == None
     return
 

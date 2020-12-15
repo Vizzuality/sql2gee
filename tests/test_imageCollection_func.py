@@ -69,6 +69,8 @@ def test_image_collection_where_query():
     sql = "select status from 'IDAHO_EPSCOR/GRIDMET' where status='permanent' limit 10"
     response = SQL2GEE(JsonSql(sql).to_json()).response()
     assert len(response) == 10, "BASIC limit query incorrect"
+    assert "status" in response[0].keys()
+    assert len(response[0].keys()) == 1
     return
 
 
@@ -76,6 +78,8 @@ def test_image_collection_order_by_query():
     sql = "select status from 'IDAHO_EPSCOR/GRIDMET' where status='permanent' order by system:time_start desc, system:asset_size asc limit 10"
     response = SQL2GEE(JsonSql(sql).to_json()).response()
     assert len(response) == 10, "BASIC limit query incorrect"
+    assert "status" in response[0].keys()
+    assert len(response[0].keys()) == 1, "Response column count incorrect"
     return
 
 
@@ -85,7 +89,7 @@ def test_image_collection_simple_agg_query():
     sql = "select sum(pr) from 'IDAHO_EPSCOR/GRIDMET' where system:time_start > 1522548800000 "
     response = SQL2GEE(JsonSql(sql).to_json(), geojson=r).response()
     assert "pr_sum" in response[0].keys()
-    assert len(response[0].keys()) == 1
+    assert len(response[0].keys()) == 1, "Response column count incorrect"
     return
 
 
@@ -96,7 +100,7 @@ def test_image_collection_2_agg_geostore_query():
     response = SQL2GEE(JsonSql(sql).to_json(), geojson=r).response()
     assert "pr_sum_sum" in response[0].keys()
     assert "tmmn_mean_mean" in response[0].keys()
-    assert len(response[0].keys()) == 2
+    assert len(response[0].keys()) == 2, "Response column count incorrect"
     return
 
 
@@ -108,7 +112,7 @@ def test_image_collection_3_agg_geostore_query():
     assert "pr_sum_sum" in response[0].keys()
     assert "tmmn_mean_mean" in response[0].keys()
     assert "tmmn_min_min" in response[0].keys()
-    assert len(response[0].keys()) == 3
+    assert len(response[0].keys()) == 3, "Response column count incorrect"
     return
 
 
@@ -119,8 +123,9 @@ def test_image_collection_4_agg_geostore_query():
     response = SQL2GEE(JsonSql(sql).to_json(), geojson=r).response()
     assert "pr_sum_sum" in response[0].keys()
     assert "tmmn_mean_mean" in response[0].keys()
+    assert "tmmn_min_min" in response[0].keys()
     assert "tmmx_max_max" in response[0].keys()
-    assert len(response[0].keys()) == 4
+    assert len(response[0].keys()) == 4, "Response column count incorrect"
     return
 
 
@@ -129,9 +134,11 @@ def test_image_collection_agg_timeFilter_query():
     geostore = "https://api.resourcewatch.org/v1/geostore/46e0617e8d2000bd3c36e9e92bb5a35b"
     r = requests.get(geostore).json().get('data').get('attributes').get('geojson')
     sql = "select sum(pr), avg(tmmn) from 'IDAHO_EPSCOR/GRIDMET' where system:time_start > '05-01-2017' order by system:time_start asc limit 10"
-    q = SQL2GEE(JsonSql(sql).to_json(), geojson=r).response()
-    response = 1
-    assert len(q) == response, "BASIC limit query incorrect"
+    response = SQL2GEE(JsonSql(sql).to_json(), geojson=r).response()
+    assert len(response) == 1, "BASIC limit query incorrect"
+    assert "pr_sum_sum" in response[0].keys()
+    assert "tmmn_mean_mean" in response[0].keys()
+    assert len(response[0].keys()) == 2, "Response column count incorrect"
     return
 
 
@@ -141,6 +148,8 @@ def test_image_collection_group_by_query():
     sql = "select sum(water) from 'JRC/GSW1_2/MonthlyHistory' where system:time_start > '05-01-2013' group by month order by system:time_start asc limit 10"
     response = SQL2GEE(JsonSql(sql).to_json(), geojson=r).response()
     assert len(response) == 10, "BASIC limit query incorrect"
+    assert len(response[0].keys()) == 1, "Response column count incorrect"
+    assert "water_sum" in response[0].keys()
     return
 
 
@@ -261,8 +270,8 @@ def test_image_collection_group_by_with_geometry_where_clause():
     sql = "select first(slp) as calculated_slp, system:asset_size from 'NCEP_RE/sea_level_pressure' where ST_INTERSECTS(ST_SetSRID(ST_GeomFromGeoJSON('{\"type\":\"Point\",\"coordinates\":[-110.22939224192194,19.986126139624318]}'),4326),the_geom) group by system:asset_size limit 5"
     response = SQL2GEE(JsonSql(sql).to_json()).response()
     assert len(response) == 5
+    assert len(response[0].keys()) == 2, "Response column count incorrect"
     assert "calculated_slp" in response[0].keys()
-    assert "system:asset_size" in response[0].keys()
     assert "system:asset_size" in response[0].keys()
     assert response == [{'calculated_slp': 9.223372036854776e+18, 'system:asset_size': 34},
                         {'calculated_slp': 101500, 'system:asset_size': 12575},
@@ -277,8 +286,8 @@ def test_image_collection_group_by_with_geometry_where_clause_and_multiple_alias
     r = requests.get(geostore).json().get('data').get('attributes').get('geojson')
     sql = "select min(slp) as min_slp, avg(slp) as average_slp from 'NCEP_RE/sea_level_pressure'  group by system:index limit 5"
     response = SQL2GEE(JsonSql(sql).to_json(), geojson=r).response()
-    assert len(response) == 5
-    assert len(response[0].keys()) == 2
+    assert len(response) == 5, "Response count incorrect"
+    assert len(response[0].keys()) == 2, "Response column count incorrect"
     assert "min_slp" in response[0].keys()
     assert "average_slp" in response[0].keys()
     return
@@ -287,8 +296,8 @@ def test_image_collection_group_by_with_geometry_where_clause_and_multiple_alias
 def test_image_collection_group_by_with_geometry_where_clause_and_multiple_aliases_for_first_and_avg():
     sql = "select first(slp) as first_slp, avg(slp) as average_slp from 'NCEP_RE/sea_level_pressure' where ST_INTERSECTS(ST_SetSRID(ST_GeomFromGeoJSON('{\"type\":\"Point\",\"coordinates\":[-110.22939224192194,19.986126139624318]}'),4326),the_geom) group by system:index limit 5"
     response = SQL2GEE(JsonSql(sql).to_json()).response()
-    assert len(response) == 5
-    assert len(response[0].keys()) == 2
+    assert len(response) == 5, "Response count incorrect"
+    assert len(response[0].keys()) == 2, "Response column count incorrect"
     assert "first_slp" in response[0].keys()
     assert "average_slp" in response[0].keys()
     return
@@ -297,6 +306,7 @@ def test_image_collection_group_by_without_where_clause_and_multiple_aliases():
     sql = "select max(tmmx), avg(tmmx) as average_tmmx from 'IDAHO_EPSCOR/TERRACLIMATE' group by system:index limit 5"
     response = SQL2GEE(JsonSql(sql).to_json()).response()
     assert len(response) == 5
+    assert len(response[0].keys()) == 2, "Response column count incorrect"
     assert "tmmx_max" in response[0].keys()
     assert "average_tmmx" in response[0].keys()
     return

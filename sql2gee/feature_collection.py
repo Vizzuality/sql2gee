@@ -12,6 +12,9 @@ class FeatureCollection(Collection):
         super().__init__(json['data']['attributes']['jsonSql'], select, filters, asset_id, 'FeatureCollection',
                          geometry)
 
+    def _geometry(self, geometry):
+        return geometry
+
     def _mapOutputFList(self, feat):
         output = self.calculate_output_format(feat)
         if len(output['alias']['result']) > 0:
